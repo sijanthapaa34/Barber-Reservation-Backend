@@ -1,0 +1,56 @@
+### Maven ###
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+### STS (Spring Tool Suite) ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings/
+.springBeans
+.sts4-cache/
+
+### IntelliJ IDEA ###
+.idea/
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+/build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+
+### Logs and temporary files ###
+*.log
+*.tmp
+*.bak
+*.swp
+
+### OS-specific ###
+.DS_Store
+Thumbs.db
+
+### Ignore configuration files (optional) ###
+# If you have sensitive data in application.properties or .env
+src/main/resources/application.properties
+src/main/resources/application.yml
+.env
+
+# But allow placeholder or sample configs
+!src/main/resources/application-example.properties
+!src/main/resources/application-example.yml
+
+### Allow .gitignore itself ###
+!.gitignore
