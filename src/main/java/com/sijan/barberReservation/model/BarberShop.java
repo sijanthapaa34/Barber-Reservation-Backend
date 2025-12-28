@@ -36,6 +36,6 @@ public class BarberShop {
 
     private boolean active = true;
 
-    @OneToMany(mappedBy = "barberShop", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "barberShop", cascade = CascadeType.ALL)
     private List<Barber> barbers;
 }
