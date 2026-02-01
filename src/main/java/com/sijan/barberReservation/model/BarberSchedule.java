@@ -16,13 +16,9 @@ public class BarberSchedule {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    private DayOfWeek day; // MONDAY, TUESDAY etc.
-
+    private DayOfWeek day;
     private LocalTime startTime;
     private LocalTime endTime;
-
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     private Barber barber;
-
 }

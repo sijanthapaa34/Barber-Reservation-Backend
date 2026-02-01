@@ -1,14 +1,20 @@
 package com.sijan.barberReservation.controller;
 
 import com.sijan.barberReservation.DTO.user.BarberDTO;
-import com.sijan.barberReservation.DTO.appointment.AvailableSlotsResponseDTO;
 import com.sijan.barberReservation.DTO.appointment.DetailsDTO;
 import com.sijan.barberReservation.DTO.user.ChangePasswordRequest;
 import com.sijan.barberReservation.DTO.user.LeaveRequestDTO;
+import com.sijan.barberReservation.DTO.user.RegisterBarberRequest;
 import com.sijan.barberReservation.DTO.user.UpdateUserRequest;
+import com.sijan.barberReservation.mapper.appointment.AppointmentDetailsMapper;
+import com.sijan.barberReservation.mapper.user.BarberMapper;
+import com.sijan.barberReservation.mapper.user.UpdateUserRequestMapper;
+import com.sijan.barberReservation.model.Appointment;
+import com.sijan.barberReservation.model.Barber;
 import com.sijan.barberReservation.model.UserPrincipal;
 import com.sijan.barberReservation.service.BarberService;
 import com.sijan.barberReservation.service.AppointmentService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -23,40 +29,59 @@ public class BarberController {
 
     private final BarberService barberService;
     private final AppointmentService appointmentService;
+    private final BarberMapper barberMapper;
+    private final AppointmentDetailsMapper appointmentMapper;
+    private final UpdateUserRequestMapper requestMapper;
 
-    public BarberController (BarberService barberService, AppointmentService appointmentService) {
+    public BarberController (BarberService barberService, AppointmentService appointmentService, BarberMapper barberMapper, AppointmentDetailsMapper appointmentMapper, UpdateUserRequestMapper requestMapper) {
         this.barberService = barberService;
         this.appointmentService = appointmentService;
+        this.barberMapper = barberMapper;
+        this.appointmentMapper = appointmentMapper;
+        this.requestMapper = requestMapper;
     }
 
-    // GET /api/barbers/me - Get current barber profile
-    @GetMapping("/me")
-    public ResponseEntity<BarberDTO> getMyProfile() {
-        String email = getCurrentUserEmail();
-        BarberDTO dto = barberService.getBarberProfile(email);
-        return ResponseEntity.ok(dto);
+    @GetMapping("/{id}")
+    public ResponseEntity<BarberDTO> getMyProfile(@PathVariable Long id) {
+        Barber barber = barberService.findById(id);
+        return ResponseEntity.ok(barberMapper.toDTO(barber));
     }
 
-    // PUT /api/barbers/me - Update barber profile (name, phone, bio)
     @PutMapping("/me")
     public ResponseEntity<BarberDTO> updateMyProfile(
-            @RequestBody UpdateUserRequest request) {
-        String email = getCurrentUserEmail();
-        BarberDTO updated = barberService.updateBarberProfile(email, request);
+            @RequestBody UpdateUserRequest req) {
+        Barber barber = requestMapper.toEntity(req);
+        BarberDTO updated = barberMapper.toDTO(barberService.updateBarberProfile(barber));
         return ResponseEntity.ok(updated);
     }
 
-    // GET /api/barbers/me/appointments - Get today's appointments
-    @GetMapping("/me/appointments")
-    public ResponseEntity<List<DetailsDTO>> getTodayAppointments(
-            @RequestParam(required = false) LocalDate date) {
-        String email = getCurrentUserEmail();
-        LocalDate targetDate = (date != null) ? date : LocalDate.now();
-        List<DetailsDTO> appointments = appointmentService.getBarberAppointments(email, targetDate);
-        return ResponseEntity.ok(appointments);
+    @PostMapping("/{barbershopId}/barbers")
+    public ResponseEntity<BarberDTO> register(
+            @RequestHeader("X-User-ID") Long adminId,
+            @PathVariable Long barbershopId,
+            @RequestBody RegisterBarberRequest request) {
+        Barber barber = barberMapper.toEntity(request);
+        BarberDTO newBarber = barberMapper.toDTO(barberService.register(adminId, barbershopId, barber));
+        return ResponseEntity.ok(newBarber);
     }
 
-    // POST /api/barbers/me/leave - Apply for leave
+    @GetMapping("/{id}/appointments")
+    public ResponseEntity<List<DetailsDTO>> getTodayAppointments(@PathVariable Long id,
+            @RequestParam(required = false) LocalDate date) {
+        Barber barber = barberService.findById(id);
+        List<Appointment> appointments = appointmentService.getBarberAppointments(barber, date);
+        return ResponseEntity.ok(appointmentMapper.toDetailsDTO(appointments));
+    }
+
+    // Get all barbers for a barbershop
+    @GetMapping("/{barbershopId}/barbers")
+    public ResponseEntity<List<BarberDTO>> getAllBarbers(
+            @RequestHeader("X-User-ID") Long adminId,
+            @PathVariable Long barbershopId) {
+        List<Barber> barbers = barberService.getAll(adminId, barbershopId);
+        return ResponseEntity.ok(barberMapper.toDTOs(barbers));
+    }
+
     @PostMapping("/me/leave")
     public ResponseEntity<String> applyForLeave(
             @RequestBody LeaveRequestDTO request) {
@@ -75,7 +100,6 @@ public class BarberController {
     }
 
 
-    // POST /api/barbers/me/change-password - Change barber password
     @PutMapping("/me/change-password")
     public ResponseEntity<Void> changePassword(
             @RequestBody ChangePasswordRequest request) {

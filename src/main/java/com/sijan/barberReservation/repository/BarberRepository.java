@@ -1,13 +1,16 @@
 package com.sijan.barberReservation.repository;
 
 import com.sijan.barberReservation.model.Barber;
+import com.sijan.barberReservation.model.BarberShop;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
 public interface BarberRepository extends JpaRepository<Barber, Long> {
     Optional<Barber> findByEmail(String email);
 
+    List<Barber> findByBarbershop(BarberShop barbershop);
 }

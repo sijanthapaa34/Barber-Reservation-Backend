@@ -7,7 +7,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 public interface BarberLeaveRepository extends JpaRepository<BarberLeave, Long> {
-    List<BarberLeave> findByEmail(String mail);
-
+//    List<BarberLeave> findByEmail(String mail);
     List<BarberLeave> findByStatus(LeaveStatus status);
 }

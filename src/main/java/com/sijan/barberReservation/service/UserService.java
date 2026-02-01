@@ -1,12 +1,13 @@
 package com.sijan.barberReservation.service;
 
-import com.sijan.barberReservation.DTO.user.RegisterBarberRequest;
-import com.sijan.barberReservation.DTO.user.RegisterCustomerRequest;
+import com.sijan.barberReservation.model.Admin;
 import com.sijan.barberReservation.model.Barber;
+import com.sijan.barberReservation.model.BarberShop;
 import com.sijan.barberReservation.model.Customer;
 import com.sijan.barberReservation.model.Roles;
 import com.sijan.barberReservation.model.User;
 import com.sijan.barberReservation.repository.BarberRepository;
+import com.sijan.barberReservation.repository.BarberShopRepository;
 import com.sijan.barberReservation.repository.CustomerRepository;
 import com.sijan.barberReservation.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -34,45 +35,42 @@ public class UserService {
         return userRepository.findByEmail(email);
     }
 
-    public Customer registerCustomer(RegisterCustomerRequest req) {
-        if (userRepository.findByEmail(req.getEmail()) != null) {
+    public Customer registerCustomer(Customer customer) {
+        if (userRepository.findByEmail(customer.getEmail()) != null) {
             throw new RuntimeException("Email already registered");
         }
-        String encodedPassword = passwordEncoder.encode(req.getPassword());
-
-        Customer customer = new Customer();
-        customer.setName(req.getName());
-        customer.setEmail(req.getEmail());
-        customer.setPhone(req.getPhone());
+        String rawPassword = customer.getPassword();
+        String encodedPassword = passwordEncoder.encode(rawPassword);
         customer.setPassword(encodedPassword);
-        customer.setRole(Roles.CUSTOMER);
-        customer.setPreferences(req.getPreferences());
-        customer.setCreatedAt(LocalDateTime.now());
 
         return customerRepository.save(customer);
     }
 
-    public Barber registerBarber(RegisterBarberRequest req, Long adminId) {
-        userRepository.findById(adminId).ifPresentOrElse(admin -> {
-            if (admin.getRole() != Roles.ADMIN) {
-                throw new RuntimeException("Only admin can register barbers");
-            }
-        }, () -> {
-            throw new RuntimeException("Admin not found");
-        });
+    public Barber registerBarber(Barber barber, BarberShop shop) {
+        if(userRepository.existsByEmail(barber.getEmail())) {
+            throw new RuntimeException("User with this email already exists");
+        }
 
-        userRepository.findByEmail(req.getEmail());
-
-        Barber barber = new Barber();
-        barber.setName(req.getName());
-        barber.setEmail(req.getEmail());
-        barber.setPhone(req.getPhone());
-        barber.setPassword(req.getPassword());
-        barber.setBio(req.getBio());
-        barber.setExperienceYears(req.getExperienceYears());
-        barber.setRole(Roles.BARBER);
-        barber.setCreatedAt(LocalDateTime.now());
-
+        String rawPassword = barber.getPassword();
+        String encodedPassword = passwordEncoder.encode(rawPassword);
+        barber.setPassword(encodedPassword);
+        barber.setBarbershop(shop);
         return barberRepository.save(barber);
     }
+
+//    public BarberShop registerBarberShop(Admin shopAdmin, Long adminId) {
+//        userRepository.findById(adminId).ifPresentOrElse(admin -> {
+//            if (admin.getRole() != Roles.ADMIN) {
+//                throw new RuntimeException("Only admin can register barbers");
+//            }
+//        }, () -> {
+//            throw new RuntimeException("Admin not found");
+//        });
+//
+//        String rawPassword = shopAdmin.getPassword();
+//        String encodedPassword = passwordEncoder.encode(rawPassword);
+//        shopAdmin.setPassword(encodedPassword);
+//
+//        return barberShopRepository.save(shopAdmin);
+//    }
 }

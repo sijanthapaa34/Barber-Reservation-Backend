@@ -4,9 +4,11 @@ import com.sijan.barberReservation.DTO.user.ChangePasswordRequest;
 import com.sijan.barberReservation.DTO.user.CustomerDTO;
 import com.sijan.barberReservation.DTO.user.UpdateUserRequest;
 import com.sijan.barberReservation.DTO.user.UserRegistrationRequest;
+import com.sijan.barberReservation.model.Barber;
 import com.sijan.barberReservation.model.Customer;
 import com.sijan.barberReservation.model.Roles;
 import com.sijan.barberReservation.repository.*;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -15,62 +17,51 @@ import java.time.LocalDateTime;
 public class CustomerService {
 
     private final CustomerRepository customerRepository;
-    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public CustomerService(CustomerRepository customerRepository, UserRepository userRepository) {
+    public CustomerService(CustomerRepository customerRepository, PasswordEncoder passwordEncoder) {
         this.customerRepository = customerRepository;
-        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
-    public CustomerDTO getCustomerProfile(String email) {
-        Customer customer = customerRepository.findByEmail(email)
+    public Customer findById(Long id){
+        return customerRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Customer not found"));
-        CustomerDTO customerDTO = new CustomerDTO();
-        customerDTO.setName(customer.getName());
-        customerDTO.setEmail(customer.getEmail());
-        customerDTO.setPhone(customer.getPhone());
-        customerDTO.setPoints(customer.getPoints());
-        customerDTO.setCreatedAt(customer.getCreatedAt());
-
-        return customerDTO;
+    }
+    public Customer findByEmail(String email){
+        return customerRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Customer not found"));
     }
 
-    public CustomerDTO updateCustomerProfile(String email, UpdateUserRequest request) {
+    public Customer getCustomerProfile(String email) {
+        return customerRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Customer not found"));
+    }
+
+    public Customer updateCustomerProfile(String email, UpdateUserRequest request) {
         Customer customer = customerRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Customer not found"));
         customer.setName(request.getName());
         customer.setPhone(request.getPhone());
         customer.setEmail(request.getEmail());
 
-        customerRepository.save(customer);
-
-        CustomerDTO customerDTO = new CustomerDTO();
-        customerDTO.setName(customer.getName());
-        customerDTO.setEmail(customer.getEmail());
-        customerDTO.setPhone(customer.getPhone());
-        customerDTO.setPoints(customer.getPoints());
-        customerDTO.setCreatedAt(customer.getCreatedAt());
-
-        return customerDTO;
+        return customerRepository.save(customer);
     }
 
-    public void changePassword(String email, ChangePasswordRequest request) {
+    public void changePassword(String mail, ChangePasswordRequest request) {
         if (!request.getNewPassword().equals(request.getConfirmPassword())) {
             throw new RuntimeException("New passwords do not match");
         }
 
-        Customer customer = customerRepository.findByEmail(email)
+        Customer customer = customerRepository.findByEmail(mail)
                 .orElseThrow(() -> new RuntimeException("Customer not found"));
 
-        // In real system, compare encoded password using encoder.matches()
-        // For now, assuming raw password check (not secure — just example)
-        if (!customer.getPassword().equals(request.getCurrentPassword())) {
+        if (!passwordEncoder.matches(request.getCurrentPassword(), customer.getPassword())) {
             throw new RuntimeException("Current password is incorrect");
         }
 
-        // Encode and save new password
-//        String encodedPassword = passwordEncoder.encode(request.getNewPassword());
-//        customer.setPassword(encodedPassword);
+        String encodedNewPassword = passwordEncoder.encode(request.getNewPassword());
+        customer.setPassword(encodedNewPassword);
         customerRepository.save(customer);
     }
 }

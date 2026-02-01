@@ -1,4 +1,4 @@
-package com.sijan.barberReservation.DTO.user;
+package com.sijan.barberReservation.DTO.appointment;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -7,9 +7,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class ServiceDTO {
-
+public class ServiceItemDTO {
     private String name;
-    private int durationMinutes;
     private Double price;
 }
