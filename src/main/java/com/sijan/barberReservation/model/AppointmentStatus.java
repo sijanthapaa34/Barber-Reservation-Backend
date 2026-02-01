@@ -1,12 +1,5 @@
 package com.sijan.barberReservation.model;
 
 public enum AppointmentStatus {
-    PENDING,
-    CONFIRMED,
-    RESCHEDULED,
-    COMPLETED,
-    CANCELED,
-    NO_SHOW,
-    BOOKED,       // add this
-    AVAILABLE
+    SCHEDULED, CONFIRMED, IN_PROGRESS, COMPLETED, CANCELLED, NO_SHOW
 }

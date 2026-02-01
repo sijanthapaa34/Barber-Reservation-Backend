@@ -12,5 +12,5 @@ public class FrequentCustomerDTO {
     private String name;
     private String email;
     private int totalBookings;
-    private Double points;
+    private Integer points;
 }

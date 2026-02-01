@@ -1,6 +1,8 @@
 package com.sijan.barberReservation.controller;
 
 
+import com.sijan.barberReservation.DTO.service.ServiceDTO;
+import com.sijan.barberReservation.DTO.service.ServiceRequest;
 import com.sijan.barberReservation.DTO.user.*;
 import com.sijan.barberReservation.model.LeaveStatus;
 import com.sijan.barberReservation.service.AdminService;
@@ -31,8 +33,9 @@ public class AdminController {
     // GET /api/admin/barbers - Get all barbers (with status)
     @GetMapping("/barbers")
     public ResponseEntity<List<BarberDTO>> getAllBarbers(
-            @RequestHeader("X-User-ID") Long adminId) {
-        List<BarberDTO> barbers = adminService.getAllBarbers(adminId);
+            @RequestHeader("X-User-ID") Long adminId
+    ) {
+        List<BarberDTO> barbers = adminService.getAllBarbers();
         return ResponseEntity.ok(barbers);
     }
 

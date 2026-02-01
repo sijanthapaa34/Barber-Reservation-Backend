@@ -10,20 +10,14 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class AppointmentLog {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
     @OneToOne
     private Appointment appointment;
-
     @Enumerated(EnumType.STRING)
-    private AppointmentStatus action; // e.g., BOOKED, CANCELED, RESCHEDULED, CHECKED_IN
-
-    private String description; // optional extra info
-
+    private AppointmentStatus action;
+    private String description;
     private LocalDateTime timestamp = LocalDateTime.now();
-
-    private String performedBy; // userId or "SYSTEM"
+    private String performedBy;
 }
