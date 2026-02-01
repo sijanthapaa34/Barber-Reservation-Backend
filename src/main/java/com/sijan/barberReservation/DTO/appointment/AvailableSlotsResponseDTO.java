@@ -16,7 +16,8 @@ import java.util.List;
 public class AvailableSlotsResponseDTO {
     private LocalDate date;
     private String barberName;
-    private String serviceName;
+    private String barberShop;
+    private List<String> serviceName;
     private Duration serviceDuration;
     private List<TimeSlotDTO> availableSlots;
     private List<TimeSlotDTO> bookedSlots;

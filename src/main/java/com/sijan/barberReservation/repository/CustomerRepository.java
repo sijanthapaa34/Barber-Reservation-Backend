@@ -12,7 +12,6 @@ import java.util.Optional;
 @Repository
 public interface CustomerRepository extends JpaRepository<Customer, Long> {
     List<Customer> findTop5ByRoleOrderByTotalBookingsDesc(Roles role);
-
     Optional<Customer> findByEmail(String email);
 }
 

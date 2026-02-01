@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -13,8 +14,8 @@ public class DetailsDTO {
 
     private String customerName;
     private String barberName;
-    private String serviceName;
-    private Double servicePrice;
+    private List<ServiceItemDTO> services;
+    private Double totalPrice;
 
     private LocalDateTime scheduledTime;
     private LocalDateTime checkInTime;

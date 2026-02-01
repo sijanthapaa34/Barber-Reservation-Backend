@@ -10,6 +10,7 @@ import jakarta.validation.constraints.Size;
 
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -17,7 +18,9 @@ import java.time.LocalDateTime;
 public class CreateAppointmentRequest {
 
     private Long barberId;
-    private Long serviceId;
+    private Long customerId;
+    private Long barberShopId;
+    private List<Long> serviceId;
     private LocalDateTime appointmentDateTime;
     private String notes;
 }

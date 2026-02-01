@@ -10,8 +10,8 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class BarberDTO {
-
     private String name;
+    private String barberShop;
     private boolean active;
     private String email;
     private String phone;
@@ -19,5 +19,8 @@ public class BarberDTO {
     private String profilePictureUrl;
     private Double rating;
     private LocalDateTime createdAt;
+    private Integer experienceYears;
+    private Boolean available;
+
 
 }

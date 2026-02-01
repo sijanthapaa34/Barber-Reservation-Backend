@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
@@ -12,18 +13,20 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Review {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @OneToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     private Barber barber;
-    @OneToOne
+    @ManyToOne(fetch = FetchType.LAZY)
+    private BarberShop barberShop;
+    @ManyToOne(fetch = FetchType.LAZY)
     private Customer customer;
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(unique = true)
+    private Appointment appointment;
     private int rating;
     private String comment;
-    @OneToOne
-    private Appointment appointment;
-    private LocalDateTime createdAt = LocalDateTime.now();
-
+    @CreationTimestamp
+    private LocalDateTime createdAt;
 }

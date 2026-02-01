@@ -1,15 +1,14 @@
 package com.sijan.barberReservation.service;
 
+import com.sijan.barberReservation.DTO.service.ServiceDTO;
+import com.sijan.barberReservation.DTO.service.ServiceRequest;
 import com.sijan.barberReservation.DTO.user.*;
 import com.sijan.barberReservation.model.*;
 import com.sijan.barberReservation.repository.*;
-import jakarta.validation.Valid;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class AdminService {
@@ -17,20 +16,28 @@ public class AdminService {
     private final BarberRepository barberRepository;
     private final BarberLeaveRepository barberLeaveRepository;
     private final ServiceRepository serviceRepository;
+    private final AdminRepository adminRepository;
     private final AppointmentRepository appointmentRepository;
     private final CustomerRepository customerRepository;
 
     public AdminService(
             BarberRepository barberRepository,
             BarberLeaveRepository barberLeaveRepository,
-            ServiceRepository serviceRepository,
+            ServiceRepository serviceRepository, AdminRepository adminRepository,
             AppointmentRepository appointmentRepository, CustomerRepository customerRepository) {
         this.barberRepository = barberRepository;
         this.barberLeaveRepository = barberLeaveRepository;
         this.serviceRepository = serviceRepository;
+        this.adminRepository = adminRepository;
         this.appointmentRepository = appointmentRepository;
         this.customerRepository = customerRepository;
     }
+    public Admin findById(Long adminId) {
+        return adminRepository.findById(adminId)
+                .orElseThrow(()-> new RuntimeException("Admin id not found"));
+    }
+
+
     // In AdminService.java
 //    public BarberDTO addBarber(Long adminId, CreateBarberRequest request) {
 //        if (userRepository.existsByEmail(request.getEmail())) {
@@ -70,7 +77,7 @@ public class AdminService {
 //        return dto;
 //    }
 
-    public List<BarberDTO> getAllBarbers(Long adminId) {
+    public List<BarberDTO> getAllBarbers() {
         List<Barber> barbers = barberRepository.findAll();
         List<BarberDTO> barberDTO = new ArrayList<>();
         for (Barber barber: barbers){
@@ -103,9 +110,9 @@ public class AdminService {
 
     public List<ServiceDTO> getAllServices(Long adminId) {
 
-        List<Services> services = serviceRepository.findAll();
+        List<ServiceOffering> Service = serviceRepository.findAll();
         List<ServiceDTO> serviceDTO = new ArrayList<>();
-        for(Services service: services){
+        for(ServiceOffering service: Service){
             ServiceDTO dto = new ServiceDTO();
             dto.setName(service.getName());
             dto.setDurationMinutes(service.getDurationMinutes());
@@ -117,12 +124,12 @@ public class AdminService {
     }
 
     public ServiceDTO addService(Long adminId, ServiceRequest request) {
-        Services service = new Services();
+        ServiceOffering service = new ServiceOffering();
         service.setName(request.getName());
         service.setDurationMinutes(request.getDurationMinutes());
         service.setPrice(request.getPrice());
         service.setAvailable(true);
-        Services savedService = serviceRepository.save(service);
+        ServiceOffering savedService = serviceRepository.save(service);
 
         ServiceDTO dto = new ServiceDTO();
         dto.setName(savedService.getName());
@@ -132,7 +139,7 @@ public class AdminService {
     }
 
     public ServiceDTO updateService(Long adminId, Long id, ServiceRequest request) {
-        Services service = serviceRepository.findById(id)
+        ServiceOffering service = serviceRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Service not found"));
 
         if (request.getName() != null) service.setName(request.getName());
@@ -149,14 +156,14 @@ public class AdminService {
     }
 
     public void activateService(Long adminId, Long id) {
-        Services service = serviceRepository.findById(id)
+        ServiceOffering service = serviceRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Service not found"));
         service.setAvailable(true);
         serviceRepository.save(service);
     }
 
     public void deactivateService(Long adminId, Long id) {
-        Services service = serviceRepository.findById(id)
+        ServiceOffering service = serviceRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Service not found"));
         service.setAvailable(false);
         serviceRepository.save(service);
@@ -222,4 +229,7 @@ public class AdminService {
     }
 
 
+    public void register(Admin admin) {
+        adminRepository.save(admin);
+    }
 }
