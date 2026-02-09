@@ -1,4 +1,4 @@
-package com.sijan.barberReservation.DTO.user;
+package com.sijan.barberReservation.DTO.Auth;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;

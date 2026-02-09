@@ -5,18 +5,16 @@ import com.sijan.barberReservation.mapper.appointment.AppointmentSlotMapper;
 import com.sijan.barberReservation.mapper.appointment.AppointmentDetailsMapper;
 import com.sijan.barberReservation.mapper.appointment.CreateMapper;
 import com.sijan.barberReservation.mapper.appointment.PageMapper;
-import com.sijan.barberReservation.model.Appointment;
-import com.sijan.barberReservation.model.Barber;
-import com.sijan.barberReservation.model.Customer;
-import com.sijan.barberReservation.model.ServiceOffering;
+import com.sijan.barberReservation.model.*;
 import com.sijan.barberReservation.service.AppointmentService;
 import com.sijan.barberReservation.service.BarberService;
-import com.sijan.barberReservation.service.BarberShopService;
 import com.sijan.barberReservation.service.CustomerService;
 import com.sijan.barberReservation.service.ServiceOfferingService;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -25,103 +23,74 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/appointment")
-public class AppointmentController{
+public class AppointmentController {
 
     private final AppointmentService appointmentService;
     private final AppointmentDetailsMapper appointmentDetailsMapper;
-    private final CreateMapper createAppointmentMapper;
-    private final PageMapper pageMapper;
     private final BarberService barberService;
-    private final BarberShopService barberShopService;
     private final CustomerService customerService;
     private final ServiceOfferingService serviceOfferingService;
+    private final CreateMapper createAppointmentMapper;
     private final AppointmentSlotMapper appointmentSlotMapper;
+    private final PageMapper pageMapper;
 
-
-    public AppointmentController(AppointmentService appointmentService, AppointmentDetailsMapper appointmentDetailsMapper, AppointmentDetailsMapper appointmentDetailsMapper1, CreateMapper createAppointmentMapper, PageMapper pageMapper, BarberService barberService, BarberShopService barberShopService, CustomerService customerService, ServiceOfferingService serviceOfferingService, AppointmentSlotMapper appointmentSlotMapper) {
+    public AppointmentController(AppointmentService appointmentService,
+                                 AppointmentDetailsMapper appointmentDetailsMapper, BarberService barberService, CustomerService customerService, ServiceOfferingService serviceOfferingService,
+                                 CreateMapper createAppointmentMapper, AppointmentSlotMapper appointmentSlotMapper,
+                                 PageMapper pageMapper) {
         this.appointmentService = appointmentService;
         this.appointmentDetailsMapper = appointmentDetailsMapper;
-        this.createAppointmentMapper = createAppointmentMapper;
-        this.pageMapper = pageMapper;
         this.barberService = barberService;
-        this.barberShopService = barberShopService;
         this.customerService = customerService;
         this.serviceOfferingService = serviceOfferingService;
+        this.createAppointmentMapper = createAppointmentMapper;
         this.appointmentSlotMapper = appointmentSlotMapper;
+        this.pageMapper = pageMapper;
     }
+
     @GetMapping("/{appointmentId}")
-    public ResponseEntity<Appointment> findById(Long appointmentId){
+    public ResponseEntity<AppointmentDetailsResponse> findById(@PathVariable Long appointmentId){
         Appointment appointment = appointmentService.findById(appointmentId);
-        return ResponseEntity.ok(appointment);
+        return ResponseEntity.ok(appointmentDetailsMapper.toDTO(appointment));
     }
 
     @PostMapping
-    public ResponseEntity<DetailsDTO> book(
-            @RequestBody CreateAppointmentRequest request) {
+    @PreAuthorize("hasRole('CUSTOMER')")
+    public ResponseEntity<AppointmentDetailsResponse> book(@RequestBody CreateAppointmentRequest request,
+            Authentication authentication) {
+        Long customerId = Long.valueOf(authentication.getName());
+        Customer customer = customerService.findById(customerId);
         Appointment appointment = createAppointmentMapper.toAppointment(request);
-        DetailsDTO booked = appointmentDetailsMapper.toDetailsDTO(appointmentService.book(appointment));
+        AppointmentDetailsResponse booked = appointmentDetailsMapper.toDTO(appointmentService.book(appointment, customer));
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(booked);
     }
 
-    @GetMapping("/details/{id}")
-    public ResponseEntity<DetailsDTO> viewAppointmentDetails(
-            @PathVariable Long appointmentId) {
-        Appointment appointment = appointmentService.findById(appointmentId);
-        DetailsDTO details = appointmentDetailsMapper.toDetailsDTO(appointmentService.viewDetails(appointment));
-        return ResponseEntity.ok(details);
-    }
-    @GetMapping("/customer/{customerId}/upcoming")
-    public ResponseEntity<PageResponse<DetailsDTO>> upcoming(
-            @PathVariable Long customerId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
-    ) {
+    @GetMapping("/upcoming")
+    public ResponseEntity<PageResponse<AppointmentDetailsResponse>> upcoming(@RequestParam(defaultValue = "0") int page,
+                                                                             @RequestParam(defaultValue = "10") int size,
+                                                                             Authentication authentication) {
+        Long customerId = Long.valueOf(authentication.getName());
         Customer customer = customerService.findById(customerId);
-
-        Page<Appointment> result =
-                appointmentService.getUpcoming(customer, page, size);
-        PageResponse<DetailsDTO> pageResponse= pageMapper.toPageResponse(result);
-        return ResponseEntity.ok(pageResponse);
+        Page<Appointment> result = appointmentService.getUpcoming(customer, page, size);
+        return ResponseEntity.ok(pageMapper.toAppointmentPageResponse(result));
     }
 
-    @GetMapping("/customer/{customerId}/past")
-    public ResponseEntity<PageResponse<DetailsDTO>> past(
-            @PathVariable Long customerId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
-    ) {
+    @GetMapping("/past")
+    public ResponseEntity<PageResponse<AppointmentDetailsResponse>> past(@RequestParam(defaultValue = "0") int page,
+                                                                         @RequestParam(defaultValue = "10") int size,
+                                                                         Authentication authentication) {
+
+        Long customerId = Long.valueOf(authentication.getName());
         Customer customer = customerService.findById(customerId);
-
-        Page<Appointment> result =
-                appointmentService.getPast(customer, page, size);
-        PageResponse<DetailsDTO> pageResponse= pageMapper.toPageResponse(result);
-        return ResponseEntity.ok(pageResponse);
+        Page<Appointment> result = appointmentService.getPast(customer, page, size);
+        return ResponseEntity.ok(pageMapper.toAppointmentPageResponse(result));
     }
 
-
-    @PutMapping("/{id}/cancel")
-    public ResponseEntity<String> cancelAppointment(
-            @PathVariable Long appointmentId) {
-        Appointment appointment = appointmentService.findById(appointmentId);
-        String result = appointmentService.cancelAppointment(appointment);
-        return ResponseEntity.ok(result);
-    }
-    // Reschedule an appointment
-//    @PutMapping("/{id}/reschedule")
-//    public ResponseEntity<DetailsDTO> reschedule(
-//            @PathVariable Long id) {
-//
-//        DetailsDTO rescheduled = toappointmentService.rescheduleAppointment(id, email, request);
-//        return ResponseEntity.ok( rescheduled);
-//    }
-    @GetMapping("/admin")
-    public ResponseEntity<List<DetailsDTO>> getAllAppointments(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        Page<Appointment> appointments = appointmentService.getAllAppointments(page, size);
-        List<DetailsDTO> details= appointmentDetailsMapper.toDetailsDTO((List<Appointment>) appointments);
-        return ResponseEntity.ok(details);
+    @PutMapping("/{appointmentId}/cancel")
+    public ResponseEntity<Void> cancel(@PathVariable Long appointmentId) {
+        appointmentService.cancelAppointment(appointmentId);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/me/availability")
@@ -131,43 +100,33 @@ public class AppointmentController{
             @RequestParam LocalDate date
     ) {
         Barber barber = barberService.findById(barberId);
-
         List<ServiceOffering> services = serviceIds.stream()
                 .map(serviceOfferingService::findById)
                 .toList();
-        int totalDurationMinutes = services.stream()
-                .mapToInt(ServiceOffering::getDurationMinutes)
-                .sum();
+
         List<LocalDateTime> availableSlotTimes =
-                appointmentService.getAvailableSlotsEntity(
-                        barber,
-                        date,
-                        totalDurationMinutes
-                );
+                appointmentService.computeAvailableSlots(barber, date, services);
+
         List<Appointment> bookedAppointments =
                 appointmentService.getBookedAppointments(barber, date);
 
-        List<TimeSlotDTO> availableSlots =
-                appointmentSlotMapper.toAvailableSlots(
-                        availableSlotTimes,
-                        totalDurationMinutes
-                );
+        List<TimeSlotDTO> availableSlots = appointmentSlotMapper.toAvailableSlots(
+                availableSlotTimes,
+                services.stream().mapToInt(ServiceOffering::getDurationMinutes).sum()
+        );
 
-        List<TimeSlotDTO> bookedSlots =
-                appointmentSlotMapper.toTimeSlotDTOList(bookedAppointments);
+        List<TimeSlotDTO> bookedSlots = appointmentSlotMapper.toTimeSlotDTOList(bookedAppointments);
 
-        AvailableSlotsResponseDTO response =
-                appointmentSlotMapper.toAvailableSlotsResponse(
-                        barber,
-                        services,
-                        date,
-                        availableSlots,
-                        bookedSlots
-                );
+        AvailableSlotsResponseDTO response = appointmentSlotMapper.toAvailableSlotsResponse(
+                barber,
+                services,
+                date,
+                availableSlots,
+                bookedSlots
+        );
 
         return ResponseEntity.ok(response);
     }
-
 
 }
 

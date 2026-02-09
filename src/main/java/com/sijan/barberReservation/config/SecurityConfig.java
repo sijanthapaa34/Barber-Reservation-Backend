@@ -27,12 +27,10 @@ import java.util.Arrays;
 public class SecurityConfig {
 
     private final JwtTokenProvider tokenProvider;
-    private final MyUserDetailsService userDetailsService;
 
-    public SecurityConfig(JwtTokenProvider tokenProvider,
-                          MyUserDetailsService userDetailsService) {
+    public SecurityConfig(JwtTokenProvider tokenProvider
+    ) {
         this.tokenProvider = tokenProvider;
-        this.userDetailsService = userDetailsService;
     }
 
     @Bean
@@ -52,7 +50,8 @@ public class SecurityConfig {
                         .requestMatchers("/auth/**").permitAll()
 
                         // ... rest of your roles ...
-                        .requestMatchers("/admin/**").hasRole("MAIN_ADMIN" )
+                        .requestMatchers("/api/admin/**")
+                        .hasAnyRole("MAIN_ADMIN", "SHOP_ADMIN")
                         .requestMatchers("/barber/**").hasRole("BARBER")
                         .requestMatchers("/barbershop/**").hasRole("SHOP_ADMIN")
                         .requestMatchers("/customer/**").hasRole("CUSTOMER")
@@ -84,6 +83,6 @@ public class SecurityConfig {
 
     @Bean
     public JwtAuthenticationFilter jwtAuthenticationFilter() {
-        return new JwtAuthenticationFilter(tokenProvider, userDetailsService);
+        return new JwtAuthenticationFilter(tokenProvider);
     }
 }

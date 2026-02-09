@@ -1,9 +1,10 @@
 package com.sijan.barberReservation.controller;
 
-import com.sijan.barberReservation.DTO.user.ChangePasswordRequest;
+import com.sijan.barberReservation.DTO.Auth.ChangePasswordRequest;
 import com.sijan.barberReservation.DTO.user.CustomerDTO;
 import com.sijan.barberReservation.DTO.user.UpdateUserRequest;
 import com.sijan.barberReservation.mapper.user.CustomerMapper;
+import com.sijan.barberReservation.model.Customer;
 import com.sijan.barberReservation.model.UserPrincipal;
 import com.sijan.barberReservation.service.AppointmentService;
 import com.sijan.barberReservation.service.BarberService;
@@ -33,49 +34,35 @@ public class CustomerController {
     }
 
     // GET /api/customers/me - Get current customer profile
-    @GetMapping("/me")
-    public ResponseEntity<CustomerDTO> getMyProfile() {
-        String email = getCurrentUserEmail();
-        CustomerDTO dto = customerMapper.toDTO(customerService.getCustomerProfile(email));
+    @GetMapping("/{customerId}")
+    public ResponseEntity<CustomerDTO> findById(@PathVariable Long customerId) {
+        CustomerDTO dto = customerMapper.toDTO(customerService.findById(customerId));
         return ResponseEntity.ok(dto);
     }
 
     // PUT /api/customers/me - Update customer info
-    @PutMapping("/me")
-    public ResponseEntity<CustomerDTO> updateMyProfile(@RequestBody UpdateUserRequest request) {
-        String email = getCurrentUserEmail();
-        CustomerDTO updated = customerMapper.toDTO(customerService.updateCustomerProfile(email, request));
-        return ResponseEntity.ok(updated);
-    }
+    @PutMapping("/{customerId}/update")
+    public ResponseEntity<CustomerDTO> updateMyProfile(@PathVariable Long customerId, @RequestBody UpdateUserRequest request) {
+        Customer customer = customerService.findById(customerId);
 
-    // GET /api/customers/me/availability - Get available slots for a date
-//    @GetMapping("/me/availability")
-//    public ResponseEntity<AvailableSlotsResponseDTO> getAvailableSlots(
-//            @RequestParam Long shopId,
-//            @RequestParam Long barberId,
-//            @RequestParam LocalDate date,
-//            @RequestParam List<Long> serviceId) {
-//
-//        BarberShop shop = barberShopService.findById(shopId);
-//        Barber barber = barberService.findById(barberId);
-//        AvailableSlotsResponseDTO slots = appointmentService.getAvailableSlotsEntity(barber, shop, date, serviceId);
-//        return ResponseEntity.ok(slots);
-//    }
+        Customer updated = customerService.update(
+                customer,
+                request.getName(),
+                request.getPhone()
+        );
+
+        return ResponseEntity.ok(customerMapper.toDTO(updated));
+    }
 
     // PUT /api/customers/me/change-password - Change password
-    @PutMapping("/me/change-password")
-    public ResponseEntity<Void> changePassword(@RequestBody ChangePasswordRequest request) {
-        String email = getCurrentUserEmail();
-        customerService.changePassword(email, request);
+    @PutMapping("/{customerId}/password")
+    public ResponseEntity<Void> changePassword(@PathVariable Long customerId, @RequestBody ChangePasswordRequest request) {
+        Customer customer = customerService.findById(customerId);
+        customerService.changePassword(
+                customer,
+                request.getCurrentPassword(),
+                request.getNewPassword()
+        );
         return ResponseEntity.ok().build();
     }
-
-    private String getCurrentUserEmail() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.getPrincipal() instanceof UserPrincipal) {
-            return ((UserPrincipal) authentication.getPrincipal()).getUsername();
-        }
-        throw new RuntimeException("User not authenticated");
-    }
-
 }

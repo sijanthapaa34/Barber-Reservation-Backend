@@ -1,9 +1,12 @@
 package com.sijan.barberReservation.service;
 
-import com.sijan.barberReservation.DTO.service.RegisterServiceRequest;
+import com.sijan.barberReservation.exception.service.ServiceNotFoundException;
+import com.sijan.barberReservation.model.Admin;
+import com.sijan.barberReservation.model.BarberShop;
 import com.sijan.barberReservation.model.ServiceOffering;
 import com.sijan.barberReservation.repository.ServiceRepository;
-import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -14,20 +17,40 @@ public class ServiceOfferingService {
 
     public ServiceOfferingService(ServiceRepository serviceRepository) {this.serviceRepository = serviceRepository;}
 
-    public ServiceOffering findById(Long serviceId) {
-        return serviceRepository.findById(serviceId)
-                .orElseThrow(() -> new RuntimeException("Service not found"));
+    public ServiceOffering findById(Long id) {
+        return serviceRepository.findById(id)
+                .orElseThrow(() -> new ServiceNotFoundException(id));
 
     }
     public List<ServiceOffering> findByIds(List<Long> ids) {
         return serviceRepository.findAllById(ids);
     }
 
-    public List<ServiceOffering> getAllServices(Long adminId, Long barbershopId) {
-        return serviceRepository.findAll();
+    public Page<ServiceOffering> getAll(Pageable pageable) {
+        return serviceRepository.findAll(pageable);
     }
 
-    public ServiceOffering register(Long adminId, Long barbershopId, RegisterServiceRequest request) {
-        return new ServiceOffering();
+    public ServiceOffering add(BarberShop barberShop, ServiceOffering serviceOffering) {
+        serviceOffering.setBarbershop(barberShop);
+        return serviceRepository.save(serviceOffering);
+    }
+
+    public ServiceOffering update(Admin admin, ServiceOffering service) {
+        return serviceRepository.save(service);
+    }
+
+    public void activateService(Admin admin, ServiceOffering service) {
+        service.setAvailable(true);
+        serviceRepository.save(service);
+    }
+
+    public void deactivateService(Admin admin, ServiceOffering service) {
+        service.setAvailable(false);
+        serviceRepository.save(service);
+    }
+
+
+    public Page<ServiceOffering> getAllByBarberShop(BarberShop barberShop, Pageable pageable) {
+        return serviceRepository.findByBarberShop(barberShop, pageable);
     }
 }

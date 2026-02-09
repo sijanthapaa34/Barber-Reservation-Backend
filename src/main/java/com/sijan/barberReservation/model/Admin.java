@@ -22,7 +22,6 @@ public class Admin extends User {
     private AdminLevel adminLevel = AdminLevel.SHOP_ADMIN;
 
     private String profileImage;
-    private String bio;
 
     private LocalDateTime lastLoginAt;
     private String lastLoginIp;

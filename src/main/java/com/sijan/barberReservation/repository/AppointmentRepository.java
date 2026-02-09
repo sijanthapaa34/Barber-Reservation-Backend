@@ -1,12 +1,7 @@
 package com.sijan.barberReservation.repository;
 
 
-import com.sijan.barberReservation.DTO.appointment.DetailsDTO;
-import com.sijan.barberReservation.DTO.appointment.PageResponse;
-import com.sijan.barberReservation.model.Appointment;
-import com.sijan.barberReservation.model.AppointmentStatus;
-import com.sijan.barberReservation.model.Barber;
-import com.sijan.barberReservation.model.Customer;
+import com.sijan.barberReservation.model.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -21,8 +16,27 @@ import java.util.List;
 @Repository
 public interface AppointmentRepository extends JpaRepository<Appointment, Long> {
 
-    Page<Appointment> findUpcomingByCustomer(Customer customer, LocalDate now, Pageable pageable);
-    Page<Appointment> findPastByCustomer(Customer customer, LocalDate now, Pageable pageable);
-    List<Appointment> findByBarberAndScheduledTimeBetweenAndStatusIn(Barber barber, LocalDateTime localDateTime, LocalDateTime localDateTime1, List<AppointmentStatus> pending);
-    List<Appointment> findByBarberAndScheduledTime(Barber barber, LocalDate targetDate);
+    @Query("""
+    SELECT a
+    FROM Appointment a
+    WHERE a.customer = :customer
+      AND a.scheduledTime >= :from
+    ORDER BY a.scheduledTime ASC
+""")
+    Page<Appointment> findUpcomingByCustomer(@Param("customer") Customer customer, @Param("from") LocalDateTime from, Pageable pageable);
+
+    @Query("""
+    SELECT a
+    FROM Appointment a
+    WHERE a.customer = :customer
+      AND a.scheduledTime < :to
+    ORDER BY a.scheduledTime DESC
+""")
+    Page<Appointment> findPastByCustomer(@Param("customer") Customer customer, @Param("to") LocalDateTime to, Pageable pageable);
+
+    List<Appointment> findByBarberAndStatusAndScheduledTimeBetween(Barber barber, AppointmentStatus status, LocalDateTime start, LocalDateTime end);
+
+    List<Appointment> findByBarberAndScheduledTimeBetween(Barber barber, LocalDateTime dayStart, LocalDateTime dayEnd);
+
+    Page<Appointment> findAllByBarbershop(BarberShop shop, Pageable pageable);
 }

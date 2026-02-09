@@ -1,40 +1,34 @@
 package com.sijan.barberReservation.controller;
 
-import com.sijan.barberReservation.DTO.service.RegisterServiceRequest;
-import com.sijan.barberReservation.DTO.service.ServiceDTO;
 import com.sijan.barberReservation.DTO.user.*;
 import com.sijan.barberReservation.mapper.service.ServiceMapper;
 import com.sijan.barberReservation.mapper.user.BarberMapper;
-import com.sijan.barberReservation.mapper.user.BarberShopMapper;
-import com.sijan.barberReservation.model.Barber;
+import com.sijan.barberReservation.mapper.user.BarbershopMapper;
 import com.sijan.barberReservation.model.BarberShop;
-import com.sijan.barberReservation.model.ServiceOffering;
 import com.sijan.barberReservation.service.BarberService;
-import com.sijan.barberReservation.service.BarberShopService;
+import com.sijan.barberReservation.service.BarbershopService;
 import com.sijan.barberReservation.service.ServiceOfferingService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("/api/barbershop")
 public class BarbershopController {
 
-    private final BarberShopService barberShopService;
+    private final BarbershopService barbershopService;
     private final BarberService barberService;
     private final ServiceOfferingService serviceOfferingService;
-    private final BarberShopMapper barberShopMapper;
+    private final BarbershopMapper barbershopMapper;
     private final ServiceMapper serviceMapper;
     private final BarberMapper barberMapper;
 
 
-    public BarbershopController(BarberShopService barberShopService, BarberService barberService, ServiceOfferingService serviceOfferingService, BarberShopMapper barberShopMapper, ServiceMapper serviceMapper, BarberMapper barberMapper) {
-        this.barberShopService = barberShopService;
+    public BarbershopController(BarbershopService barbershopService, BarberService barberService, ServiceOfferingService serviceOfferingService, BarbershopMapper barbershopMapper, ServiceMapper serviceMapper, BarberMapper barberMapper) {
+        this.barbershopService = barbershopService;
         this.barberService = barberService;
         this.serviceOfferingService = serviceOfferingService;
-        this.barberShopMapper = barberShopMapper;
+        this.barbershopMapper = barbershopMapper;
         this.serviceMapper = serviceMapper;
         this.barberMapper = barberMapper;
     }
@@ -49,22 +43,22 @@ public class BarbershopController {
 //    }
 
     @GetMapping("/{id}")
-    public ResponseEntity<BarberShopDTO> getBarbershop(
+    public ResponseEntity<BarbershopDTO> getBarbershop(
             @RequestHeader("X-User-ID") Long adminId,
             @PathVariable Long id) {
-        BarberShop barbershop = barberShopService.findById(id);
-        return ResponseEntity.ok(barberShopMapper.toDTO(barbershop));
+        BarberShop barbershop = barbershopService.findById(id);
+        return ResponseEntity.ok(barbershopMapper.toDTO(barbershop));
     }
 
     // Update barbershop details
     @PutMapping("/{id}")
-    public ResponseEntity<BarberShopDTO> updateBarbershop(
+    public ResponseEntity<BarbershopDTO> updateBarbershop(
             @RequestHeader("X-User-ID") Long adminId,
             @PathVariable Long barberShopId,
-            @RequestBody @Valid UpdateBarberShopRequest request) {
-        BarberShop barberShop = barberShopMapper.toEntity(request);
-        BarberShop barbershop = barberShopService.updateBarbershop(adminId, barberShopId, barberShop);
-        return ResponseEntity.ok(barberShopMapper.toDTO(barbershop));
+            @RequestBody @Valid UpdateBarbershopRequest request) {
+        BarberShop barberShop = barbershopMapper.toEntity(request);
+        BarberShop barbershop = barbershopService.updateBarbershop(adminId, barberShopId, barberShop);
+        return ResponseEntity.ok(barbershopMapper.toDTO(barbershop));
     }
 
 

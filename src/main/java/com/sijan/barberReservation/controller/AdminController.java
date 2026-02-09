@@ -1,12 +1,21 @@
 package com.sijan.barberReservation.controller;
 
 
-import com.sijan.barberReservation.DTO.service.ServiceDTO;
-import com.sijan.barberReservation.DTO.service.ServiceRequest;
+import com.sijan.barberReservation.DTO.appointment.AppointmentDetailsResponse;
+import com.sijan.barberReservation.DTO.appointment.PageResponse;
 import com.sijan.barberReservation.DTO.user.*;
-import com.sijan.barberReservation.model.LeaveStatus;
+import com.sijan.barberReservation.mapper.appointment.PageMapper;
+import com.sijan.barberReservation.model.*;
 import com.sijan.barberReservation.service.AdminService;
+import com.sijan.barberReservation.service.AppointmentService;
+import com.sijan.barberReservation.service.BarberService;
+import com.sijan.barberReservation.service.CustomerService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -16,117 +25,103 @@ import java.util.List;
 public class AdminController {
 
     private final AdminService adminService;
+    private final AppointmentService appointmentService;
+    private final BarberService barberService;
+    private final CustomerService customerService;
+    private final PageMapper pageMapper;
 
-    public AdminController(AdminService adminService) {
+
+    public AdminController(AdminService adminService, AppointmentService appointmentService, BarberService barberService, CustomerService customerService, PageMapper pageMapper) {
         this.adminService = adminService;
+        this.appointmentService = appointmentService;
+        this.barberService = barberService;
+        this.customerService = customerService;
+        this.pageMapper = pageMapper;
     }
-    // POST /api/admin/barbers - Add new barber
-//    @PostMapping("/barbers")
-//    public ResponseEntity<BarberDTO> addBarber(
-//            @RequestHeader("X-User-ID") Long adminId,
-//            @RequestBody @Valid CreateBarberRequest request) {
-//
-//        BarberDTO newBarber = adminService.addBarber(adminId, request);
-//        return ResponseEntity.status(201).body(newBarber);
-//    }
+    private Admin getCurrentAdmin(Authentication authentication) {
+        Long adminId =  Long.valueOf(authentication.getName());
+        return adminService.findById(adminId);
+    }
 
-    // GET /api/admin/barbers - Get all barbers (with status)
     @GetMapping("/barbers")
-    public ResponseEntity<List<BarberDTO>> getAllBarbers(
-            @RequestHeader("X-User-ID") Long adminId
+    public ResponseEntity<PageResponse<BarberDTO>> getBarbersByBarbershop(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            Authentication authentication
     ) {
-        List<BarberDTO> barbers = adminService.getAllBarbers();
+        Admin admin = getCurrentAdmin(authentication);
+        Sort sort = Sort.by(Sort.Direction.DESC, "scheduledTime");
+        Pageable pageable = PageRequest.of(page, size, sort);
+        Page<Barber> barbers = barberService.findByBarberShop(admin, pageable);
         return ResponseEntity.ok(barbers);
     }
 
-    // PUT /api/admin/barbers/{id}/activate - Activate barber
     @PutMapping("/barbers/{barberId}/activate")
     public ResponseEntity<String> activateBarber(
-            @RequestHeader("X-User-ID") Long adminId,
             @PathVariable Long barberId) {
-        adminService.activateBarber(barberId);
+        Barber barber = barberService.findById(barberId);
+        barberService.activateBarber(barber);
         return ResponseEntity.ok("Barber activated successfully");
     }
 
-    // PUT /api/admin/barbers/{id}/deactivate - Deactivate barber
     @PutMapping("/barbers/{barberId}/deactivate")
     public ResponseEntity<String> deactivateBarber(
-            @RequestHeader("X-User-ID") Long adminId,
             @PathVariable Long barberId) {
-        adminService.deactivateBarber(barberId);
+        Barber barber = barberService.findById(barberId);
+        barberService.deactivateBarber(barber);
         return ResponseEntity.ok("Barber deactivated successfully");
     }
-
-    // GET /api/admin/services - Get all services
-    @GetMapping("/services")
-    public ResponseEntity<List<ServiceDTO>> getAllServices(
-            @RequestHeader("X-User-ID") Long adminId) {
-        List<ServiceDTO> services = adminService.getAllServices(adminId);
-        return ResponseEntity.ok(services);
+    @GetMapping("/appointment")
+    public ResponseEntity<PageResponse<AppointmentDetailsResponse>> getAllAppointment(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            Authentication authentication
+    ) {
+        Admin admin = getCurrentAdmin(authentication);
+        Sort sort = Sort.by(Sort.Direction.DESC, "scheduledTime");
+        Pageable pageable = PageRequest.of(page, size, sort);
+        Page<Appointment> result = appointmentService.getAppointmentsForAdmin(admin, pageable);
+        return ResponseEntity.ok(pageMapper.toAppointmentPageResponse(result));
     }
 
-    // POST /api/admin/services - Add new service
-    @PostMapping("/services")
-    public ResponseEntity<ServiceDTO> addService(
-            @RequestHeader("X-User-ID") Long adminId,
-            @RequestBody ServiceRequest request) {
-        ServiceDTO service = adminService.addService(adminId, request);
-        return ResponseEntity.status(201).body(service);
-    }
-
-    // PUT /api/admin/services/{id} - Update service
-    @PutMapping("/services/{id}")
-    public ResponseEntity<ServiceDTO> updateService(
-            @RequestHeader("X-User-ID") Long adminId,
-            @PathVariable Long id,
-            @RequestBody ServiceRequest request) {
-        ServiceDTO updated = adminService.updateService(adminId, id, request);
-        return ResponseEntity.ok(updated);
-    }
-
-    // PUT /api/admin/services/{id}/activate - Reactivate a service
-    @PutMapping("/services/{id}/activate")
-    public ResponseEntity<String> activateService(
-            @RequestHeader("X-User-ID") Long adminId,
-            @PathVariable Long id) {
-        adminService.activateService(adminId, id);
-        return ResponseEntity.ok("Service activated successfully");
-    }
-
-    // PUT /api/admin/services/{id}/deactivate - Deactivate service
-    @PutMapping("/services/{id}/deactivate")
-    public ResponseEntity<String> deactivateService(
-            @RequestHeader("X-User-ID") Long adminId,
-            @PathVariable Long id) {
-        adminService.deactivateService(adminId, id);
-        return ResponseEntity.ok("Service deactivated successfully");
-    }
 
     // GET /api/admin/customers/frequent - Get frequent customers
     @GetMapping("/customers/frequent")
-    public ResponseEntity<List<FrequentCustomerDTO>> getFrequentCustomers(
-            @RequestHeader("X-User-ID") Long adminId) {
-        List<FrequentCustomerDTO> customers = adminService.getFrequentCustomers(adminId);
+    public ResponseEntity<PageResponse<FrequentCustomerDTO>> getFrequentCustomers(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            Authentication authentication
+    ) {
+        Admin admin = getCurrentAdmin(authentication);
+        Sort sort = Sort.by(Sort.Direction.DESC, "scheduledTime");
+        Pageable pageable = PageRequest.of(page, size, sort);
+        Page<Customer> customers = customerService.getFrequentCustomers(admin, pageable);
         return ResponseEntity.ok(customers);
     }
 
     // GET /api/admin/barbers/leaves - View all barber leave requests
     @GetMapping("/barbers/leaves")
-    public ResponseEntity<List<BarberLeaveDTO>> getAllBarberLeaves(
-            @RequestHeader("X-User-ID") Long adminId,
-            @RequestParam(required = false) LeaveStatus status) {
-        List<BarberLeaveDTO> leaves = adminService.getAllBarberLeaves(adminId, status);
+    public ResponseEntity<PageResponse<BarberLeaveDTO>> getAllBarberLeaves(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            Authentication authentication
+    ) {
+        Admin admin = getCurrentAdmin(authentication);
+        Sort sort = Sort.by(Sort.Direction.DESC, "scheduledTime");
+        Pageable pageable = PageRequest.of(page, size, sort);
+        List<BarberLeaveDTO> leaves = barberService.getAllLeaves(admin, pageable);
         return ResponseEntity.ok(leaves);
     }
 
     // PUT /api/admin/barbers/{barberId}/leaves/{leaveId}/approve
     @PutMapping("/barbers/{barberId}/leaves/{leaveId}/approve")
     public ResponseEntity<String> approveLeave(
-            @RequestHeader("X-User-ID") Long adminId,
             @PathVariable Long barberId,
-            @PathVariable Long leaveId) {
-
-        adminService.updateLeaveStatus(leaveId, barberId, LeaveStatus.APPROVED, adminId);
+            @PathVariable Long leaveId,
+            Authentication authentication
+    ) {
+        Admin admin = getCurrentAdmin(authentication);
+        barberService.updateLeaveStatus(leaveId, barberId, LeaveStatus.APPROVED, admin);
         return ResponseEntity.ok("Leave approved successfully");
     }
 
@@ -134,11 +129,12 @@ public class AdminController {
 
     @PutMapping("/barbers/{barberId}/leaves/{leaveId}/reject")
     public ResponseEntity<String> rejectLeave(
-            @RequestHeader("X-User-ID") Long adminId,
             @PathVariable Long barberId,
-            @PathVariable Long leaveId) {
-
-        adminService.updateLeaveStatus(leaveId, barberId, LeaveStatus.REJECTED, adminId);
+            @PathVariable Long leaveId,
+            Authentication authentication
+    ) {
+        Admin admin = getCurrentAdmin(authentication);
+        adminService.updateLeaveStatus(leaveId, barberId, LeaveStatus.REJECTED, admin);
         return ResponseEntity.ok("Leave rejected successfully");
     }
 }

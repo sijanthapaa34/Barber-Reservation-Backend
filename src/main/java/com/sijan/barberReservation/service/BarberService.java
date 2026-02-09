@@ -1,62 +1,52 @@
 package com.sijan.barberReservation.service;
 
-import com.sijan.barberReservation.DTO.user.BarberDTO;
-import com.sijan.barberReservation.DTO.user.ChangePasswordRequest;
-import com.sijan.barberReservation.DTO.user.RegisterBarberRequest;
+import com.sijan.barberReservation.DTO.Auth.ChangePasswordRequest;
+import com.sijan.barberReservation.exception.barber.BarberNotFoundException;
+import com.sijan.barberReservation.exception.role.ResourceNotFoundException;
+import com.sijan.barberReservation.model.Admin;
 import com.sijan.barberReservation.model.Barber;
 import com.sijan.barberReservation.model.BarberShop;
-import com.sijan.barberReservation.repository.BarberLeaveRepository;
 import com.sijan.barberReservation.repository.BarberRepository;
-import jakarta.validation.Valid;
+import jakarta.transaction.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.util.List;
-
 
 @Service
 public class BarberService {
 
     private final BarberRepository barberRepository;
     private final PasswordEncoder passwordEncoder;
-    private final BarberShopService barberShopService;
-    private final BarberLeaveRepository barberLeaveRepository;
 
 
-    public BarberService(BarberRepository barberRepository, PasswordEncoder passwordEncoder, BarberShopService barberShopService, BarberLeaveRepository barberLeaveRepository) {
+    public BarberService(BarberRepository barberRepository, PasswordEncoder passwordEncoder) {
         this.barberRepository = barberRepository;
         this.passwordEncoder = passwordEncoder;
-        this.barberShopService = barberShopService;
-        this.barberLeaveRepository = barberLeaveRepository;
     }
 
     public Barber findById(Long id) {
         return barberRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Barber not found"));
+                .orElseThrow(() -> new BarberNotFoundException(id));
     }
 
-    public List<Barber> getAll(Long adminId, Long barbershopId) {
-        return barberRepository.findAll();
 
+    public Page<Barber> findByBarberShop(Admin admin, Pageable pageable) {
+        BarberShop shop = admin.getBarbershop();
+        if(shop == null){
+            throw new ResourceNotFoundException("Admin has no assigned barbershop");
+        }
+        return barberRepository.findByBarbershop(shop, pageable);
     }
-
-    public Barber register(Long adminId, Long barbershopId, Barber barber) {
-        BarberShop barberShop = barberShopService.findById(barbershopId);
-        barber.setBarbershop(barberShop);
-
-        return barberRepository.save(barber);
-    }
-
 
     public Barber updateBarberProfile(Barber barber) {
         return barberRepository.save(barber);
     }
 
     public void changePassword(String mail, ChangePasswordRequest request) {
-        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
-            throw new RuntimeException("New passwords do not match");
-        }
+
 
         Barber barber = barberRepository.findByEmail(mail)
                 .orElseThrow(() -> new RuntimeException("Customer not found"));
@@ -73,4 +63,12 @@ public class BarberService {
 
     }
 
+    @Transactional
+    public void activateBarber(Barber barber) {
+        barber.setActive(true);
+    }
+
+    public void deactivateBarber(Barber barber) {
+        barber.setActive(false);
+    }
 }

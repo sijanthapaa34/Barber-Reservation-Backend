@@ -1,7 +1,7 @@
 package com.sijan.barberReservation.mapper.user;
 
 import com.sijan.barberReservation.DTO.user.BarberDTO;
-import com.sijan.barberReservation.DTO.user.RegisterBarberRequest;
+import com.sijan.barberReservation.DTO.Auth.RegisterBarberRequest;
 import com.sijan.barberReservation.model.Barber;
 import com.sijan.barberReservation.model.Roles;
 import org.springframework.stereotype.Component;
@@ -19,6 +19,7 @@ public class BarberMapper {
         dto.setActive(barber.getActive() != null ? barber.getActive() : true);
         dto.setEmail(barber.getEmail());
         dto.setPhone(barber.getPhone());
+        dto.setBarberShop(barber.getBarbershop().getName());
         dto.setBio(barber.getBio());
         dto.setProfilePictureUrl(barber.getProfilePicture());
         dto.setRating(barber.getRating() != null ? barber.getRating() : 0.0);

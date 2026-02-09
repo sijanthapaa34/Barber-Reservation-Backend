@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class RescheduleAppointmentRequest {
-
+    @NotNull
+    @Future
     private LocalDateTime newDateTime;
-    private String reason;
 }

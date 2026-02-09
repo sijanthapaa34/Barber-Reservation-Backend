@@ -1,7 +1,7 @@
 package com.sijan.barberReservation.mapper.user;
 
 import com.sijan.barberReservation.DTO.user.CustomerDTO;
-import com.sijan.barberReservation.DTO.user.RegisterCustomerRequest;
+import com.sijan.barberReservation.DTO.Auth.RegisterCustomerRequest;
 import com.sijan.barberReservation.model.Customer;
 import com.sijan.barberReservation.model.Roles;
 import org.springframework.stereotype.Component;

@@ -16,19 +16,17 @@ import java.time.LocalTime;
 @AllArgsConstructor
 @Builder
 public class TimeSlotDTO {
+    private LocalDate date;
     private LocalTime startTime;
     private LocalTime endTime;
-    private LocalDate date;
-    private LocalDateTime dateTime;
+
+    private Integer durationMinutes;
     private boolean available;
-    private AppointmentStatus status;
 
-    // Additional context
-    private Duration duration;
-    private String displayTime;  // "10:30 AM - 11:15 AM"
-    private String displayDate;  // "December 25, 2024"
+    // Identity (frontend-friendly)
+    private String slotKey;
 
-    // Optional - for UI purposes
-    private boolean isRecommended;
-    private String unavailableReason;  // If not available
+    // UI helpers
+    private String displayTime;
+
 }

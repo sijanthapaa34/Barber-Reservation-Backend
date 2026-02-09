@@ -1,4 +1,4 @@
-package com.sijan.barberReservation.DTO.user;
+package com.sijan.barberReservation.DTO.Auth;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -7,9 +7,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserRegistrationRequest {
-    private String name;
+public class AuthRequest {
     private String email;
-    private String phone;
     private String password;
 }
