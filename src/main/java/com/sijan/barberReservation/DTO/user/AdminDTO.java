@@ -5,8 +5,6 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
-
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -15,11 +13,9 @@ public class AdminDTO {
     private Long id;
     private String name;
     private String email;
+    private String phone;
     private AdminLevel adminLevel;
+    private String profileImage;
     private Long barbershopId;
     private String barbershopName;
-    private String token;
-    private String refreshToken;
-    private LocalDateTime tokenExpiresAt;
-    private Boolean requiresPasswordChange;
 }

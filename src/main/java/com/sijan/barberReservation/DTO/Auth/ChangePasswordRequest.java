@@ -1,4 +1,4 @@
-package com.sijan.barberReservation.DTO.user;
+package com.sijan.barberReservation.DTO.Auth;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -10,5 +10,4 @@ import lombok.NoArgsConstructor;
 public class ChangePasswordRequest {
     private String currentPassword;
     private String newPassword;
-    private String confirmPassword;
 }

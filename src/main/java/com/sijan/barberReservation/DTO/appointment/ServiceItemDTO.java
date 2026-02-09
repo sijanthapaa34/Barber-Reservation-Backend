@@ -8,6 +8,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ServiceItemDTO {
+    private Long serviceId;
     private String name;
     private Double price;
+    private Integer durationMinutes;
 }

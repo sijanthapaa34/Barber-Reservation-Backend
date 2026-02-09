@@ -22,25 +22,32 @@ public class AppointmentSlotMapper {
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("MMMM d, yyyy");
 
     public TimeSlotDTO toTimeSlotDTO(Appointment appointment) {
-            LocalDateTime dateTime = appointment.getScheduledTime();
-            List<ServiceOffering> services = appointment.getServices();
+        LocalDateTime scheduledTime = appointment.getScheduledTime();
+        int durationMinutes = appointment.getTotalDurationMinutes();
 
-            int totalMinutes = services.stream()
-                    .mapToInt(ServiceOffering::getDurationMinutes)
-                    .sum();
+        LocalTime startTime = scheduledTime.toLocalTime();
+        LocalTime endTime = startTime.plusMinutes(durationMinutes);
 
-            return TimeSlotDTO.builder()
-                    .dateTime(dateTime)
-                    .date(dateTime.toLocalDate())
-                    .startTime(dateTime.toLocalTime())
-                    .endTime(dateTime.toLocalTime().plusMinutes(totalMinutes))
-                    .available(false)
-                    .status(appointment.getStatus())
-                    .duration(Duration.ofMinutes(totalMinutes))
-                    .displayTime(dateTime.toLocalTime().format(TIME_FORMATTER) + " - " +
-                            dateTime.toLocalTime().plusMinutes(totalMinutes).format(TIME_FORMATTER))
-                    .displayDate(dateTime.toLocalDate().format(DATE_FORMATTER))
-                    .build();
+        return TimeSlotDTO.builder()
+                // Core time info
+                .date(scheduledTime.toLocalDate())
+                .startTime(startTime)
+                .endTime(endTime)
+                .durationMinutes(durationMinutes)
+
+                // Availability
+                .available(false)
+
+                // Identity (frontend-friendly)
+                .slotKey(scheduledTime.toString())
+
+                // UI helpers
+                .displayTime(
+                        startTime.format(TIME_FORMATTER) +
+                                " - " +
+                                endTime.format(TIME_FORMATTER)
+                )
+                .build();
     }
 
     public List<TimeSlotDTO> toTimeSlotDTOList(List<Appointment> appointments) {
@@ -85,14 +92,16 @@ public class AppointmentSlotMapper {
                     LocalTime end = start.plusMinutes(totalDurationMinutes);
 
                     return TimeSlotDTO.builder()
-                            .dateTime(time)
                             .date(time.toLocalDate())
                             .startTime(start)
                             .endTime(end)
                             .available(true)
-                            .duration(Duration.ofMinutes(totalDurationMinutes))
+                            .displayTime(
+                                    start.format(TIME_FORMATTER) +
+                                            " - " +
+                                            end.format(TIME_FORMATTER)
+                            )
                             .displayTime(start.format(TIME_FORMATTER) + " - " + end.format(TIME_FORMATTER))
-                            .displayDate(time.toLocalDate().format(DATE_FORMATTER))
                             .build();
                 })
                 .toList();

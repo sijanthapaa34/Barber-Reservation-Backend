@@ -1,28 +1,22 @@
 package com.sijan.barberReservation.service;
 
-import com.sijan.barberReservation.DTO.user.BarberDTO;
-import com.sijan.barberReservation.DTO.user.BarberShopDTO;
+import com.sijan.barberReservation.DTO.user.BarbershopDTO;
 import com.sijan.barberReservation.DTO.user.UpdateBarberShopRequest;
 import com.sijan.barberReservation.model.Admin;
-import com.sijan.barberReservation.model.Barber;
 import com.sijan.barberReservation.model.BarberShop;
 import com.sijan.barberReservation.repository.BarberShopRepository;
 import jakarta.transaction.Transactional;
-import jakarta.validation.Valid;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @Transactional
-public class BarberShopService {
+public class BarbershopService {
 
     private final BarberShopRepository barbershopRepository;
     private final AdminService adminService;
 //    private final GoogleMapsService googleMapsService;
 
-    public BarberShopService(BarberShopRepository barbershopRepository,
+    public BarbershopService(BarberShopRepository barbershopRepository,
                              AdminService adminService
 //                             GoogleMapsService googleMapsService
     ) {

@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class ServiceRequest {
+public class ServiceUpdateRequest {
     private String name;
     private int durationMinutes;
     private Double price;

@@ -17,10 +17,21 @@ import java.util.List;
 @AllArgsConstructor
 public class CreateAppointmentRequest {
 
+    @NotNull
     private Long barberId;
-    private Long customerId;
-    private Long barberShopId;
-    private List<Long> serviceId;
-    private LocalDateTime appointmentDateTime;
-    private String notes;
+
+    @NotNull
+    private Long barbershopId;
+
+    @NotNull
+    @Size(min = 1)
+    private List<Long> serviceIds;
+
+    @NotNull
+    @Future
+    private LocalDateTime scheduledTime;
+
+    @Size(max = 500)
+    private String customerNotes;
 }
+

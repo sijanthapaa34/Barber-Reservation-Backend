@@ -34,17 +34,15 @@ public class CreateMapper {
 
     public Appointment toAppointment(CreateAppointmentRequest request){
         Barber barber = barberService.findById(request.getBarberId());
-        Customer customer = customerService.findById(request.getCustomerId());
-        List<ServiceOffering> service = servicesService.findByIds(request.getServiceId());
+        List<ServiceOffering> service = servicesService.findByIds(request.getServiceIds());
         BarberShop barbershop = barberShopService.findById(request.getBarberShopId());
 
-        LocalDateTime appointmentDateTime = request.getAppointmentDateTime();
+        LocalDateTime appointmentDateTime = request.getScheduledTime();
         LocalDateTime checkInTime = appointmentDateTime.minusMinutes(10);
 
         Appointment appointment = new Appointment();
         appointment.setBarber(barber);
         appointment.setBarbershop(barbershop);
-        appointment.setCustomer(customer);
         appointment.setServices(service);
         appointment.setStatus(AppointmentStatus.SCHEDULED);
         appointment.setCheckInTime(checkInTime);

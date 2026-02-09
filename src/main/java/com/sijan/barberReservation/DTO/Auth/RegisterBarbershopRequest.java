@@ -1,4 +1,4 @@
-package com.sijan.barberReservation.DTO.user;
+package com.sijan.barberReservation.DTO.Auth;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -8,7 +8,7 @@ import lombok.Data;
 import java.math.BigDecimal;
 
 @Data
-public class RegisterBarberShopRequest {
+public class RegisterBarbershopRequest {
     @NotBlank(message = "Name is required")
     private String name;
 

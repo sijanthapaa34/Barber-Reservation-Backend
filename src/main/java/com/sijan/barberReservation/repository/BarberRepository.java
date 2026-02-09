@@ -2,6 +2,8 @@ package com.sijan.barberReservation.repository;
 
 import com.sijan.barberReservation.model.Barber;
 import com.sijan.barberReservation.model.BarberShop;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -12,5 +14,5 @@ import java.util.Optional;
 public interface BarberRepository extends JpaRepository<Barber, Long> {
     Optional<Barber> findByEmail(String email);
 
-    List<Barber> findByBarbershop(BarberShop barbershop);
+    Page<Barber> findByBarbershop(BarberShop barbershop, Pageable pageable);
 }

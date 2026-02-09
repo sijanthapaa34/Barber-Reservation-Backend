@@ -1,6 +1,11 @@
 package com.sijan.barberReservation.service;
 
 import com.sijan.barberReservation.DTO.appointment.*;
+import com.sijan.barberReservation.exception.appointment.AppointmentAlreadyCancelledException;
+import com.sijan.barberReservation.exception.appointment.AppointmentNotFoundException;
+import com.sijan.barberReservation.exception.appointment.AppointmentSlotUnavailableException;
+import com.sijan.barberReservation.exception.appointment.InvalidAppointmentTimeException;
+import com.sijan.barberReservation.exception.role.AccessDeniedException;
 import com.sijan.barberReservation.model.*;
 import com.sijan.barberReservation.repository.AppointmentRepository;
 
@@ -11,10 +16,12 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 
@@ -22,198 +29,163 @@ import org.springframework.stereotype.Service;
 public class AppointmentService {
 
     private final AppointmentRepository appointmentRepository;
-    private final CustomerService customerService;
-    private final BarberShopService barberShopService;
-    private final ServiceOfferingService serviceOfferingService;
-    private final BarberService barberService;
+    private final AdminService adminService;
 
-    public AppointmentService(
-            AppointmentRepository appointmentRepository,
-            CustomerService customerService,
-            BarberShopService barberShopService, ServiceOfferingService serviceOfferingService,
-            BarberService barberService) {
+    public AppointmentService(AppointmentRepository appointmentRepository, AdminService adminService) {
         this.appointmentRepository = appointmentRepository;
-        this.customerService = customerService;
-        this.barberShopService = barberShopService;
-        this.serviceOfferingService = serviceOfferingService;
-        this.barberService = barberService;
-    }
-    public Appointment findById(Long appointmentId) {
-        return appointmentRepository.findById(appointmentId)
-                .orElseThrow(() -> new RuntimeException("Appointment not found"));
+        this.adminService = adminService;
     }
 
-    public Appointment book(Appointment appointment) {
-        if (appointment.getScheduledTime().isBefore(LocalDateTime.now())) {
-            throw new RuntimeException("Cannot book an appointment in the past");
+    @Transactional
+    public Appointment findById(Long id) {
+        return appointmentRepository.findById(id)
+                .orElseThrow(() -> new AppointmentNotFoundException(id));
+    }
+
+    @Transactional
+    public Appointment book(Appointment appointment, Customer customer) {
+
+
+        int totalDurationMinutes = appointment.getServices().stream()
+                .mapToInt(ServiceOffering::getDurationMinutes)
+                .sum();
+
+        double totalPrice = appointment.getServices().stream()
+                .mapToDouble(ServiceOffering::getPrice)
+                .sum();
+
+        appointment.setTotalDurationMinutes(totalDurationMinutes);
+        appointment.setTotalPrice(totalPrice);
+
+        if (appointment.getScheduledTime().getMinute() % 30 != 0) {
+            throw new InvalidAppointmentTimeException("Appointments must start at 30-min intervals");
         }
 
-        double totalPrice = appointment.getServices().stream().mapToDouble(ServiceOffering::getPrice).sum();
-        int totalDuration = appointment.getServices().stream().mapToInt(ServiceOffering::getDurationMinutes).sum();
-        appointment.setTotalPrice(totalPrice);
-        appointment.setTotalDurationMinutes(totalDuration);
+        List<LocalDateTime> availableSlots =
+                computeAvailableSlots(appointment.getBarber(), appointment.getScheduledTime().toLocalDate(), appointment.getServices());
+
+        if (!availableSlots.contains(appointment.getScheduledTime())) {
+            throw new AppointmentSlotUnavailableException("Selected slot is not available");
+        }
+
+        appointment.setCustomer(customer);
+        appointment.setStatus(AppointmentStatus.SCHEDULED);
+        appointment.setPaymentStatus(PaymentStatus.PENDING);
 
         return appointmentRepository.save(appointment);
     }
 
-
-    public Appointment viewDetails(Appointment appointment) {
-       return appointment;
-    }
-
-    public String cancelAppointment(Appointment appointment) {
-        if (appointment.getStatus() == AppointmentStatus.CANCELLED) {
-            return "Appointment is already canceled";
-        }
-
-        if (appointment.getStatus() == AppointmentStatus.COMPLETED) {
-            return "Completed appointments cannot be canceled";
-        }
-        appointment.setStatus(AppointmentStatus.CANCELLED);
-        appointmentRepository.save(appointment);
-        return "Cancelled Successfully";
-    }
-
-    public Appointment reschedule(Long id, String email, RescheduleAppointmentRequest request) {
-        Appointment oldAppointment = appointmentRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("xAppointment not found"));
-        if (!oldAppointment.getCustomer().getEmail().equals(email) || !oldAppointment.getBarber().getEmail().equals(email)) {
-            throw new RuntimeException("Access denied");
-        }
-
-        LocalDateTime appointmentDateTime = request.getNewDateTime();
-
-        if (appointmentDateTime.isBefore(LocalDateTime.now())) {
-            throw new RuntimeException("Cannot book an appointment in the past");
-        }
-
-        LocalDateTime checkInTime = appointmentDateTime.minusMinutes(10);
-
-        oldAppointment.setCheckInTime(checkInTime);
-        oldAppointment.setScheduledTime(appointmentDateTime);
-        oldAppointment.setCheckInTime(checkInTime);
-
-        AppointmentLog log = new AppointmentLog();
-        log.setAppointment(oldAppointment);
-//        log.setAction(AppointmentStatus.RESCHEDULED);
-        log.setDescription(request.getReason());
-        log.setPerformedBy(oldAppointment.getCustomer().getName());
-
-        return appointmentRepository.save(oldAppointment);
-
-    }
-
-
+    @Transactional
     public Page<Appointment> getUpcoming(Customer customer, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("date").ascending());
+        LocalDateTime now = LocalDateTime.now();
 
         return appointmentRepository.findUpcomingByCustomer(
                 customer,
-                LocalDate.now(),
-                pageable
+                now,
+                PageRequest.of(page, size)
         );
     }
 
+    @Transactional
     public Page<Appointment> getPast(Customer customer, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("date").descending());
+        LocalDateTime now = LocalDateTime.now();
 
         return appointmentRepository.findPastByCustomer(
                 customer,
-                LocalDate.now(),
-                pageable
+                now,
+                PageRequest.of(page, size)
         );
     }
-    public List<LocalDateTime> getAvailableSlotsEntity(
-            Barber barber,
-            LocalDate date,
-            int requestedDurationMinutes
-    ) {
+
+    @Transactional
+    public void cancelAppointment(Long appointmentId) {
+        Appointment appointment = findById(appointmentId);
+        if (appointment.getStatus().equals(AppointmentStatus.CANCELLED)) {
+            throw new AppointmentAlreadyCancelledException(appointmentId);
+        }
+        appointment.setStatus(AppointmentStatus.CANCELLED);
+        appointmentRepository.save(appointment);
+    }
+
+    @Transactional
+    public List<LocalDateTime> computeAvailableSlots(Barber barber, LocalDate date, List<ServiceOffering> services) {
+        int totalDurationMinutes = services.stream()
+                .mapToInt(ServiceOffering::getDurationMinutes)
+                .sum();
+
+        int slotIncrement = 30;
+        LocalDateTime dayStart = date.atStartOfDay();
+        LocalDateTime dayEnd   = date.atTime(LocalTime.MAX);
+
         List<Appointment> bookedAppointments =
-                getBookedAppointments(barber, date);
-        List<LocalTime> candidateSlots =
-                generateSlots(barber, requestedDurationMinutes, date);
-        return candidateSlots.stream()
-                .filter(slot ->
-                        isSlotAvailable(
-                                slot,
-                                requestedDurationMinutes,
-                                bookedAppointments
-                        )
-                )
-                .map(time -> LocalDateTime.of(date, time))
-                .toList();
-    }
-
-    public List<Appointment> getBookedAppointments(
-            Barber barber,
-            LocalDate date
-    ) {
-        return appointmentRepository
-                .findByBarberAndScheduledTimeBetweenAndStatusIn(
+                appointmentRepository.findByBarberAndScheduledTimeBetween(
                         barber,
-                        date.atStartOfDay(),
-                        date.atTime(23, 59, 59),
-                        List.of(
-                                AppointmentStatus.SCHEDULED
-                        )
-                );
-    }
-
-    private boolean isSlotAvailable(
-            LocalTime slotStart,
-            int requestedDurationMinutes,
-            List<Appointment> bookedAppointments
-    ) {
-        LocalTime slotEnd = slotStart.plusMinutes(requestedDurationMinutes);
-
-        for (Appointment appointment : bookedAppointments) {
-            LocalTime bookedStart = appointment.getStartTime();
-            LocalTime bookedEnd = appointment.getEndTime();
-
-            boolean overlaps =
-                    slotStart.isBefore(bookedEnd)
-                            && slotEnd.isAfter(bookedStart);
-
-            if (overlaps) return false;
-        }
-
-        return true;
-    }
-
-    private List<LocalTime> generateSlots(
-            Barber barber,
-            int durationMinutes,
-            LocalDate date
-    ) {
-        DayOfWeek day = date.getDayOfWeek();
-
-        BarberSchedule schedule = barber.getSchedules().stream()
-                .filter(s -> s.getDay() == day)
-                .findFirst()
-                .orElseThrow(() ->
-                        new IllegalStateException("Barber not working on this day")
+                        dayStart,
+                        dayEnd
                 );
 
-        List<LocalTime> slots = new ArrayList<>();
-        LocalTime current = schedule.getStartTime();
-        LocalTime end = schedule.getEndTime();
+        LocalDateTime workStart = date.atTime(9, 0);
+        LocalDateTime workEnd = date.atTime(18, 0);
 
-        while (!current.plusMinutes(durationMinutes).isAfter(end)) {
-            slots.add(current);
-            current = current.plusMinutes(15); // ⬅️ slot interval
+        List<LocalDateTime> availableSlots = new ArrayList<>();
+        LocalDateTime slotStart = workStart;
+
+        while (!slotStart.plusMinutes(totalDurationMinutes).isAfter(workEnd)) {
+            LocalDateTime slotEnd = slotStart.plusMinutes(totalDurationMinutes);
+
+            LocalDateTime finalSlotStart = slotStart;
+            boolean conflict = bookedAppointments.stream().anyMatch(a -> {
+                LocalDateTime existingStart = a.getScheduledTime();
+                LocalDateTime existingEnd = existingStart.plusMinutes(a.getTotalDurationMinutes());
+                return finalSlotStart.isBefore(existingEnd) && slotEnd.isAfter(existingStart);
+            });
+
+            if (!conflict) {
+                availableSlots.add(slotStart);
+            }
+
+            slotStart = slotStart.plusMinutes(slotIncrement);
         }
 
-        return slots;
+        return availableSlots;
     }
 
+    @Transactional
+    public List<Appointment> getBookedAppointments(Barber barber, LocalDate date) {
 
-    public List<Appointment> getBarberAppointments(Barber barber, LocalDate targetDate) {
-        return appointmentRepository.findByBarberAndScheduledTime(barber, targetDate);
+        LocalDateTime startOfDay = date.atStartOfDay();
+        LocalDateTime endOfDay = date.atTime(23, 59, 59);
+
+        return appointmentRepository.findByBarberAndStatusAndScheduledTimeBetween(
+                barber,
+                AppointmentStatus.SCHEDULED,
+                startOfDay,
+                endOfDay
+        );
     }
 
-    public Page<Appointment> getAllAppointments(int page, int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("scheduledTime").descending());
-        return appointmentRepository.findAll(pageable);
+    @Transactional
+    public List<Appointment> getBarberAppointments(Barber barber, LocalDate date) {
+        LocalDateTime startOfDay = date.atStartOfDay();
+        LocalDateTime endOfDay = date.atTime(LocalTime.MAX);
+
+        return appointmentRepository.findByBarberAndScheduledTimeBetween(
+                barber,
+                startOfDay,
+                endOfDay
+        );
     }
 
+    public Page<Appointment> getAppointmentsForAdmin(Admin admin, Pageable pageable) {
+        if (admin.getRole() == Roles.MAIN_ADMIN) {
+            return appointmentRepository.findAll(pageable);
+
+        } else if (admin.getRole() == Roles.SHOP_ADMIN) {
+            return appointmentRepository.findAllByBarbershop(admin.getBarbershop(), pageable);
+
+        } else {
+            throw new AccessDeniedException("Invalid role for this action");
+        }
+    }
 }
+

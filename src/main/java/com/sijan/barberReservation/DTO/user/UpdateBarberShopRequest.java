@@ -12,7 +12,7 @@ import org.hibernate.validator.constraints.URL;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class UpdateBarberShopRequest {
+public class UpdateBarbershopRequest {
     private String name;
     private String address;
     private String city;
