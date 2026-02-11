@@ -3,7 +3,6 @@ package com.sijan.barberReservation.model;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -49,7 +48,7 @@ public class Barber extends User {
     // Relationships
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "barbershop_id", nullable = false)
-    private BarberShop barbershop;
+    private Barbershop barbershop;
 
     @OneToMany(mappedBy = "barber")
     private List<Appointment> appointments;

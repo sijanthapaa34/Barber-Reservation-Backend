@@ -44,7 +44,7 @@ public class ServiceOffering {
     // Relationships
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "barbershop_id", nullable = false)
-    private BarberShop barbershop;
+    private Barbershop barbershop;
 
     @ManyToMany(mappedBy = "services")
     private List<Appointment> appointments;

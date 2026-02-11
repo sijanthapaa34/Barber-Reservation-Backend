@@ -1,11 +1,9 @@
 package com.sijan.barberReservation.repository;
 
-import com.sijan.barberReservation.model.BarberShop;
+import com.sijan.barberReservation.model.Barbershop;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
-
 @Repository
-public interface BarberShopRepository extends JpaRepository<BarberShop, Long> {
+public interface BarbershopRepository extends JpaRepository<Barbershop, Long> {
 }

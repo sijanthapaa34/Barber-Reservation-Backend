@@ -12,6 +12,7 @@ import java.time.LocalDateTime;
 public class CustomerMapper {
     public CustomerDTO toDTO(Customer customer) {
         CustomerDTO dto = new CustomerDTO();
+        dto.setId(customer.getId());
         dto.setName(customer.getName());
         dto.setEmail(customer.getEmail());
         dto.setPhone(customer.getPhone());

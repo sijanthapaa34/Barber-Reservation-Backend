@@ -19,7 +19,7 @@ public class Review {
     @ManyToOne(fetch = FetchType.LAZY)
     private Barber barber;
     @ManyToOne(fetch = FetchType.LAZY)
-    private BarberShop barberShop;
+    private Barbershop barberShop;
     @ManyToOne(fetch = FetchType.LAZY)
     private Customer customer;
     @OneToOne(fetch = FetchType.LAZY)

@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class FrequentCustomerDTO {
-
+    private Long id;
     private String name;
     private String email;
     private int totalBookings;

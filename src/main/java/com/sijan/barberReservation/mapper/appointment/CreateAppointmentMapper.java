@@ -4,11 +4,10 @@ import com.sijan.barberReservation.DTO.appointment.CreateAppointmentRequest;
 import com.sijan.barberReservation.model.Appointment;
 import com.sijan.barberReservation.model.AppointmentStatus;
 import com.sijan.barberReservation.model.Barber;
-import com.sijan.barberReservation.model.BarberShop;
-import com.sijan.barberReservation.model.Customer;
+import com.sijan.barberReservation.model.Barbershop;
 import com.sijan.barberReservation.model.ServiceOffering;
 import com.sijan.barberReservation.service.BarberService;
-import com.sijan.barberReservation.service.BarberShopService;
+import com.sijan.barberReservation.service.BarbershopService;
 import com.sijan.barberReservation.service.CustomerService;
 import com.sijan.barberReservation.service.ServiceOfferingService;
 import org.springframework.stereotype.Component;
@@ -17,17 +16,17 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Component
-public class CreateMapper {
+public class CreateAppointmentMapper {
 
     private final com.sijan.barberReservation.service.BarberService barberService;
     private final CustomerService customerService;
-    private final BarberShopService barberShopService;
+    private final BarbershopService barbershopService;
     private final ServiceOfferingService servicesService;
 
-    public CreateMapper(BarberService barberService, CustomerService customerService, BarberShopService barberShopService, ServiceOfferingService servicesService) {
+    public CreateAppointmentMapper(BarberService barberService, CustomerService customerService, BarbershopService barbershopService, ServiceOfferingService servicesService) {
         this.barberService = barberService;
         this.customerService = customerService;
-        this.barberShopService = barberShopService;
+        this.barbershopService = barbershopService;
         this.servicesService = servicesService;
     }
 
@@ -35,7 +34,7 @@ public class CreateMapper {
     public Appointment toAppointment(CreateAppointmentRequest request){
         Barber barber = barberService.findById(request.getBarberId());
         List<ServiceOffering> service = servicesService.findByIds(request.getServiceIds());
-        BarberShop barbershop = barberShopService.findById(request.getBarberShopId());
+        Barbershop barbershop = barbershopService.findById(request.getBarbershopId());
 
         LocalDateTime appointmentDateTime = request.getScheduledTime();
         LocalDateTime checkInTime = appointmentDateTime.minusMinutes(10);

@@ -7,33 +7,29 @@ import com.sijan.barberReservation.DTO.service.ServiceUpdateRequest;
 import com.sijan.barberReservation.mapper.appointment.PageMapper;
 import com.sijan.barberReservation.mapper.service.ServiceMapper;
 import com.sijan.barberReservation.model.Admin;
-import com.sijan.barberReservation.model.BarberShop;
+import com.sijan.barberReservation.model.Barbershop;
 import com.sijan.barberReservation.model.ServiceOffering;
-import com.sijan.barberReservation.model.User;
 import com.sijan.barberReservation.service.AdminService;
-import com.sijan.barberReservation.service.BarberShopService;
+import com.sijan.barberReservation.service.BarbershopService;
 import com.sijan.barberReservation.service.ServiceOfferingService;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/service")
 public class ServiceController {
     private final ServiceOfferingService serviceOfferingService;
-    private final BarberShopService barberShopService;
+    private final BarbershopService barbershopService;
     private final AdminService adminService;
     private final ServiceMapper serviceMapper;
     private final PageMapper pageMapper;
 
-    public ServiceController(ServiceOfferingService serviceOfferingService, BarberShopService barberShopService, AdminService adminService, ServiceMapper serviceMapper, PageMapper pageMapper) {
+    public ServiceController(ServiceOfferingService serviceOfferingService, BarbershopService barbershopService, AdminService adminService, ServiceMapper serviceMapper, PageMapper pageMapper) {
         this.serviceOfferingService = serviceOfferingService;
-        this.barberShopService = barberShopService;
+        this.barbershopService = barbershopService;
         this.adminService = adminService;
         this.serviceMapper = serviceMapper;
         this.pageMapper = pageMapper;
@@ -64,7 +60,7 @@ public class ServiceController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
-        BarberShop barberShop = barberShopService.findById(barberShopId);
+        Barbershop barberShop = barbershopService.findById(barberShopId);
         Pageable pageable = PageRequest.of(page, size);
         PageResponse<ServiceDTO> response = pageMapper.toServicePageResponse(serviceOfferingService.getAllByBarberShop(barberShop,pageable));
         return ResponseEntity.ok(response);
@@ -77,7 +73,7 @@ public class ServiceController {
     ) {
         Admin admin = getCurrentAdmin(authentication);
         ServiceOffering service = serviceMapper.toEntity(request);
-        BarberShop barberShop = admin.getBarbershop();
+        Barbershop barberShop = admin.getBarbershop();
         ServiceDTO serviceDTO = serviceMapper.toDTO(serviceOfferingService.add(barberShop, service));
         return ResponseEntity.status(201).body(serviceDTO);
     }

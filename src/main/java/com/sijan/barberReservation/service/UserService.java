@@ -1,19 +1,14 @@
 package com.sijan.barberReservation.service;
 
-import com.sijan.barberReservation.model.Admin;
 import com.sijan.barberReservation.model.Barber;
-import com.sijan.barberReservation.model.BarberShop;
+import com.sijan.barberReservation.model.Barbershop;
 import com.sijan.barberReservation.model.Customer;
-import com.sijan.barberReservation.model.Roles;
 import com.sijan.barberReservation.model.User;
 import com.sijan.barberReservation.repository.BarberRepository;
-import com.sijan.barberReservation.repository.BarberShopRepository;
 import com.sijan.barberReservation.repository.CustomerRepository;
 import com.sijan.barberReservation.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
-import java.time.LocalDateTime;
 
 @Service
 public class UserService {
@@ -46,7 +41,7 @@ public class UserService {
         return customerRepository.save(customer);
     }
 
-    public Barber registerBarber(Barber barber, BarberShop shop) {
+    public Barber registerBarber(Barber barber, Barbershop shop) {
         if(userRepository.existsByEmail(barber.getEmail())) {
             throw new RuntimeException("User with this email already exists");
         }

@@ -2,7 +2,7 @@ package com.sijan.barberReservation.service;
 
 import com.sijan.barberReservation.exception.service.ServiceNotFoundException;
 import com.sijan.barberReservation.model.Admin;
-import com.sijan.barberReservation.model.BarberShop;
+import com.sijan.barberReservation.model.Barbershop;
 import com.sijan.barberReservation.model.ServiceOffering;
 import com.sijan.barberReservation.repository.ServiceRepository;
 import org.springframework.data.domain.Page;
@@ -30,7 +30,7 @@ public class ServiceOfferingService {
         return serviceRepository.findAll(pageable);
     }
 
-    public ServiceOffering add(BarberShop barberShop, ServiceOffering serviceOffering) {
+    public ServiceOffering add(Barbershop barberShop, ServiceOffering serviceOffering) {
         serviceOffering.setBarbershop(barberShop);
         return serviceRepository.save(serviceOffering);
     }
@@ -50,7 +50,7 @@ public class ServiceOfferingService {
     }
 
 
-    public Page<ServiceOffering> getAllByBarberShop(BarberShop barberShop, Pageable pageable) {
+    public Page<ServiceOffering> getAllByBarberShop(Barbershop barberShop, Pageable pageable) {
         return serviceRepository.findByBarberShop(barberShop, pageable);
     }
 }

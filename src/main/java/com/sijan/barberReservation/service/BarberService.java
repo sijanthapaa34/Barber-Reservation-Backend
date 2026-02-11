@@ -3,9 +3,8 @@ package com.sijan.barberReservation.service;
 import com.sijan.barberReservation.DTO.Auth.ChangePasswordRequest;
 import com.sijan.barberReservation.exception.barber.BarberNotFoundException;
 import com.sijan.barberReservation.exception.role.ResourceNotFoundException;
-import com.sijan.barberReservation.model.Admin;
-import com.sijan.barberReservation.model.Barber;
-import com.sijan.barberReservation.model.BarberShop;
+import com.sijan.barberReservation.model.*;
+import com.sijan.barberReservation.repository.BarberLeaveRepository;
 import com.sijan.barberReservation.repository.BarberRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
@@ -19,11 +18,13 @@ import java.time.LocalDate;
 public class BarberService {
 
     private final BarberRepository barberRepository;
+    private final BarberLeaveRepository barberLeaveRepository;
     private final PasswordEncoder passwordEncoder;
 
 
-    public BarberService(BarberRepository barberRepository, PasswordEncoder passwordEncoder) {
+    public BarberService(BarberRepository barberRepository, BarberLeaveRepository barberLeaveRepository, PasswordEncoder passwordEncoder) {
         this.barberRepository = barberRepository;
+        this.barberLeaveRepository = barberLeaveRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -34,7 +35,7 @@ public class BarberService {
 
 
     public Page<Barber> findByBarberShop(Admin admin, Pageable pageable) {
-        BarberShop shop = admin.getBarbershop();
+        Barbershop shop = admin.getBarbershop();
         if(shop == null){
             throw new ResourceNotFoundException("Admin has no assigned barbershop");
         }
@@ -70,5 +71,13 @@ public class BarberService {
 
     public void deactivateBarber(Barber barber) {
         barber.setActive(false);
+    }
+
+    public Page<BarberLeave> getAllLeaves(Admin admin, Pageable pageable) {
+        Barbershop barberShop = admin.getBarbershop();
+        if (barberShop == null) {
+            throw new ResourceNotFoundException("Admin has no assigned barbershop");
+        }
+        return barberLeaveRepository.findByBarberShopAndStatus(barberShop, pageable, LeaveStatus.PENDING);
     }
 }

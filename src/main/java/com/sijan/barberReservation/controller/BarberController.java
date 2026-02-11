@@ -1,7 +1,6 @@
 package com.sijan.barberReservation.controller;
 
 import com.sijan.barberReservation.DTO.appointment.AppointmentDetailsResponse;
-import com.sijan.barberReservation.DTO.appointment.PageResponse;
 import com.sijan.barberReservation.DTO.user.BarberDTO;
 import com.sijan.barberReservation.DTO.Auth.ChangePasswordRequest;
 import com.sijan.barberReservation.DTO.user.LeaveRequestDTO;
@@ -14,7 +13,7 @@ import com.sijan.barberReservation.model.Barber;
 import com.sijan.barberReservation.model.UserPrincipal;
 import com.sijan.barberReservation.service.BarberService;
 import com.sijan.barberReservation.service.AppointmentService;
-import com.sijan.barberReservation.service.BarberShopService;
+import com.sijan.barberReservation.service.BarbershopService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -28,15 +27,15 @@ import java.util.List;
 public class BarberController {
 
     private final BarberService barberService;
-    private final BarberShopService barberShopService;
+    private final BarbershopService barbershopService;
     private final AppointmentService appointmentService;
     private final BarberMapper barberMapper;
     private final AppointmentDetailsMapper appointmentMapper;
     private final UpdateUserRequestMapper requestMapper;
 
-    public BarberController (BarberService barberService, BarberShopService barberShopService, AppointmentService appointmentService, BarberMapper barberMapper, AppointmentDetailsMapper appointmentMapper, UpdateUserRequestMapper requestMapper) {
+    public BarberController (BarberService barberService, BarbershopService barbershopService, AppointmentService appointmentService, BarberMapper barberMapper, AppointmentDetailsMapper appointmentMapper, UpdateUserRequestMapper requestMapper) {
         this.barberService = barberService;
-        this.barberShopService = barberShopService;
+        this.barbershopService = barbershopService;
         this.appointmentService = appointmentService;
         this.barberMapper = barberMapper;
         this.appointmentMapper = appointmentMapper;

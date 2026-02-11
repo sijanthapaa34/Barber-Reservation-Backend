@@ -3,7 +3,6 @@ package com.sijan.barberReservation.model;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -16,7 +15,7 @@ import java.util.List;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class BarberShop {
+public class Barbershop {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

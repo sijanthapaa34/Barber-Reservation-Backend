@@ -3,12 +3,12 @@ package com.sijan.barberReservation.mapper.user;
 import com.sijan.barberReservation.DTO.Auth.RegisterBarbershopRequest;
 import com.sijan.barberReservation.DTO.user.BarbershopDTO;
 import com.sijan.barberReservation.DTO.user.UpdateBarbershopRequest;
-import com.sijan.barberReservation.model.BarberShop;
+import com.sijan.barberReservation.model.Barbershop;
 import org.springframework.stereotype.Component;
 
 @Component
 public class BarbershopMapper {
-    public BarbershopDTO toDTO(BarberShop shop) {
+    public BarbershopDTO toDTO(Barbershop shop) {
         BarbershopDTO dto = new BarbershopDTO();
         dto.setId(shop.getId());
         dto.setName(shop.getName());
@@ -25,8 +25,8 @@ public class BarbershopMapper {
     }
 
 
-    public BarberShop toEntity(RegisterBarbershopRequest req) {
-        BarberShop shop = new BarberShop();
+    public Barbershop toEntity(RegisterBarbershopRequest req) {
+        Barbershop shop = new Barbershop();
         shop.setName(req.getName());
         shop.setAddress(req.getAddress());
         shop.setCity(req.getCity());
@@ -35,8 +35,8 @@ public class BarbershopMapper {
         return shop;
     }
 
-    public BarberShop toEntity(UpdateBarbershopRequest req) {
-        BarberShop shop = new BarberShop();
+    public Barbershop toEntity(UpdateBarbershopRequest req) {
+        Barbershop shop = new Barbershop();
         shop.setName(req.getName());
         shop.setAddress(req.getAddress());
         shop.setCity(req.getCity());
