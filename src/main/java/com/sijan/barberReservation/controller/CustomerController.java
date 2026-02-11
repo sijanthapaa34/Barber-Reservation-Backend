@@ -5,14 +5,11 @@ import com.sijan.barberReservation.DTO.user.CustomerDTO;
 import com.sijan.barberReservation.DTO.user.UpdateUserRequest;
 import com.sijan.barberReservation.mapper.user.CustomerMapper;
 import com.sijan.barberReservation.model.Customer;
-import com.sijan.barberReservation.model.UserPrincipal;
 import com.sijan.barberReservation.service.AppointmentService;
 import com.sijan.barberReservation.service.BarberService;
-import com.sijan.barberReservation.service.BarberShopService;
+import com.sijan.barberReservation.service.BarbershopService;
 import com.sijan.barberReservation.service.CustomerService;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -22,14 +19,14 @@ public class CustomerController {
     private final CustomerService customerService;
     private final AppointmentService appointmentService;
     private final BarberService barberService;
-    private final BarberShopService barberShopService;
+    private final BarbershopService barbershopService;
     private final CustomerMapper customerMapper;
 
-    public CustomerController(CustomerService customerService, AppointmentService appointmentService, BarberService barberService, BarberShopService barberShopService, CustomerMapper customerMapper) {
+    public CustomerController(CustomerService customerService, AppointmentService appointmentService, BarberService barberService, BarbershopService barbershopService, CustomerMapper customerMapper) {
         this.customerService = customerService;
         this.appointmentService = appointmentService;
         this.barberService = barberService;
-        this.barberShopService = barberShopService;
+        this.barbershopService = barbershopService;
         this.customerMapper = customerMapper;
     }
 

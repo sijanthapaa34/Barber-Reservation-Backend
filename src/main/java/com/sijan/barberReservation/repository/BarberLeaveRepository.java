@@ -1,12 +1,12 @@
 package com.sijan.barberReservation.repository;
 
 import com.sijan.barberReservation.model.BarberLeave;
+import com.sijan.barberReservation.model.Barbershop;
 import com.sijan.barberReservation.model.LeaveStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import java.util.List;
-
 public interface BarberLeaveRepository extends JpaRepository<BarberLeave, Long> {
-//    List<BarberLeave> findByEmail(String mail);
-    List<BarberLeave> findByStatus(LeaveStatus status);
+    Page<BarberLeave> findByBarberShopAndStatus(Barbershop barberShop, Pageable pageable, LeaveStatus leaveStatus);
 }

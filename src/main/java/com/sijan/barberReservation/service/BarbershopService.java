@@ -1,10 +1,8 @@
 package com.sijan.barberReservation.service;
 
-import com.sijan.barberReservation.DTO.user.BarbershopDTO;
-import com.sijan.barberReservation.DTO.user.UpdateBarberShopRequest;
 import com.sijan.barberReservation.model.Admin;
-import com.sijan.barberReservation.model.BarberShop;
-import com.sijan.barberReservation.repository.BarberShopRepository;
+import com.sijan.barberReservation.model.Barbershop;
+import com.sijan.barberReservation.repository.BarbershopRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
@@ -12,11 +10,11 @@ import org.springframework.stereotype.Service;
 @Transactional
 public class BarbershopService {
 
-    private final BarberShopRepository barbershopRepository;
+    private final BarbershopRepository barbershopRepository;
     private final AdminService adminService;
 //    private final GoogleMapsService googleMapsService;
 
-    public BarbershopService(BarberShopRepository barbershopRepository,
+    public BarbershopService(BarbershopRepository barbershopRepository,
                              AdminService adminService
 //                             GoogleMapsService googleMapsService
     ) {
@@ -25,7 +23,7 @@ public class BarbershopService {
 //        this.googleMapsService = googleMapsService;
     }
 
-    public BarberShop findById(Long id){
+    public Barbershop findById(Long id){
         return barbershopRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Barbershop not found"));
     }
@@ -57,12 +55,12 @@ public class BarbershopService {
 //                .collect(Collectors.toList());
 //    }
 
-    public BarberShop updateBarbershop(Long adminId, Long id,BarberShop barberShop) {
+    public Barbershop updateBarbershop(Long adminId, Long id, Barbershop barberShop) {
         return barbershopRepository.save(barberShop);
     }
 
-    public BarberShop createBarbershopWithAdmin(BarberShop barbershop, Admin admin) {
-        BarberShop savedBarbershop = barbershopRepository.save(barbershop);
+    public Barbershop createBarbershopWithAdmin(Barbershop barbershop, Admin admin) {
+        Barbershop savedBarbershop = barbershopRepository.save(barbershop);
 
         // Link the admin to the saved barbershop
         admin.setBarbershop(savedBarbershop);

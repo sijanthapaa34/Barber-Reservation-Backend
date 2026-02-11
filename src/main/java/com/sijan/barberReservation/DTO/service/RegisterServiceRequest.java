@@ -1,9 +1,6 @@
 package com.sijan.barberReservation.DTO.service;
 
-import com.sijan.barberReservation.model.Appointment;
-import com.sijan.barberReservation.model.BarberShop;
 import com.sijan.barberReservation.model.ServiceCategory;
-import jakarta.persistence.*;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;
@@ -15,10 +12,7 @@ import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Data

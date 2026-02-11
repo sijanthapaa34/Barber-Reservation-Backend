@@ -11,15 +11,9 @@ import com.sijan.barberReservation.DTO.Auth.RegisterBarberRequest;
 import com.sijan.barberReservation.DTO.Auth.RegisterCustomerRequest;
 import com.sijan.barberReservation.mapper.user.BarberMapper;
 import com.sijan.barberReservation.mapper.user.CustomerMapper;
-import com.sijan.barberReservation.model.Admin;
-import com.sijan.barberReservation.model.AdminLevel;
-import com.sijan.barberReservation.model.Barber;
-import com.sijan.barberReservation.model.Barbershop;
-import com.sijan.barberReservation.model.Customer;
-import com.sijan.barberReservation.model.Roles;
-import com.sijan.barberReservation.model.User;
+import com.sijan.barberReservation.model.*;
 import com.sijan.barberReservation.security.JwtTokenProvider;
-import com.sijan.barberReservation.service.BarberShopService;
+import com.sijan.barberReservation.service.BarbershopService;
 import com.sijan.barberReservation.service.GoogleTokenVerifierService;
 import com.sijan.barberReservation.service.UserService;
 import org.springframework.http.ResponseEntity;
@@ -158,7 +152,7 @@ public class AuthController {
     public ResponseEntity<BarberDTO> registerBarber(@PathVariable Long barberShopId,
                                     @RequestBody RegisterBarberRequest req) {
         Barber barber = barberMapper.toEntity(req);
-        BarberShop shop = barberShopService.findById(barberShopId);
+        Barbershop shop = barbershopService.findById(barberShopId);
         BarberDTO response = barberMapper.toDTO(userService.registerBarber(barber, shop));
         return ResponseEntity.ok(response);
     }
@@ -167,25 +161,25 @@ public class AuthController {
             @RequestBody RegisterBarbershopRequest req) {
 
         // Create the barbershop
-        BarberShop barberShop = new BarberShop();
-        barberShop.setName(req.getName());
-        barberShop.setAddress(req.getAddress());
-        barberShop.setCity(req.getCity());
-        barberShop.setState(req.getState());
-        barberShop.setPostalCode(req.getPostalCode());
-        barberShop.setCountry(req.getCountry());
-        barberShop.setLatitude(req.getLatitude());
-        barberShop.setLongitude(req.getLongitude());
-        barberShop.setPhone(req.getPhone());
-        barberShop.setEmail(req.getEmail());
-        barberShop.setWebsite(req.getWebsite());
-        barberShop.setOperatingHours(req.getOperatingHours());
+        Barbershop barbershop = new Barbershop();
+        barbershop.setName(req.getName());
+        barbershop.setAddress(req.getAddress());
+        barbershop.setCity(req.getCity());
+        barbershop.setState(req.getState());
+        barbershop.setPostalCode(req.getPostalCode());
+        barbershop.setCountry(req.getCountry());
+        barbershop.setLatitude(req.getLatitude());
+        barbershop.setLongitude(req.getLongitude());
+        barbershop.setPhone(req.getPhone());
+        barbershop.setEmail(req.getEmail());
+        barbershop.setWebsite(req.getWebsite());
+        barbershop.setOperatingHours(req.getOperatingHours());
 
         // Create full address string
         String fullAddress = String.format("%s, %s, %s, %s, %s",
                 req.getAddress(), req.getCity(),
                 req.getState(), req.getPostalCode(), req.getCountry());
-        barberShop.setFullAddress(fullAddress);
+        barbershop.setFullAddress(fullAddress);
 
         // Create the admin (shop owner)
         Admin admin = new Admin();
@@ -195,11 +189,11 @@ public class AuthController {
         admin.setPhone(req.getPhone());
         admin.setRole(Roles.SHOP_ADMIN);
         admin.setAdminLevel(AdminLevel.SHOP_ADMIN);
-        admin.setBarbershop(barberShop);
+        admin.setBarbershop(barbershop);
 
-        barberShop.setAdmin(admin);
+        barbershop.setAdmin(admin);
         // Save both entities
-        BarberShop savedBarbershop = barberShopService.createBarbershopWithAdmin(barberShop, admin);
+        Barbershop savedBarbershop = barbershopService.createBarbershopWithAdmin(barbershop, admin);
 
         // Create response
         BarbershopDTO response = new BarbershopDTO();

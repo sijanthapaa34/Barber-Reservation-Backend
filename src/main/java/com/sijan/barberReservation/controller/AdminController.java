@@ -6,10 +6,7 @@ import com.sijan.barberReservation.DTO.appointment.PageResponse;
 import com.sijan.barberReservation.DTO.user.*;
 import com.sijan.barberReservation.mapper.appointment.PageMapper;
 import com.sijan.barberReservation.model.*;
-import com.sijan.barberReservation.service.AdminService;
-import com.sijan.barberReservation.service.AppointmentService;
-import com.sijan.barberReservation.service.BarberService;
-import com.sijan.barberReservation.service.CustomerService;
+import com.sijan.barberReservation.service.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -18,8 +15,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("/api/admin")
 public class AdminController {
@@ -27,14 +22,16 @@ public class AdminController {
     private final AdminService adminService;
     private final AppointmentService appointmentService;
     private final BarberService barberService;
+    private final BarberLeaveService barberLeaveService;
     private final CustomerService customerService;
     private final PageMapper pageMapper;
 
 
-    public AdminController(AdminService adminService, AppointmentService appointmentService, BarberService barberService, CustomerService customerService, PageMapper pageMapper) {
+    public AdminController(AdminService adminService, AppointmentService appointmentService, BarberService barberService, BarberLeaveService barberLeaveService, CustomerService customerService, PageMapper pageMapper) {
         this.adminService = adminService;
         this.appointmentService = appointmentService;
         this.barberService = barberService;
+        this.barberLeaveService = barberLeaveService;
         this.customerService = customerService;
         this.pageMapper = pageMapper;
     }
@@ -53,7 +50,7 @@ public class AdminController {
         Sort sort = Sort.by(Sort.Direction.DESC, "scheduledTime");
         Pageable pageable = PageRequest.of(page, size, sort);
         Page<Barber> barbers = barberService.findByBarberShop(admin, pageable);
-        return ResponseEntity.ok(barbers);
+        return ResponseEntity.ok(pageMapper.toBarberPageResponse(barbers));
     }
 
     @PutMapping("/barbers/{barberId}/activate")
@@ -109,32 +106,27 @@ public class AdminController {
         Admin admin = getCurrentAdmin(authentication);
         Sort sort = Sort.by(Sort.Direction.DESC, "scheduledTime");
         Pageable pageable = PageRequest.of(page, size, sort);
-        List<BarberLeaveDTO> leaves = barberService.getAllLeaves(admin, pageable);
-        return ResponseEntity.ok(leaves);
+        Page<BarberLeave> leaves = barberService.getAllLeaves(admin, pageable);
+        return ResponseEntity.ok(pageMapper.toBarberLeavePageResponse(leaves));
     }
 
-    // PUT /api/admin/barbers/{barberId}/leaves/{leaveId}/approve
-    @PutMapping("/barbers/{barberId}/leaves/{leaveId}/approve")
-    public ResponseEntity<String> approveLeave(
+    @PutMapping("/barbers/{barberId}/leaves/{leaveId}/status")
+    public ResponseEntity<Void> updateLeaveStatus(
             @PathVariable Long barberId,
             @PathVariable Long leaveId,
+            @RequestBody UpdateLeaveStatusRequest request,
             Authentication authentication
     ) {
         Admin admin = getCurrentAdmin(authentication);
-        barberService.updateLeaveStatus(leaveId, barberId, LeaveStatus.APPROVED, admin);
-        return ResponseEntity.ok("Leave approved successfully");
-    }
+        BarberLeave leave = barberLeaveService.findById(leaveId);
+        Barber barber = barberService.findById(barberId);
+        barberLeaveService.updateLeaveStatus(
+                leave,
+                barber,
+                request.getStatus(),
+                admin
+        );
 
-    // PUT /api/admin/barbers/{barberId}/leaves/{leaveId}/reject
-
-    @PutMapping("/barbers/{barberId}/leaves/{leaveId}/reject")
-    public ResponseEntity<String> rejectLeave(
-            @PathVariable Long barberId,
-            @PathVariable Long leaveId,
-            Authentication authentication
-    ) {
-        Admin admin = getCurrentAdmin(authentication);
-        adminService.updateLeaveStatus(leaveId, barberId, LeaveStatus.REJECTED, admin);
-        return ResponseEntity.ok("Leave rejected successfully");
+        return ResponseEntity.noContent().build();
     }
 }

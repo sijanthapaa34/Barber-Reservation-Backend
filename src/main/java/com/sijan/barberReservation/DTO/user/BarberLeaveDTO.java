@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class BarberLeaveDTO {
-
+    private Long id;
     private String barberName;
     private LocalDate startDate;
     private LocalDate endDate;

@@ -18,7 +18,11 @@ public class BarberLeave {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     @ManyToOne
+    @JoinColumn(name = "barber_id")
     private Barber barber;
+    @ManyToOne
+    @JoinColumn(name = "barbershop_id")
+    private Barbershop barbershop;
     private LocalDate startDate;
     private LocalDate endDate;
     private String reason;

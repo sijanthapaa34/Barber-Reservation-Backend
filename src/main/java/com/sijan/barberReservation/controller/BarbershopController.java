@@ -4,7 +4,7 @@ import com.sijan.barberReservation.DTO.user.*;
 import com.sijan.barberReservation.mapper.service.ServiceMapper;
 import com.sijan.barberReservation.mapper.user.BarberMapper;
 import com.sijan.barberReservation.mapper.user.BarbershopMapper;
-import com.sijan.barberReservation.model.BarberShop;
+import com.sijan.barberReservation.model.Barbershop;
 import com.sijan.barberReservation.service.BarberService;
 import com.sijan.barberReservation.service.BarbershopService;
 import com.sijan.barberReservation.service.ServiceOfferingService;
@@ -46,7 +46,7 @@ public class BarbershopController {
     public ResponseEntity<BarbershopDTO> getBarbershop(
             @RequestHeader("X-User-ID") Long adminId,
             @PathVariable Long id) {
-        BarberShop barbershop = barbershopService.findById(id);
+        Barbershop barbershop = barbershopService.findById(id);
         return ResponseEntity.ok(barbershopMapper.toDTO(barbershop));
     }
 
@@ -56,8 +56,8 @@ public class BarbershopController {
             @RequestHeader("X-User-ID") Long adminId,
             @PathVariable Long barberShopId,
             @RequestBody @Valid UpdateBarbershopRequest request) {
-        BarberShop barberShop = barbershopMapper.toEntity(request);
-        BarberShop barbershop = barbershopService.updateBarbershop(adminId, barberShopId, barberShop);
+        Barbershop barberShop = barbershopMapper.toEntity(request);
+        Barbershop barbershop = barbershopService.updateBarbershop(adminId, barberShopId, barberShop);
         return ResponseEntity.ok(barbershopMapper.toDTO(barbershop));
     }
 
