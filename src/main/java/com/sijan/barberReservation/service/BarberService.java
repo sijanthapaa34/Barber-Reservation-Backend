@@ -78,6 +78,6 @@ public class BarberService {
         if (barberShop == null) {
             throw new ResourceNotFoundException("Admin has no assigned barbershop");
         }
-        return barberLeaveRepository.findByBarberShopAndStatus(barberShop, pageable, LeaveStatus.PENDING);
+        return barberLeaveRepository.findByBarbershopAndStatus(barberShop, pageable, LeaveStatus.PENDING);
     }
 }

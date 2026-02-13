@@ -17,16 +17,17 @@ import java.util.Optional;
 @Repository
 public interface CustomerRepository extends JpaRepository<Customer, Long> {
     @Query("""
-        SELECT c
-        FROM Appointment a
-        JOIN a.customer c
-        WHERE c.shop.admin = :admin
-        GROUP BY c
-        ORDER BY COUNT(a.id) DESC
-    """)
+    SELECT c
+    FROM Appointment a
+    JOIN a.customer c
+    WHERE a.barbershop.admin = :admin
+    GROUP BY c
+    ORDER BY COUNT(a.id) DESC
+""")
     Page<Customer> findFrequentCustomersByAdmin(
             @Param("admin") Admin admin,
             Pageable pageable
     );
+
 }
 

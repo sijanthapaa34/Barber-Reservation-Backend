@@ -47,7 +47,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
                         // ⬇️ FIXED: Matched to the log output /auth/login
-                        .requestMatchers("/auth/**").permitAll()
+                        .requestMatchers("/api/auth/**").permitAll()
 
                         // ... rest of your roles ...
                         .requestMatchers("/api/admin/**")

@@ -3,7 +3,7 @@ package com.sijan.barberReservation.controller;
 import com.sijan.barberReservation.DTO.appointment.*;
 import com.sijan.barberReservation.mapper.appointment.AppointmentSlotMapper;
 import com.sijan.barberReservation.mapper.appointment.AppointmentDetailsMapper;
-import com.sijan.barberReservation.mapper.appointment.CreateMapper;
+import com.sijan.barberReservation.mapper.appointment.CreateAppointmentMapper;
 import com.sijan.barberReservation.mapper.appointment.PageMapper;
 import com.sijan.barberReservation.model.*;
 import com.sijan.barberReservation.service.AppointmentService;
@@ -30,13 +30,13 @@ public class AppointmentController {
     private final BarberService barberService;
     private final CustomerService customerService;
     private final ServiceOfferingService serviceOfferingService;
-    private final CreateMapper createAppointmentMapper;
+    private final CreateAppointmentMapper createAppointmentMapper;
     private final AppointmentSlotMapper appointmentSlotMapper;
     private final PageMapper pageMapper;
 
     public AppointmentController(AppointmentService appointmentService,
                                  AppointmentDetailsMapper appointmentDetailsMapper, BarberService barberService, CustomerService customerService, ServiceOfferingService serviceOfferingService,
-                                 CreateMapper createAppointmentMapper, AppointmentSlotMapper appointmentSlotMapper,
+                                 CreateAppointmentMapper createAppointmentMapper, AppointmentSlotMapper appointmentSlotMapper,
                                  PageMapper pageMapper) {
         this.appointmentService = appointmentService;
         this.appointmentDetailsMapper = appointmentDetailsMapper;

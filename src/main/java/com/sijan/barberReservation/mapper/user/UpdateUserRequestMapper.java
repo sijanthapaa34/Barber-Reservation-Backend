@@ -12,7 +12,6 @@ public class UpdateUserRequestMapper {
 
         barber.setName(request.getName());
         barber.setPhone(request.getPhone());
-        barber.setEmail(request.getEmail());
         return barber;
     }
 

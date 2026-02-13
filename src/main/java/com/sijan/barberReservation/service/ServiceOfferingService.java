@@ -50,7 +50,7 @@ public class ServiceOfferingService {
     }
 
 
-    public Page<ServiceOffering> getAllByBarberShop(Barbershop barberShop, Pageable pageable) {
-        return serviceRepository.findByBarberShop(barberShop, pageable);
+    public Page<ServiceOffering> getAllByBarbershop(Barbershop barberShop, Pageable pageable) {
+        return serviceRepository.findByBarbershop(barberShop, pageable);
     }
 }
