@@ -8,5 +8,5 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface BarberLeaveRepository extends JpaRepository<BarberLeave, Long> {
-    Page<BarberLeave> findByBarberShopAndStatus(Barbershop barberShop, Pageable pageable, LeaveStatus leaveStatus);
+    Page<BarberLeave> findByBarbershopAndStatus(Barbershop barberShop, Pageable pageable, LeaveStatus leaveStatus);
 }

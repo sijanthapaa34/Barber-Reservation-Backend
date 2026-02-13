@@ -33,8 +33,8 @@ public class AppointmentDetailsMapper {
         response.setBarberId(appointment.getBarber().getId());
         response.setBarberName(appointment.getBarber().getName());
 
-        response.setBarberShopId(appointment.getBarbershop().getId());
-        response.setBarberShopName(appointment.getBarbershop().getName());
+        response.setBarbershopId(appointment.getBarbershop().getId());
+        response.setBarbershopName(appointment.getBarbershop().getName());
 
         // Services & pricing
         response.setServices(serviceItems);

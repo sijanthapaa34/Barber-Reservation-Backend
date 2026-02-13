@@ -56,13 +56,13 @@ public class ServiceController {
         return ResponseEntity.ok(response);
     }
     @GetMapping("/barberShop/{barberShopId}")
-    public ResponseEntity<PageResponse<ServiceDTO>> getAllByBarberShop( @PathVariable Long barberShopId,
+    public ResponseEntity<PageResponse<ServiceDTO>> getAllByBarbershop( @PathVariable Long barberShopId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
-        Barbershop barberShop = barbershopService.findById(barberShopId);
+        Barbershop barbershop = barbershopService.findById(barberShopId);
         Pageable pageable = PageRequest.of(page, size);
-        PageResponse<ServiceDTO> response = pageMapper.toServicePageResponse(serviceOfferingService.getAllByBarberShop(barberShop,pageable));
+        PageResponse<ServiceDTO> response = pageMapper.toServicePageResponse(serviceOfferingService.getAllByBarbershop(barbershop,pageable));
         return ResponseEntity.ok(response);
     }
 
@@ -90,25 +90,25 @@ public class ServiceController {
         return ResponseEntity.ok(updated);
     }
 
-    // PUT /api/admin/services/{id}/activate - Reactivate a service
-    @PutMapping("/services/{id}/activate")
-    public ResponseEntity<String> activateService(
-            @PathVariable Long id,
-            Authentication authentication
-    ) {
-        Admin admin = getCurrentAdmin(authentication);
-        serviceOfferingService.activateService(admin, id);
-        return ResponseEntity.ok("Service activated successfully");
-    }
-
-    // PUT /api/admin/services/{id}/deactivate - Deactivate service
-    @PutMapping("/services/{id}/deactivate")
-    public ResponseEntity<String> deactivateService(
-            @PathVariable Long id,
-            Authentication authentication
-    ) {
-        Admin admin = getCurrentAdmin(authentication);
-        adminService.deactivateService(adminId, id);
-        return ResponseEntity.ok("Service deactivated successfully");
-    }
+//    // PUT /api/admin/services/{id}/activate - Reactivate a service
+//    @PutMapping("/services/{id}/activate")
+//    public ResponseEntity<String> activateService(
+//            @PathVariable Long id,
+//            Authentication authentication
+//    ) {
+//        Admin admin = getCurrentAdmin(authentication);
+//        serviceOfferingService.activateService(admin, id);
+//        return ResponseEntity.ok("Service activated successfully");
+//    }
+//
+//    // PUT /api/admin/services/{id}/deactivate - Deactivate service
+//    @PutMapping("/services/{id}/deactivate")
+//    public ResponseEntity<String> deactivateService(
+//            @PathVariable Long id,
+//            Authentication authentication
+//    ) {
+//        Admin admin = getCurrentAdmin(authentication);
+//        adminService.deactivateService(adminId, id);
+//        return ResponseEntity.ok("Service deactivated successfully");
+//    }
 }

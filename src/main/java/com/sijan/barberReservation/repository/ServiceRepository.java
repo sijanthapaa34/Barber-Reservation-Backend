@@ -9,5 +9,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface ServiceRepository extends JpaRepository<ServiceOffering, Long> {
-    Page<ServiceOffering> findByBarberShop(Barbershop barberShop, Pageable pageable);
+    Page<ServiceOffering> findByBarbershop(Barbershop barberShop, Pageable pageable);
 }

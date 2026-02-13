@@ -83,18 +83,18 @@ public class AdminController {
 
 
     // GET /api/admin/customers/frequent - Get frequent customers
-    @GetMapping("/customers/frequent")
-    public ResponseEntity<PageResponse<FrequentCustomerDTO>> getFrequentCustomers(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            Authentication authentication
-    ) {
-        Admin admin = getCurrentAdmin(authentication);
-        Sort sort = Sort.by(Sort.Direction.DESC, "scheduledTime");
-        Pageable pageable = PageRequest.of(page, size, sort);
-        Page<Customer> customers = customerService.getFrequentCustomers(admin, pageable);
-        return ResponseEntity.ok(customers);
-    }
+//    @GetMapping("/customers/frequent")
+//    public ResponseEntity<PageResponse<FrequentCustomerDTO>> getFrequentCustomers(
+//            @RequestParam(defaultValue = "0") int page,
+//            @RequestParam(defaultValue = "10") int size,
+//            Authentication authentication
+//    ) {
+//        Admin admin = getCurrentAdmin(authentication);
+//        Sort sort = Sort.by(Sort.Direction.DESC, "scheduledTime");
+//        Pageable pageable = PageRequest.of(page, size, sort);
+//        Page<Customer> customers = customerService.getFrequentCustomers(admin, pageable);
+//        return ResponseEntity.ok(customers);
+//    }
 
     // GET /api/admin/barbers/leaves - View all barber leave requests
     @GetMapping("/barbers/leaves")
