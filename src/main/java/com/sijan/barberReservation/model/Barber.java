@@ -23,8 +23,6 @@ public class Barber extends User {
     @Column(nullable = false)
     private Integer experienceYears;
 
-    private String profilePicture;
-
     // Rating
     @Column(nullable = false)
     private Double rating = 0.0;
