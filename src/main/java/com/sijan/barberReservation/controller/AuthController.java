@@ -84,6 +84,7 @@ public class AuthController {
             Customer customer = new Customer();
             customer.setEmail(email);
             customer.setName(name);
+            customer.setProfilePicture(picture);
             customer.setRole(Roles.CUSTOMER);
             String randomPassword = UUID.randomUUID().toString();
             customer.setPassword(passwordEncoder.encode(randomPassword));
@@ -98,11 +99,9 @@ public class AuthController {
 
         Map<String, String> response = new HashMap<>();
         response.put("token", token);
-        response.put("email", email);
-        response.put("name", name);
-        response.put("picture", picture);
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok()
+                .header("Authorization", "Bearer " + token)
+                .body(response);
     }
 
 

@@ -28,6 +28,7 @@ public class User {
     private Boolean active = true;
     @Enumerated(EnumType.STRING)
     private Roles role;
+    private String profilePicture;
     @CreationTimestamp
     private LocalDateTime createdAt;
     @UpdateTimestamp
