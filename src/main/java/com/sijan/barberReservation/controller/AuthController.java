@@ -142,10 +142,17 @@ public class AuthController {
 //    }
 
     @PostMapping("/customer")
-    public ResponseEntity<CustomerDTO> registerCustomer(@RequestBody RegisterCustomerRequest req) {
-        Customer customer = customerMapper.toEntity(req);
-        CustomerDTO response = customerMapper.toDTO(userService.registerCustomer(customer));
-        return ResponseEntity.ok(response);
+    public ResponseEntity<Map<String, String>> registerCustomer(@RequestBody RegisterCustomerRequest req) {
+        Customer newCustomer = customerMapper.toEntity(req);
+        Customer registeredcustomer = userService.registerCustomer(newCustomer);
+
+        String token = tokenProvider.generateToken(registeredcustomer.getEmail(),registeredcustomer.getId() ,registeredcustomer.getRole().toString());
+
+        Map<String, String> response = new HashMap<>();
+        response.put("token", token);
+        return ResponseEntity.ok()
+                .header("Authorization", "Bearer " + token)
+                .body(response);
     }
 
     @PostMapping("/barber/{barberShopId}")
