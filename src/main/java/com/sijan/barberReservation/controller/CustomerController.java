@@ -5,9 +5,6 @@ import com.sijan.barberReservation.DTO.user.CustomerDTO;
 import com.sijan.barberReservation.DTO.user.UpdateUserRequest;
 import com.sijan.barberReservation.mapper.user.CustomerMapper;
 import com.sijan.barberReservation.model.Customer;
-import com.sijan.barberReservation.service.AppointmentService;
-import com.sijan.barberReservation.service.BarberService;
-import com.sijan.barberReservation.service.BarbershopService;
 import com.sijan.barberReservation.service.CustomerService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,16 +14,10 @@ import org.springframework.web.bind.annotation.*;
 public class CustomerController {
 
     private final CustomerService customerService;
-    private final AppointmentService appointmentService;
-    private final BarberService barberService;
-    private final BarbershopService barbershopService;
     private final CustomerMapper customerMapper;
 
-    public CustomerController(CustomerService customerService, AppointmentService appointmentService, BarberService barberService, BarbershopService barbershopService, CustomerMapper customerMapper) {
+    public CustomerController(CustomerService customerService, CustomerMapper customerMapper) {
         this.customerService = customerService;
-        this.appointmentService = appointmentService;
-        this.barberService = barberService;
-        this.barbershopService = barbershopService;
         this.customerMapper = customerMapper;
     }
 
@@ -42,11 +33,7 @@ public class CustomerController {
     public ResponseEntity<CustomerDTO> updateMyProfile(@PathVariable Long customerId, @RequestBody UpdateUserRequest request) {
         Customer customer = customerService.findById(customerId);
 
-        Customer updated = customerService.update(
-                customer,
-                request.getName(),
-                request.getPhone()
-        );
+        Customer updated = customerService.update(customer, request.getName(), request.getPhone());
 
         return ResponseEntity.ok(customerMapper.toDTO(updated));
     }
@@ -55,11 +42,7 @@ public class CustomerController {
     @PutMapping("/{customerId}/password")
     public ResponseEntity<Void> changePassword(@PathVariable Long customerId, @RequestBody ChangePasswordRequest request) {
         Customer customer = customerService.findById(customerId);
-        customerService.changePassword(
-                customer,
-                request.getCurrentPassword(),
-                request.getNewPassword()
-        );
+        customerService.changePassword(customer, request.getCurrentPassword(), request.getNewPassword());
         return ResponseEntity.ok().build();
     }
 }

@@ -15,7 +15,7 @@ public class AdminDTO {
     private String email;
     private String phone;
     private AdminLevel adminLevel;
-    private String profileImage;
+    private String profilePicture;
     private Long barbershopId;
     private String barbershopName;
 }

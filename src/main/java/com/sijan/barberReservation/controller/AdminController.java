@@ -23,16 +23,14 @@ public class AdminController {
     private final AppointmentService appointmentService;
     private final BarberService barberService;
     private final BarberLeaveService barberLeaveService;
-    private final CustomerService customerService;
     private final PageMapper pageMapper;
 
 
-    public AdminController(AdminService adminService, AppointmentService appointmentService, BarberService barberService, BarberLeaveService barberLeaveService, CustomerService customerService, PageMapper pageMapper) {
+    public AdminController(AdminService adminService, AppointmentService appointmentService, BarberService barberService, BarberLeaveService barberLeaveService, PageMapper pageMapper) {
         this.adminService = adminService;
         this.appointmentService = appointmentService;
         this.barberService = barberService;
         this.barberLeaveService = barberLeaveService;
-        this.customerService = customerService;
         this.pageMapper = pageMapper;
     }
     private Admin getCurrentAdmin(Authentication authentication) {
@@ -81,21 +79,6 @@ public class AdminController {
         return ResponseEntity.ok(pageMapper.toAppointmentPageResponse(result));
     }
 
-
-    // GET /api/admin/customers/frequent - Get frequent customers
-//    @GetMapping("/customers/frequent")
-//    public ResponseEntity<PageResponse<FrequentCustomerDTO>> getFrequentCustomers(
-//            @RequestParam(defaultValue = "0") int page,
-//            @RequestParam(defaultValue = "10") int size,
-//            Authentication authentication
-//    ) {
-//        Admin admin = getCurrentAdmin(authentication);
-//        Sort sort = Sort.by(Sort.Direction.DESC, "scheduledTime");
-//        Pageable pageable = PageRequest.of(page, size, sort);
-//        Page<Customer> customers = customerService.getFrequentCustomers(admin, pageable);
-//        return ResponseEntity.ok(customers);
-//    }
-
     // GET /api/admin/barbers/leaves - View all barber leave requests
     @GetMapping("/barbers/leaves")
     public ResponseEntity<PageResponse<BarberLeaveDTO>> getAllBarberLeaves(
@@ -124,9 +107,7 @@ public class AdminController {
                 leave,
                 barber,
                 request.getStatus(),
-                admin
-        );
-
+                admin);
         return ResponseEntity.noContent().build();
     }
 }

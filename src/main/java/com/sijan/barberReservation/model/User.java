@@ -1,11 +1,13 @@
 package com.sijan.barberReservation.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.validator.constraints.URL;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -28,6 +30,8 @@ public class User {
     private Boolean active = true;
     @Enumerated(EnumType.STRING)
     private Roles role;
+    @URL(message = "Profile picture must be a valid URL")
+    @Size(max = 2048, message = "URL is too long")
     private String profilePicture;
     @CreationTimestamp
     private LocalDateTime createdAt;

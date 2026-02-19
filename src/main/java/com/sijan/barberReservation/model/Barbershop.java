@@ -1,11 +1,13 @@
 package com.sijan.barberReservation.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.validator.constraints.URL;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -35,19 +37,23 @@ public class Barbershop {
     private String postalCode;
     private String country;
 
-    // Location coordinates for Google Maps
-    @Column(name = "latitude", precision = 10, scale = 8)
+    @DecimalMin(value = "-90.000000", message = "Latitude must be between -90 and 90")
+    @DecimalMax(value = "90.000000", message = "Latitude must be between -90 and 90")
     private BigDecimal latitude;
 
-    @Column(name = "longitude", precision = 11, scale = 8)
+    @DecimalMin(value = "-180.000000", message = "Longitude must be between -180 and 180")
+    @DecimalMax(value = "180.000000", message = "Longitude must be between -180 and 180")
     private BigDecimal longitude;
+
+    @Pattern(regexp = "^[+]?[1-9]\\d{1,14}$", message = "Invalid phone number format")
+    private String phone;
 
     // Full address string for display
     private String fullAddress;
 
-    // Contact information
-    private String phone;
+    @Email(message = "Invalid email format")
     private String email;
+
     private String website;
 
     // Shop status
@@ -57,8 +63,7 @@ public class Barbershop {
     private Double rating = 0.0;
     private Integer reviewCount = 0;
 
-    // Operating hours (JSON format)
-    @Column(columnDefinition = "json")
+    @Column(columnDefinition = "text")
     private String operatingHours;
 
     // Timestamps
@@ -79,4 +84,8 @@ public class Barbershop {
 
     @ManyToOne
     private Admin admin;
+
+    @URL(message = "Profile picture must be a valid URL")
+    @Size(max = 2048, message = "URL is too long")
+    private String profilePicture;
 }

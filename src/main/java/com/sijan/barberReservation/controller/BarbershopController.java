@@ -1,15 +1,22 @@
 package com.sijan.barberReservation.controller;
 
+import com.sijan.barberReservation.DTO.appointment.PageResponse;
 import com.sijan.barberReservation.DTO.user.*;
-import com.sijan.barberReservation.mapper.service.ServiceMapper;
-import com.sijan.barberReservation.mapper.user.BarberMapper;
+import com.sijan.barberReservation.mapper.appointment.PageMapper;
 import com.sijan.barberReservation.mapper.user.BarbershopMapper;
+import com.sijan.barberReservation.mapper.user.UpdateBarbershopRequestMapper;
 import com.sijan.barberReservation.model.Barbershop;
-import com.sijan.barberReservation.service.BarberService;
+import com.sijan.barberReservation.model.UserPrincipal;
+import com.sijan.barberReservation.service.AdminService;
 import com.sijan.barberReservation.service.BarbershopService;
-import com.sijan.barberReservation.service.ServiceOfferingService;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -17,103 +24,69 @@ import org.springframework.web.bind.annotation.*;
 public class BarbershopController {
 
     private final BarbershopService barbershopService;
-    private final BarberService barberService;
-    private final ServiceOfferingService serviceOfferingService;
+    private final AdminService adminService;
+    private final PageMapper pageMapper;
     private final BarbershopMapper barbershopMapper;
-    private final ServiceMapper serviceMapper;
-    private final BarberMapper barberMapper;
+    private final UpdateBarbershopRequestMapper updateBarbershopRequestMapper;
 
 
-    public BarbershopController(BarbershopService barbershopService, BarberService barberService, ServiceOfferingService serviceOfferingService, BarbershopMapper barbershopMapper, ServiceMapper serviceMapper, BarberMapper barberMapper) {
+    public BarbershopController(BarbershopService barbershopService, AdminService adminService, PageMapper pageMapper, BarbershopMapper barbershopMapper, UpdateBarbershopRequestMapper updateBarbershopRequestMapper) {
         this.barbershopService = barbershopService;
-        this.barberService = barberService;
-        this.serviceOfferingService = serviceOfferingService;
+        this.adminService = adminService;
+        this.pageMapper = pageMapper;
         this.barbershopMapper = barbershopMapper;
-        this.serviceMapper = serviceMapper;
-        this.barberMapper = barberMapper;
+        this.updateBarbershopRequestMapper = updateBarbershopRequestMapper;
     }
 
-//    @PostMapping
-//    public ResponseEntity<BarberShopDTO> createBarbershop(
-//            @RequestHeader("X-User-ID") Long adminId,
-//            @RequestBody @Valid RegisterBarberShopRequest request) {
-//        BarberShop barberShop = barberShopMapper.toEntity(request);
-//        BarberShopDTO barbershopDTO = barberShopMapper.toDTO(barberShopService.register(adminId, barberShop));
-//        return ResponseEntity.ok(barbershopDTO);
-//    }
-
     @GetMapping("/{id}")
-    public ResponseEntity<BarbershopDTO> getBarbershop(
-            @RequestHeader("X-User-ID") Long adminId,
+    public ResponseEntity<BarbershopDTO> findById(
             @PathVariable Long id) {
         Barbershop barbershop = barbershopService.findById(id);
         return ResponseEntity.ok(barbershopMapper.toDTO(barbershop));
     }
 
     // Update barbershop details
-    @PutMapping("/{id}")
-    public ResponseEntity<BarbershopDTO> updateBarbershop(
-            @RequestHeader("X-User-ID") Long adminId,
-            @PathVariable Long barberShopId,
-            @RequestBody @Valid UpdateBarbershopRequest request) {
-        Barbershop barberShop = barbershopMapper.toEntity(request);
-        Barbershop barbershop = barbershopService.updateBarbershop(adminId, barberShopId, barberShop);
-        return ResponseEntity.ok(barbershopMapper.toDTO(barbershop));
+    @PutMapping("/{barbershopId}")
+    @PreAuthorize("hasRole('ADMIN') or @barbershopSecurity.isOwner(authentication, #id)")
+    public ResponseEntity<BarbershopDTO> update(
+            @PathVariable Long barbershopId,
+            @RequestBody @Valid UpdateBarbershopRequest request,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        Barbershop barbershop = barbershopService.findById(barbershopId);
+        updateBarbershopRequestMapper.toEntity(barbershop, request);
+        Barbershop updatedShop = barbershopService.update(updateBarbershopRequestMapper.toEntity(barbershop, request), adminService.findById(userPrincipal.getId()));
+        return ResponseEntity.ok(barbershopMapper.toDTO(updatedShop));
     }
 
+    @GetMapping("/nearby")
+    public ResponseEntity<PageResponse<BarbershopDTO>> findNearby(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam Double latitude,
+            @RequestParam Double longitude,
+            @RequestParam(defaultValue = "10.0") Double radiusKm) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Barbershop> shops = barbershopService.findNearby(
+                latitude, longitude, radiusKm, pageable);
+        return ResponseEntity.ok(pageMapper.toBarbershopPageResponse(shops));
+    }
 
-
-    // Get all services for a barbershop
-//    @GetMapping("/{barbershopId}/services")
-//    public ResponseEntity<List<ServiceDTO>> getAllServices(
-//            @RequestHeader("X-User-ID") Long adminId,
-//            @PathVariable Long barbershopId) {
-//        List<ServiceOffering> services = serviceOfferingService.getAllServices(adminId, barbershopId);
-//        return ResponseEntity.ok(services);
-//    }
-
-
-
-    // Add a new service to a barbershop
-//    @PostMapping("/{barbershopId}/services")
-//    public ResponseEntity<ServiceDTO> addService(
-//            @RequestHeader("X-User-ID") Long adminId,
-//            @PathVariable Long barbershopId,
-//            @RequestBody @Valid RegisterServiceRequest request) {
-//        ServiceOffering service = serviceOfferingService.addService(adminId, barbershopId, request);
-//        return ResponseEntity.status(201).body(service);
-//    }
-//
-//    // Update a barber
-//    @PutMapping("/{barbershopId}/barbers/{barberId}")
-//    public ResponseEntity<BarberDTO> updateBarber(
-//            @RequestHeader("X-User-ID") Long adminId,
-//            @PathVariable Long barbershopId,
-//            @PathVariable Long barberId,
-//            @RequestBody @Valid UpdateBarberRequest request) {
-//        BarberDTO barber = barberShopService.updateBarber(adminId, barbershopId, barberId, request);
-//        return ResponseEntity.ok(barber);
-//    }
-
-    // Update a service
-//    @PutMapping("/{barbershopId}/services/{serviceId}")
-//    public ResponseEntity<ServiceDTO> updateService(
-//            @RequestHeader("X-User-ID") Long adminId,
-//            @PathVariable Long barbershopId,
-//            @PathVariable Long serviceId,
-//            @RequestBody @Valid UpdateServiceRequest request) {
-//        ServiceOfferingDTO service = barberShopService.updateService(adminId, barbershopId, serviceId, request);
-//        return ResponseEntity.ok(service);
-//    }
-
-    // Find nearby barbershops
-//    @GetMapping("/nearby")
-//    public ResponseEntity<List<BarberShopDTO>> findNearbyBarbershops(
-//            @RequestParam Double latitude,
-//            @RequestParam Double longitude,
-//            @RequestParam(defaultValue = "5.0") Double radiusKm) {
-//        List<BarberShopDTO> barbershops = barberShopService.findNearbyBarbershops(
-//                latitude, longitude, radiusKm);
-//        return ResponseEntity.ok(barbershops);
-//    }
+    @GetMapping("search/{word}")
+    public ResponseEntity<PageResponse<BarbershopDTO>> searchByWord(@PathVariable String word,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size){
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Barbershop> shops = barbershopService.searchByWord(word, pageable);
+        return ResponseEntity.ok(pageMapper.toBarbershopPageResponse(shops));
+    }
+    @GetMapping("/top-rated")
+    public ResponseEntity<PageResponse<BarbershopDTO>> getTopRated(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("rating").descending());
+        Page<Barbershop> shops = barbershopService.findTopRated(pageable);
+        return ResponseEntity.ok(pageMapper.toBarbershopPageResponse(shops));
+    }
 }

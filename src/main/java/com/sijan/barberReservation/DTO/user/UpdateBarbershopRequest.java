@@ -9,6 +9,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.validator.constraints.URL;
 
+import java.math.BigDecimal;
+
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -22,11 +24,11 @@ public class UpdateBarbershopRequest {
 
     @DecimalMin(value = "-90", message = "Latitude must be between -90 and 90")
     @DecimalMax(value = "90", message = "Latitude must be between -90 and 90")
-    private Double latitude;
+    private BigDecimal latitude;
 
     @DecimalMin(value = "-180", message = "Longitude must be between -180 and 180")
     @DecimalMax(value = "180", message = "Longitude must be between -180 and 180")
-    private Double longitude;
+    private BigDecimal longitude;
 
     @Pattern(regexp = "^[+]?[1-9]\\d{1,14}$", message = "Invalid phone number format")
     private String phone;

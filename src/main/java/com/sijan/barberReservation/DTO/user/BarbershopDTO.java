@@ -23,6 +23,7 @@ public class BarbershopDTO {
     private String email;
     private String website;
     private String operatingHours;
+    private String profilePicture;
     private Double rating;
     }
 

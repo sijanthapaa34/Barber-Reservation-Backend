@@ -9,7 +9,9 @@ import com.sijan.barberReservation.DTO.user.BarbershopDTO;
 import com.sijan.barberReservation.DTO.user.CustomerDTO;
 import com.sijan.barberReservation.DTO.Auth.RegisterBarberRequest;
 import com.sijan.barberReservation.DTO.Auth.RegisterCustomerRequest;
+import com.sijan.barberReservation.mapper.user.AdminMapper;
 import com.sijan.barberReservation.mapper.user.BarberMapper;
+import com.sijan.barberReservation.mapper.user.BarbershopMapper;
 import com.sijan.barberReservation.mapper.user.CustomerMapper;
 import com.sijan.barberReservation.model.*;
 import com.sijan.barberReservation.security.JwtTokenProvider;
@@ -20,6 +22,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
@@ -37,18 +40,22 @@ public class AuthController {
     private final BarbershopService barbershopService;
     private final PasswordEncoder passwordEncoder;
     private final BarberMapper barberMapper;
+    private final AdminMapper adminMapper;
+    private final BarbershopMapper barbershopMapper;
     private final CustomerMapper customerMapper;
     private final GoogleTokenVerifierService googleTokenVerifierService;
 
     public AuthController(AuthenticationManager authManager,
                           JwtTokenProvider tokenProvider,
-                          UserService userService, BarbershopService barbershopService, PasswordEncoder passwordEncoder, BarberMapper barberMapper, CustomerMapper customerMapper, GoogleTokenVerifierService googleTokenVerifierService) {
+                          UserService userService, BarbershopService barbershopService, PasswordEncoder passwordEncoder, BarberMapper barberMapper, AdminMapper adminMapper, BarbershopMapper barbershopMapper, CustomerMapper customerMapper, GoogleTokenVerifierService googleTokenVerifierService) {
         this.authManager = authManager;
         this.tokenProvider = tokenProvider;
         this.userService = userService;
         this.barbershopService = barbershopService;
         this.passwordEncoder = passwordEncoder;
         this.barberMapper = barberMapper;
+        this.adminMapper = adminMapper;
+        this.barbershopMapper = barbershopMapper;
         this.customerMapper = customerMapper;
         this.googleTokenVerifierService = googleTokenVerifierService;
     }
@@ -164,62 +171,22 @@ public class AuthController {
     }
     @PostMapping("/barbershop")
     public ResponseEntity<BarbershopDTO> registerBarberShop(
-            @RequestBody RegisterBarbershopRequest req) {
+            @RequestBody RegisterBarbershopRequest request) {
 
-        // Create the barbershop
-        Barbershop barbershop = new Barbershop();
-        barbershop.setName(req.getName());
-        barbershop.setAddress(req.getAddress());
-        barbershop.setCity(req.getCity());
-        barbershop.setState(req.getState());
-        barbershop.setPostalCode(req.getPostalCode());
-        barbershop.setCountry(req.getCountry());
-        barbershop.setLatitude(req.getLatitude());
-        barbershop.setLongitude(req.getLongitude());
-        barbershop.setPhone(req.getPhone());
-        barbershop.setEmail(req.getEmail());
-        barbershop.setWebsite(req.getWebsite());
-        barbershop.setOperatingHours(req.getOperatingHours());
-
-        // Create full address string
-        String fullAddress = String.format("%s, %s, %s, %s, %s",
-                req.getAddress(), req.getCity(),
-                req.getState(), req.getPostalCode(), req.getCountry());
-        barbershop.setFullAddress(fullAddress);
-
-        // Create the admin (shop owner)
-        Admin admin = new Admin();
-        admin.setName(req.getName());
-        admin.setEmail(req.getEmail());
-        admin.setPassword(passwordEncoder.encode(req.getPassword()));
-        admin.setPhone(req.getPhone());
-        admin.setRole(Roles.SHOP_ADMIN);
-        admin.setAdminLevel(AdminLevel.SHOP_ADMIN);
-        admin.setBarbershop(barbershop);
-
-        barbershop.setAdmin(admin);
-        // Save both entities
+        Barbershop barbershop = barbershopMapper.toEntity(request);
+        Admin admin = adminMapper.toEntity(request);
         Barbershop savedBarbershop = barbershopService.createBarbershopWithAdmin(barbershop, admin);
-
-        // Create response
-        BarbershopDTO response = new BarbershopDTO();
-        return ResponseEntity.status(201).body(response);
+        return ResponseEntity.status(201).body(barbershopMapper.toDTO(savedBarbershop));
     }
+    @GetMapping("/me")
+    public ResponseEntity<?> getCurrentUser(@AuthenticationPrincipal UserPrincipal userPrincipal) {
+        // Defensive check
+        if (userPrincipal == null) {
+            System.out.println("error null principal");
+            return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
+        }
 
-    private AdminDTO createAdminDTO(Admin admin) {
-
-        AdminDTO dto = new AdminDTO();
-        dto.setId(admin.getId());
-        dto.setName(admin.getName());
-        dto.setEmail(admin.getEmail());
-        dto.setPhone(admin.getPhone());
-        dto.setProfileImage(admin.getProfileImage());
-        dto.setAdminLevel(admin.getAdminLevel());
-        dto.setBarbershopId(admin.getBarbershop().getId());
-        dto.setBarbershopName(admin.getBarbershop().getName());
-        return dto;
+        User user = userService.findById(userPrincipal.getId());
+        return ResponseEntity.ok(user);
     }
-
-
-
 }

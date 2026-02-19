@@ -1,5 +1,7 @@
 package com.sijan.barberReservation.security;
 
+import com.sijan.barberReservation.model.UserPrincipal;
+import com.sijan.barberReservation.service.MyUserDetailsService;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -15,14 +17,15 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.Collections;
 
-@Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider tokenProvider;
+    private final MyUserDetailsService userDetailsService;
 
     // We no longer need UserDetailsService here!
-    public JwtAuthenticationFilter(JwtTokenProvider tokenProvider) {
+    public JwtAuthenticationFilter(JwtTokenProvider tokenProvider, MyUserDetailsService userDetailsService) {
         this.tokenProvider = tokenProvider;
+        this.userDetailsService = userDetailsService;
     }
 
     @Override
@@ -31,30 +34,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     FilterChain filterChain)
             throws ServletException, IOException {
 
-        String path = request.getRequestURI();
-        if (path.startsWith("/auth")) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-
         String token = extractTokenFromRequest(request);
 
         if (token != null
                 && tokenProvider.validateToken(token)
                 && SecurityContextHolder.getContext().getAuthentication() == null) {
 
-            Long userId = tokenProvider.extractUserId(token);
-            String role = tokenProvider.extractRole(token);
+            String email = tokenProvider.extractEmail(token);
 
-            SimpleGrantedAuthority authority =
-                    new SimpleGrantedAuthority("ROLE_" + role);
+            UserPrincipal userPrincipal =
+                    (UserPrincipal) userDetailsService.loadUserByUsername(email);
 
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(
-                            userId,
+                            userPrincipal,
                             null,
-                            Collections.singletonList(authority)
+                            userPrincipal.getAuthorities()
                     );
+
 
             authentication.setDetails(
                     new WebAuthenticationDetailsSource().buildDetails(request)

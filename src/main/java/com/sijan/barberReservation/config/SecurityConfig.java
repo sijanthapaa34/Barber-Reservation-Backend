@@ -28,13 +28,12 @@ public class SecurityConfig {
 
     private final JwtTokenProvider tokenProvider;
 
-    public SecurityConfig(JwtTokenProvider tokenProvider
-    ) {
+    public SecurityConfig(JwtTokenProvider tokenProvider) {
         this.tokenProvider = tokenProvider;
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationFilter jwtAuthenticationFilter) throws Exception {
 
         http
                 .csrf(AbstractHttpConfigurer::disable)
@@ -43,21 +42,32 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .authorizeHttpRequests(auth -> auth
-                        // Allow OPTIONS (CORS pre-flight)
+                        // 1. CORS Preflight
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                        // ⬇️ FIXED: Matched to the log output /auth/login
-                        .requestMatchers("/api/auth/**").permitAll()
+                        // 2. Explicit Public Auth Endpoints
+                        // We MUST list these individually. If we use "/api/auth/**", it makes /me public too!
+                        .requestMatchers("/api/auth/login").permitAll()
+                        .requestMatchers("/api/auth/customer").permitAll()
+                        .requestMatchers("/api/auth/google").permitAll()
 
-                        // ... rest of your roles ...
-                        .requestMatchers("/api/admin/**")
-                        .hasAnyRole("MAIN_ADMIN", "SHOP_ADMIN")
+                        // 3. Public Barbershop Endpoints
+                        .requestMatchers(HttpMethod.GET, "/api/barbershop/nearby").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/barbershop/top-rated").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/barbershop/search/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/barbershop/{id}").permitAll()
+
+                        // 4. Protected Roles
+                        .requestMatchers("/api/admin/**").hasAnyRole("MAIN_ADMIN", "SHOP_ADMIN")
                         .requestMatchers("/barber/**").hasRole("BARBER")
-                        .requestMatchers("/barbershop/**").hasRole("SHOP_ADMIN")
                         .requestMatchers("/customer/**").hasRole("CUSTOMER")
+                        // Note: Ensure your barbershop update endpoint is protected by role or specific path
+
+                        // 5. Catch-All: ANYTHING ELSE (including /api/auth/me) requires Authentication
                         .anyRequest().authenticated()
                 )
-                .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+
 
         return http.build();
     }
@@ -82,7 +92,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    public JwtAuthenticationFilter jwtAuthenticationFilter() {
-        return new JwtAuthenticationFilter(tokenProvider);
+    public JwtAuthenticationFilter jwtAuthenticationFilter(MyUserDetailsService userDetailsService) {
+        return new JwtAuthenticationFilter(tokenProvider, userDetailsService);
     }
 }

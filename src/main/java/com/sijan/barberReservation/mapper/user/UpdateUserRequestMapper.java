@@ -26,7 +26,7 @@ public class UpdateUserRequestMapper {
         barberDTO.setPhone(barber.getPhone());
         barberDTO.setActive(barber.getActive());
         barberDTO.setBio(barber.getBio());
-        barberDTO.setProfilePictureUrl(barber.getProfilePicture());
+        barberDTO.setProfilePicture(barber.getProfilePicture());
         barberDTO.setRating(barber.getRating());
         barberDTO.setCreatedAt(barber.getCreatedAt());
 

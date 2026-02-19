@@ -22,7 +22,7 @@ public class BarberMapper {
         dto.setPhone(barber.getPhone());
         dto.setBarbershop(barber.getBarbershop().getName());
         dto.setBio(barber.getBio());
-        dto.setProfilePictureUrl(barber.getProfilePicture());
+        dto.setProfilePicture(barber.getProfilePicture());
         dto.setRating(barber.getRating() != null ? barber.getRating() : 0.0);
         dto.setExperienceYears(barber.getExperienceYears());
         dto.setAvailable(barber.getAvailable() != null ? barber.getAvailable() : true);
@@ -39,7 +39,6 @@ public class BarberMapper {
         barber.setPassword(req.getPassword());
         barber.setBio(req.getBio());
         barber.setExperienceYears(req.getExperienceYears());
-        barber.setRole(Roles.BARBER);
         barber.setCreatedAt(LocalDateTime.now());
         return barber;
     }

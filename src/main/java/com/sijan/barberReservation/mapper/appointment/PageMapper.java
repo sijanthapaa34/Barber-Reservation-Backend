@@ -5,13 +5,12 @@ import com.sijan.barberReservation.DTO.appointment.PageResponse;
 import com.sijan.barberReservation.DTO.service.ServiceDTO;
 import com.sijan.barberReservation.DTO.user.BarberDTO;
 import com.sijan.barberReservation.DTO.user.BarberLeaveDTO;
+import com.sijan.barberReservation.DTO.user.BarbershopDTO;
 import com.sijan.barberReservation.mapper.service.ServiceMapper;
 import com.sijan.barberReservation.mapper.user.BarberLeaveMapper;
 import com.sijan.barberReservation.mapper.user.BarberMapper;
-import com.sijan.barberReservation.model.Appointment;
-import com.sijan.barberReservation.model.Barber;
-import com.sijan.barberReservation.model.BarberLeave;
-import com.sijan.barberReservation.model.ServiceOffering;
+import com.sijan.barberReservation.mapper.user.BarbershopMapper;
+import com.sijan.barberReservation.model.*;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 
@@ -22,13 +21,15 @@ public class PageMapper {
     private final ServiceMapper serviceMapper;
     private final BarberLeaveMapper barberLeaveMapper;
     private final BarberMapper barberMapper;
+    private final BarbershopMapper barbershopMapper;
 
 
-    public PageMapper(AppointmentDetailsMapper appointmentDetailsMapper, ServiceMapper serviceMapper, BarberLeaveMapper barberLeaveMapper, BarberMapper barberMapper) {
+    public PageMapper(AppointmentDetailsMapper appointmentDetailsMapper, ServiceMapper serviceMapper, BarberLeaveMapper barberLeaveMapper, BarberMapper barberMapper, BarbershopMapper barbershopMapper) {
         this.appointmentDetailsMapper = appointmentDetailsMapper;
         this.serviceMapper = serviceMapper;
         this.barberLeaveMapper = barberLeaveMapper;
         this.barberMapper = barberMapper;
+        this.barbershopMapper = barbershopMapper;
     }
 
     public PageResponse<AppointmentDetailsResponse> toAppointmentPageResponse(Page<Appointment> page) {
@@ -62,6 +63,19 @@ public class PageMapper {
                 page.getContent()
                         .stream()
                         .map(barberMapper::toDTO)
+                        .toList(),
+                page.getNumber(),
+                page.getSize(),
+                page.getTotalElements(),
+                page.getTotalPages(),
+                page.isLast()
+        );
+    }
+    public PageResponse<BarbershopDTO> toBarbershopPageResponse(Page<Barbershop> page) {
+        return new PageResponse<>(
+                page.getContent()
+                        .stream()
+                        .map(barbershopMapper::toDTO)
                         .toList(),
                 page.getNumber(),
                 page.getSize(),

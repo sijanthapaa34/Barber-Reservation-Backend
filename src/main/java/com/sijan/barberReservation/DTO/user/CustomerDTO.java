@@ -16,4 +16,5 @@ public class CustomerDTO {
     private String phone;
     private Integer points;
     private LocalDateTime createdAt;
+    private String profilePicture;
 }

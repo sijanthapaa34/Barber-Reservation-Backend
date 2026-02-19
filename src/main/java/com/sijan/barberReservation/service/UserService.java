@@ -1,9 +1,6 @@
 package com.sijan.barberReservation.service;
 
-import com.sijan.barberReservation.model.Barber;
-import com.sijan.barberReservation.model.Barbershop;
-import com.sijan.barberReservation.model.Customer;
-import com.sijan.barberReservation.model.User;
+import com.sijan.barberReservation.model.*;
 import com.sijan.barberReservation.repository.BarberRepository;
 import com.sijan.barberReservation.repository.CustomerRepository;
 import com.sijan.barberReservation.repository.UserRepository;
@@ -45,12 +42,17 @@ public class UserService {
         if(userRepository.existsByEmail(barber.getEmail())) {
             throw new RuntimeException("User with this email already exists");
         }
-
+        barber.setRole(Roles.BARBER);
         String rawPassword = barber.getPassword();
         String encodedPassword = passwordEncoder.encode(rawPassword);
         barber.setPassword(encodedPassword);
         barber.setBarbershop(shop);
         return barberRepository.save(barber);
+    }
+
+    public User findById(Long id) {
+        return userRepository.findById(id)
+                .orElseThrow(()-> new RuntimeException("User id not found"));
     }
 
 //    public BarberShop registerBarberShop(Admin shopAdmin, Long adminId) {
