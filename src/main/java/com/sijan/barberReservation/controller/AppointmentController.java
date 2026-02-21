@@ -9,6 +9,7 @@ import com.sijan.barberReservation.service.AppointmentService;
 import com.sijan.barberReservation.service.BarberService;
 import com.sijan.barberReservation.service.CustomerService;
 import com.sijan.barberReservation.service.ServiceOfferingService;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.data.domain.Page;
@@ -53,7 +54,7 @@ public class AppointmentController {
     }
     @PutMapping("/{appointmentId}/reschedule")
     public ResponseEntity<AppointmentDetailsResponse> reschedule(@PathVariable Long appointmentId,
-                                                                 @RequestBody @NotEmpty RescheduleAppointmentRequest request){
+                                                                 @Valid @RequestBody RescheduleAppointmentRequest request){
         Appointment appointment = appointmentService.findById(appointmentId);
         AppointmentDetailsResponse response = appointmentDetailsMapper.toDTO(appointmentService.reschedule(appointment, request.getNewDateTime()));
 
