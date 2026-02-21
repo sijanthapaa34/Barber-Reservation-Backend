@@ -60,12 +60,6 @@ public class Barber extends User {
     @OneToMany(mappedBy = "barber")
     private List<BarberLeave> leaves;
 
-    // Timestamps
-    @CreationTimestamp
-    private LocalDateTime createdAt;
-    @UpdateTimestamp
-    private LocalDateTime updatedAt;
-
     // Helper method to check if barber is top rated
     @Transient
     public boolean isTopRated() {

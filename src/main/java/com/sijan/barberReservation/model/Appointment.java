@@ -92,6 +92,9 @@ public class Appointment {
     public boolean isCompleted() {
         return status == AppointmentStatus.COMPLETED;
     }
+    public boolean isCancelled() {
+        return status == AppointmentStatus.CANCELLED;
+    }
 
     @Transient
     public boolean isPaid() {

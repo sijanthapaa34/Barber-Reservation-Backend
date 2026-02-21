@@ -9,13 +9,14 @@ import com.sijan.barberReservation.mapper.service.ServiceMapper;
 import com.sijan.barberReservation.model.Admin;
 import com.sijan.barberReservation.model.Barbershop;
 import com.sijan.barberReservation.model.ServiceOffering;
+import com.sijan.barberReservation.model.UserPrincipal;
 import com.sijan.barberReservation.service.AdminService;
 import com.sijan.barberReservation.service.BarbershopService;
 import com.sijan.barberReservation.service.ServiceOfferingService;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -35,17 +36,13 @@ public class ServiceController {
         this.pageMapper = pageMapper;
     }
 
-    private Admin getCurrentAdmin(Authentication authentication) {
-        Long adminId =  Long.valueOf(authentication.getName());
-        return adminService.findById(adminId);
-    }
-
     @GetMapping("/{serviceId}")
     public ResponseEntity<ServiceDTO> findById(
             @PathVariable Long serviceId) {
         ServiceDTO response = serviceMapper.toDTO(serviceOfferingService.findById(serviceId));
         return ResponseEntity.status(201).body(response);
     }
+
     @GetMapping("/all")
     public ResponseEntity<PageResponse<ServiceDTO>> getAll(
             @RequestParam(defaultValue = "0") int page,
@@ -55,6 +52,7 @@ public class ServiceController {
         PageResponse<ServiceDTO> response = pageMapper.toServicePageResponse(serviceOfferingService.getAll(pageable));
         return ResponseEntity.ok(response);
     }
+
     @GetMapping("/barberShop/{barberShopId}")
     public ResponseEntity<PageResponse<ServiceDTO>> getAllByBarbershop( @PathVariable Long barberShopId,
             @RequestParam(defaultValue = "0") int page,
@@ -69,9 +67,9 @@ public class ServiceController {
     @PostMapping
     public ResponseEntity<ServiceDTO> add(
             @RequestBody RegisterServiceRequest request,
-            Authentication authentication
+            @AuthenticationPrincipal UserPrincipal userPrincipal
     ) {
-        Admin admin = getCurrentAdmin(authentication);
+        Admin admin = adminService.findById(userPrincipal.getId());
         ServiceOffering service = serviceMapper.toEntity(request);
         Barbershop barberShop = admin.getBarbershop();
         ServiceDTO serviceDTO = serviceMapper.toDTO(serviceOfferingService.add(barberShop, service));
@@ -82,11 +80,11 @@ public class ServiceController {
     public ResponseEntity<ServiceDTO> update(
             @PathVariable Long serviceId,
             @RequestBody ServiceUpdateRequest request,
-            Authentication authentication
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+
     ) {
-        Admin admin = getCurrentAdmin(authentication);
         ServiceOffering serviceOffering = serviceOfferingService.findById(serviceId);
-        ServiceDTO updated = serviceMapper.toDTO(serviceOfferingService.update(admin, serviceOffering));
+        ServiceDTO updated = serviceMapper.toDTO(serviceOfferingService.update(adminService.findById(userPrincipal.getId()), serviceOffering));
         return ResponseEntity.ok(updated);
     }
 

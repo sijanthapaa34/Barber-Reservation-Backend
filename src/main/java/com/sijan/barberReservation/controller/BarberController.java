@@ -1,21 +1,27 @@
 package com.sijan.barberReservation.controller;
 
 import com.sijan.barberReservation.DTO.appointment.AppointmentDetailsResponse;
+import com.sijan.barberReservation.DTO.appointment.PageResponse;
 import com.sijan.barberReservation.DTO.user.BarberDTO;
 import com.sijan.barberReservation.DTO.Auth.ChangePasswordRequest;
 import com.sijan.barberReservation.DTO.user.LeaveRequestDTO;
 import com.sijan.barberReservation.DTO.user.UpdateUserRequest;
 import com.sijan.barberReservation.mapper.appointment.AppointmentDetailsMapper;
+import com.sijan.barberReservation.mapper.appointment.PageMapper;
 import com.sijan.barberReservation.mapper.user.BarberMapper;
 import com.sijan.barberReservation.mapper.user.UpdateUserRequestMapper;
-import com.sijan.barberReservation.model.Appointment;
-import com.sijan.barberReservation.model.Barber;
-import com.sijan.barberReservation.model.UserPrincipal;
+import com.sijan.barberReservation.model.*;
+import com.sijan.barberReservation.service.AdminService;
 import com.sijan.barberReservation.service.BarberService;
 import com.sijan.barberReservation.service.AppointmentService;
 import com.sijan.barberReservation.service.BarbershopService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
@@ -29,15 +35,19 @@ public class BarberController {
     private final BarberService barberService;
     private final BarbershopService barbershopService;
     private final AppointmentService appointmentService;
+    private final AdminService adminService;
     private final BarberMapper barberMapper;
+    private final PageMapper pageMapper;
     private final AppointmentDetailsMapper appointmentMapper;
     private final UpdateUserRequestMapper requestMapper;
 
-    public BarberController (BarberService barberService, BarbershopService barbershopService, AppointmentService appointmentService, BarberMapper barberMapper, AppointmentDetailsMapper appointmentMapper, UpdateUserRequestMapper requestMapper) {
+    public BarberController (BarberService barberService, BarbershopService barbershopService, AppointmentService appointmentService, AdminService adminService, BarberMapper barberMapper, PageMapper pageMapper, AppointmentDetailsMapper appointmentMapper, UpdateUserRequestMapper requestMapper) {
         this.barberService = barberService;
         this.barbershopService = barbershopService;
         this.appointmentService = appointmentService;
+        this.adminService = adminService;
         this.barberMapper = barberMapper;
+        this.pageMapper = pageMapper;
         this.appointmentMapper = appointmentMapper;
         this.requestMapper = requestMapper;
     }
@@ -48,12 +58,16 @@ public class BarberController {
         return ResponseEntity.ok(barberMapper.toDTO(barber));
     }
 
-    @PutMapping("/me")
-    public ResponseEntity<BarberDTO> updateMyProfile(
-            @RequestBody UpdateUserRequest req) {
-        Barber barber = requestMapper.toEntity(req);
-        BarberDTO updated = barberMapper.toDTO(barberService.updateBarberProfile(barber));
-        return ResponseEntity.ok(updated);
+    @GetMapping("/barbershop/{barbershopId}")
+    public ResponseEntity<PageResponse<BarberDTO>> getByBarbershop(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @PathVariable Long barbershopId
+    ) {
+        Barbershop barbershop = barbershopService.findById(barbershopId);
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Barber> barbers = barberService.findByBarberShop(barbershop, pageable);
+        return ResponseEntity.ok(pageMapper.toBarberPageResponse(barbers));
     }
 
     @GetMapping("/{id}/appointments")

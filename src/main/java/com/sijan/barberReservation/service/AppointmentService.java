@@ -6,6 +6,7 @@ import com.sijan.barberReservation.exception.appointment.AppointmentNotFoundExce
 import com.sijan.barberReservation.exception.appointment.AppointmentSlotUnavailableException;
 import com.sijan.barberReservation.exception.appointment.InvalidAppointmentTimeException;
 import com.sijan.barberReservation.exception.role.AccessDeniedException;
+import com.sijan.barberReservation.mapper.appointment.AppointmentSlotMapper;
 import com.sijan.barberReservation.model.*;
 import com.sijan.barberReservation.repository.AppointmentRepository;
 
@@ -17,6 +18,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import jakarta.transaction.Transactional;
+import jakarta.validation.constraints.Future;
+import jakarta.validation.constraints.NotNull;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -29,11 +32,11 @@ import org.springframework.stereotype.Service;
 public class AppointmentService {
 
     private final AppointmentRepository appointmentRepository;
-    private final AdminService adminService;
+    private final AppointmentSlotMapper appointmentSlotMapper;
 
-    public AppointmentService(AppointmentRepository appointmentRepository, AdminService adminService) {
+    public AppointmentService(AppointmentRepository appointmentRepository, AppointmentSlotMapper appointmentSlotMapper) {
         this.appointmentRepository = appointmentRepository;
-        this.adminService = adminService;
+        this.appointmentSlotMapper = appointmentSlotMapper;
     }
 
     @Transactional
@@ -44,8 +47,6 @@ public class AppointmentService {
 
     @Transactional
     public Appointment book(Appointment appointment, Customer customer) {
-
-
         int totalDurationMinutes = appointment.getServices().stream()
                 .mapToInt(ServiceOffering::getDurationMinutes)
                 .sum();
@@ -62,12 +63,13 @@ public class AppointmentService {
         }
 
         List<LocalDateTime> availableSlots =
-                computeAvailableSlots(appointment.getBarber(), appointment.getScheduledTime().toLocalDate(), appointment.getServices());
+                computeAvailableSlots(appointment.getBarber(), appointment.getScheduledTime().toLocalDate(), appointment.getServices(),null);
 
         if (!availableSlots.contains(appointment.getScheduledTime())) {
             throw new AppointmentSlotUnavailableException("Selected slot is not available");
         }
-
+        LocalDateTime checkInTime = appointment.getScheduledTime().minusMinutes(10);
+        appointment.setCheckInTime(checkInTime);
         appointment.setCustomer(customer);
         appointment.setStatus(AppointmentStatus.SCHEDULED);
         appointment.setPaymentStatus(PaymentStatus.PENDING);
@@ -75,7 +77,6 @@ public class AppointmentService {
         return appointmentRepository.save(appointment);
     }
 
-    @Transactional
     public Page<Appointment> getUpcoming(Customer customer, int page, int size) {
         LocalDateTime now = LocalDateTime.now();
 
@@ -86,7 +87,6 @@ public class AppointmentService {
         );
     }
 
-    @Transactional
     public Page<Appointment> getPast(Customer customer, int page, int size) {
         LocalDateTime now = LocalDateTime.now();
 
@@ -98,7 +98,7 @@ public class AppointmentService {
     }
 
     @Transactional
-    public void cancelAppointment(Long appointmentId) {
+    public void cancel(Long appointmentId) {
         Appointment appointment = findById(appointmentId);
         if (appointment.getStatus().equals(AppointmentStatus.CANCELLED)) {
             throw new AppointmentAlreadyCancelledException(appointmentId);
@@ -107,38 +107,52 @@ public class AppointmentService {
         appointmentRepository.save(appointment);
     }
 
-    @Transactional
-    public List<LocalDateTime> computeAvailableSlots(Barber barber, LocalDate date, List<ServiceOffering> services) {
+    public List<LocalDateTime> computeAvailableSlots(
+            Barber barber,
+            LocalDate date,
+            List<ServiceOffering> services,
+            Long excludeAppointmentId // null when booking, appointmentId when rescheduling
+    ) {
+
         int totalDurationMinutes = services.stream()
                 .mapToInt(ServiceOffering::getDurationMinutes)
                 .sum();
 
         int slotIncrement = 30;
-        LocalDateTime dayStart = date.atStartOfDay();
-        LocalDateTime dayEnd   = date.atTime(LocalTime.MAX);
 
+        LocalDateTime startOfDay = date.atStartOfDay();
+        LocalDateTime endOfDay   = date.atTime(LocalTime.MAX);
+
+        // Only consider scheduled appointments (ignore cancelled)
         List<Appointment> bookedAppointments =
-                appointmentRepository.findByBarberAndScheduledTimeBetween(
+                appointmentRepository.findByBarberAndStatusAndScheduledTimeBetween(
                         barber,
-                        dayStart,
-                        dayEnd
+                        AppointmentStatus.SCHEDULED,
+                        startOfDay,
+                        endOfDay
                 );
 
         LocalDateTime workStart = date.atTime(9, 0);
-        LocalDateTime workEnd = date.atTime(18, 0);
+        LocalDateTime workEnd   = date.atTime(18, 0);
 
         List<LocalDateTime> availableSlots = new ArrayList<>();
         LocalDateTime slotStart = workStart;
 
         while (!slotStart.plusMinutes(totalDurationMinutes).isAfter(workEnd)) {
+
             LocalDateTime slotEnd = slotStart.plusMinutes(totalDurationMinutes);
 
             LocalDateTime finalSlotStart = slotStart;
-            boolean conflict = bookedAppointments.stream().anyMatch(a -> {
-                LocalDateTime existingStart = a.getScheduledTime();
-                LocalDateTime existingEnd = existingStart.plusMinutes(a.getTotalDurationMinutes());
-                return finalSlotStart.isBefore(existingEnd) && slotEnd.isAfter(existingStart);
-            });
+            boolean conflict = bookedAppointments.stream()
+                    .filter(a -> excludeAppointmentId == null || !a.getId().equals(excludeAppointmentId))
+                    .anyMatch(existing -> {
+
+                        LocalDateTime existingStart = existing.getScheduledTime();
+                        LocalDateTime existingEnd = existingStart.plusMinutes(existing.getTotalDurationMinutes());
+
+                        return finalSlotStart.isBefore(existingEnd)
+                                && slotEnd.isAfter(existingStart);
+                    });
 
             if (!conflict) {
                 availableSlots.add(slotStart);
@@ -150,7 +164,6 @@ public class AppointmentService {
         return availableSlots;
     }
 
-    @Transactional
     public List<Appointment> getBookedAppointments(Barber barber, LocalDate date) {
 
         LocalDateTime startOfDay = date.atStartOfDay();
@@ -164,7 +177,6 @@ public class AppointmentService {
         );
     }
 
-    @Transactional
     public List<Appointment> getBarberAppointments(Barber barber, LocalDate date) {
         LocalDateTime startOfDay = date.atStartOfDay();
         LocalDateTime endOfDay = date.atTime(LocalTime.MAX);
@@ -185,6 +197,78 @@ public class AppointmentService {
 
         } else {
             throw new AccessDeniedException("Invalid role for this action");
+        }
+    }
+
+    public AvailableSlotsResponseDTO getAvailability(Barber barber, List<ServiceOffering> services, @NotNull LocalDate date) {
+        List<LocalDateTime> availableSlotTimes = computeAvailableSlots(barber, date, services,null);
+
+        List<Appointment> bookedAppointments = getBookedAppointments(barber, date);
+
+        List<TimeSlotDTO> availableSlots = appointmentSlotMapper.toAvailableSlots(
+                availableSlotTimes,
+                services.stream().mapToInt(ServiceOffering::getDurationMinutes).sum()
+        );
+
+        List<TimeSlotDTO> bookedSlots = appointmentSlotMapper.toTimeSlotDTOList(bookedAppointments);
+
+        return  appointmentSlotMapper.toAvailableSlotsResponse(
+                barber,
+                services,
+                date,
+                availableSlots,
+                bookedSlots
+        );
+    }
+
+    @Transactional
+    public Appointment reschedule(Appointment appointment, LocalDateTime newDateTime) {
+
+        if (newDateTime == null) {
+            throw new IllegalArgumentException("New date time cannot be null");
+        }
+
+        if (newDateTime.isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("Cannot reschedule to past time");
+        }
+
+        if (appointment.isCompleted()) {
+            throw new IllegalStateException("Completed appointment cannot be rescheduled");
+        }
+
+        if (appointment.isCancelled()) {
+            throw new IllegalStateException("Cancelled appointment cannot be rescheduled");
+        }
+
+        if (appointment.getScheduledTime().equals(newDateTime)) {
+            return appointment; // no change
+        }
+
+        validateSlotAvailability(appointment, newDateTime);
+
+        appointment.setScheduledTime(newDateTime);
+        appointment.setCheckInTime(newDateTime.minusMinutes(10));
+        appointment.setCompletedTime(newDateTime.plusMinutes(appointment.getTotalDurationMinutes()));
+
+        return appointment;
+    }
+
+    private void validateSlotAvailability(Appointment appointment, LocalDateTime newDateTime) {
+
+        if (newDateTime.getMinute() % 30 != 0) {
+            throw new InvalidAppointmentTimeException("Appointments must start at 30-min intervals");
+        }
+
+        List<LocalDateTime> availableSlots =
+                computeAvailableSlots(
+                        appointment.getBarber(),
+                        newDateTime.toLocalDate(),
+                        appointment.getServices(),
+                        appointment.getId()
+                );
+
+        if (!availableSlots.contains(newDateTime)) {
+            throw new AppointmentSlotUnavailableException("Selected slot is not available");
         }
     }
 }

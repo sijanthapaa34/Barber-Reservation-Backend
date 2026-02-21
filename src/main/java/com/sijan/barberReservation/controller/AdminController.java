@@ -13,6 +13,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -33,23 +34,22 @@ public class AdminController {
         this.barberLeaveService = barberLeaveService;
         this.pageMapper = pageMapper;
     }
-    private Admin getCurrentAdmin(Authentication authentication) {
-        Long adminId =  Long.valueOf(authentication.getName());
-        return adminService.findById(adminId);
+    private Admin getCurrentAdmin(UserPrincipal userPrincipal) {
+        return adminService.findById(userPrincipal.getId());
     }
 
-    @GetMapping("/barbers")
-    public ResponseEntity<PageResponse<BarberDTO>> getBarbersByBarbershop(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            Authentication authentication
-    ) {
-        Admin admin = getCurrentAdmin(authentication);
-        Sort sort = Sort.by(Sort.Direction.DESC, "scheduledTime");
-        Pageable pageable = PageRequest.of(page, size, sort);
-        Page<Barber> barbers = barberService.findByBarberShop(admin, pageable);
-        return ResponseEntity.ok(pageMapper.toBarberPageResponse(barbers));
-    }
+//    @GetMapping("/barbers")
+//    public ResponseEntity<PageResponse<BarberDTO>> getBarbersByBarbershop(
+//            @RequestParam(defaultValue = "0") int page,
+//            @RequestParam(defaultValue = "10") int size,
+//            @AuthenticationPrincipal UserPrincipal userPrincipal
+//    ) {
+//        Admin admin = getCurrentAdmin(userPrincipal);
+//        Sort sort = Sort.by(Sort.Direction.DESC, "scheduledTime");
+//        Pageable pageable = PageRequest.of(page, size, sort);
+//        Page<Barber> barbers = barberService.findByBarberShop(admin, pageable);
+//        return ResponseEntity.ok(pageMapper.toBarberPageResponse(barbers));
+//    }
 
     @PutMapping("/barbers/{barberId}/activate")
     public ResponseEntity<String> activateBarber(
@@ -70,9 +70,9 @@ public class AdminController {
     public ResponseEntity<PageResponse<AppointmentDetailsResponse>> getAllAppointment(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            Authentication authentication
+            @AuthenticationPrincipal UserPrincipal userPrincipal
     ) {
-        Admin admin = getCurrentAdmin(authentication);
+        Admin admin = getCurrentAdmin(userPrincipal);
         Sort sort = Sort.by(Sort.Direction.DESC, "scheduledTime");
         Pageable pageable = PageRequest.of(page, size, sort);
         Page<Appointment> result = appointmentService.getAppointmentsForAdmin(admin, pageable);
@@ -84,9 +84,9 @@ public class AdminController {
     public ResponseEntity<PageResponse<BarberLeaveDTO>> getAllBarberLeaves(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            Authentication authentication
+            @AuthenticationPrincipal UserPrincipal userPrincipal
     ) {
-        Admin admin = getCurrentAdmin(authentication);
+        Admin admin = getCurrentAdmin(userPrincipal);
         Sort sort = Sort.by(Sort.Direction.DESC, "scheduledTime");
         Pageable pageable = PageRequest.of(page, size, sort);
         Page<BarberLeave> leaves = barberService.getAllLeaves(admin, pageable);
@@ -98,9 +98,9 @@ public class AdminController {
             @PathVariable Long barberId,
             @PathVariable Long leaveId,
             @RequestBody UpdateLeaveStatusRequest request,
-            Authentication authentication
+            @AuthenticationPrincipal UserPrincipal userPrincipal
     ) {
-        Admin admin = getCurrentAdmin(authentication);
+        Admin admin = getCurrentAdmin(userPrincipal);
         BarberLeave leave = barberLeaveService.findById(leaveId);
         Barber barber = barberService.findById(barberId);
         barberLeaveService.updateLeaveStatus(

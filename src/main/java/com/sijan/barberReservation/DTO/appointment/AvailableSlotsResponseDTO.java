@@ -14,7 +14,6 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class AvailableSlotsResponseDTO {
-    private Long appointmentId;
     private LocalDate date;
     private String barberName;
     private String barbershop;

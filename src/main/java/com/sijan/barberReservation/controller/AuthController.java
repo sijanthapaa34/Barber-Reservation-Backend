@@ -9,10 +9,7 @@ import com.sijan.barberReservation.DTO.user.BarbershopDTO;
 import com.sijan.barberReservation.DTO.user.CustomerDTO;
 import com.sijan.barberReservation.DTO.Auth.RegisterBarberRequest;
 import com.sijan.barberReservation.DTO.Auth.RegisterCustomerRequest;
-import com.sijan.barberReservation.mapper.user.AdminMapper;
-import com.sijan.barberReservation.mapper.user.BarberMapper;
-import com.sijan.barberReservation.mapper.user.BarbershopMapper;
-import com.sijan.barberReservation.mapper.user.CustomerMapper;
+import com.sijan.barberReservation.mapper.user.*;
 import com.sijan.barberReservation.model.*;
 import com.sijan.barberReservation.security.JwtTokenProvider;
 import com.sijan.barberReservation.service.BarbershopService;
@@ -40,6 +37,7 @@ public class AuthController {
     private final BarbershopService barbershopService;
     private final PasswordEncoder passwordEncoder;
     private final BarberMapper barberMapper;
+    private final UserMapper userMapper;
     private final AdminMapper adminMapper;
     private final BarbershopMapper barbershopMapper;
     private final CustomerMapper customerMapper;
@@ -47,13 +45,14 @@ public class AuthController {
 
     public AuthController(AuthenticationManager authManager,
                           JwtTokenProvider tokenProvider,
-                          UserService userService, BarbershopService barbershopService, PasswordEncoder passwordEncoder, BarberMapper barberMapper, AdminMapper adminMapper, BarbershopMapper barbershopMapper, CustomerMapper customerMapper, GoogleTokenVerifierService googleTokenVerifierService) {
+                          UserService userService, BarbershopService barbershopService, PasswordEncoder passwordEncoder, BarberMapper barberMapper, UserMapper userMapper, AdminMapper adminMapper, BarbershopMapper barbershopMapper, CustomerMapper customerMapper, GoogleTokenVerifierService googleTokenVerifierService) {
         this.authManager = authManager;
         this.tokenProvider = tokenProvider;
         this.userService = userService;
         this.barbershopService = barbershopService;
         this.passwordEncoder = passwordEncoder;
         this.barberMapper = barberMapper;
+        this.userMapper = userMapper;
         this.adminMapper = adminMapper;
         this.barbershopMapper = barbershopMapper;
         this.customerMapper = customerMapper;
@@ -185,8 +184,8 @@ public class AuthController {
             System.out.println("error null principal");
             return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
         }
-
         User user = userService.findById(userPrincipal.getId());
-        return ResponseEntity.ok(user);
+        System.out.println("hanyo");
+        return ResponseEntity.ok(userMapper.toDTO(user));
     }
 }

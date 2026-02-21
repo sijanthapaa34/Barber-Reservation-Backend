@@ -34,11 +34,7 @@ public class BarberService {
     }
 
 
-    public Page<Barber> findByBarberShop(Admin admin, Pageable pageable) {
-        Barbershop shop = admin.getBarbershop();
-        if(shop == null){
-            throw new ResourceNotFoundException("Admin has no assigned barbershop");
-        }
+    public Page<Barber> findByBarberShop(Barbershop shop, Pageable pageable) {
         return barberRepository.findByBarbershop(shop, pageable);
     }
 

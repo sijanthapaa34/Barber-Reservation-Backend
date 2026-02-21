@@ -14,7 +14,7 @@ public class ServiceMapper {
 
     public ServiceDTO toDTO(ServiceOffering service) {
         ServiceDTO dto = new ServiceDTO();
-        dto.setId(dto.getId());
+        dto.setId(service.getId());
         dto.setName(service.getName());
         dto.setDescription(service.getDescription());
         dto.setPrice(service.getPrice());
