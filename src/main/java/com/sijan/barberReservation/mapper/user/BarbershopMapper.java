@@ -36,7 +36,6 @@ public class BarbershopMapper {
         shop.setEmail(req.getShopEmail());
         shop.setLongitude(req.getLongitude());
         shop.setLatitude(req.getLatitude());
-        shop.setProfilePicture(req.getBarbershopProfilePicture());
         shop.setWebsite(req.getWebsite());
         shop.setOperatingHours(req.getOperatingHours());
 

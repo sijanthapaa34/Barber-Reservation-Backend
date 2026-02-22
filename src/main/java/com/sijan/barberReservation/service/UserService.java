@@ -4,6 +4,7 @@ import com.sijan.barberReservation.model.*;
 import com.sijan.barberReservation.repository.BarberRepository;
 import com.sijan.barberReservation.repository.CustomerRepository;
 import com.sijan.barberReservation.repository.UserRepository;
+import jakarta.transaction.Transactional;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -55,19 +56,8 @@ public class UserService {
                 .orElseThrow(()-> new RuntimeException("User id not found"));
     }
 
-//    public BarberShop registerBarberShop(Admin shopAdmin, Long adminId) {
-//        userRepository.findById(adminId).ifPresentOrElse(admin -> {
-//            if (admin.getRole() != Roles.ADMIN) {
-//                throw new RuntimeException("Only admin can register barbers");
-//            }
-//        }, () -> {
-//            throw new RuntimeException("Admin not found");
-//        });
-//
-//        String rawPassword = shopAdmin.getPassword();
-//        String encodedPassword = passwordEncoder.encode(rawPassword);
-//        shopAdmin.setPassword(encodedPassword);
-//
-//        return barberShopRepository.save(shopAdmin);
-//    }
+    @Transactional
+    public void uploadProfilePicture(User user, String fileUrl) {
+        user.setProfilePicture(fileUrl);
+    }
 }

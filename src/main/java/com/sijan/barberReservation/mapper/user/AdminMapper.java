@@ -11,7 +11,6 @@ public class AdminMapper {
         admin.setName(request.getAdminName());
         admin.setEmail(request.getAdminEmail());
         admin.setPhone(request.getPhone());
-        admin.setProfileImage(request.getAdminProfilePicture());
         return admin;
     }
 }
