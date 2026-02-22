@@ -45,10 +45,10 @@ Thumbs.db
 ### Ignore configuration files (optional) ###
 # If you have sensitive data in application.properties or .env
 src/main/resources/application.properties
+src/main/resources/service-account.json
 src/main/resources/application.yml
 .env
-
-# But allow placeholder or sample configs
+# Allow example files
 !src/main/resources/application-example.properties
 !src/main/resources/application-example.yml
 
