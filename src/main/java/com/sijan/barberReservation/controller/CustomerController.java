@@ -1,13 +1,18 @@
 package com.sijan.barberReservation.controller;
 
 import com.sijan.barberReservation.DTO.Auth.ChangePasswordRequest;
+import com.sijan.barberReservation.DTO.appointment.PageResponse;
 import com.sijan.barberReservation.DTO.user.CustomerDTO;
 import com.sijan.barberReservation.DTO.user.UpdateUserRequest;
 import com.sijan.barberReservation.mapper.user.CustomerMapper;
 import com.sijan.barberReservation.model.Customer;
 import com.sijan.barberReservation.service.CustomerService;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.awt.print.Pageable;
+import java.time.LocalDate;
 
 @RestController
 @RequestMapping("/api/customers")

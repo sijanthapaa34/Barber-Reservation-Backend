@@ -12,8 +12,10 @@ public class BarbershopMapper {
         BarbershopDTO dto = new BarbershopDTO();
         dto.setId(shop.getId());
         dto.setName(shop.getName());
+        dto.setDescription(shop.getDescription());
         dto.setAddress(shop.getAddress());
         dto.setCity(shop.getCity());
+        dto.setShopImages(shop.getShopImages());
         dto.setState(shop.getState());
         dto.setPostalCode(shop.getPostalCode());
         dto.setPhone(shop.getPhone());
@@ -29,8 +31,11 @@ public class BarbershopMapper {
     public Barbershop toEntity(RegisterBarbershopRequest req) {
         Barbershop shop = new Barbershop();
         shop.setName(req.getShopName());
+        shop.setDescription(req.getDescription());
+        shop.setState(req.getState());
         shop.setAddress(req.getAddress());
         shop.setCity(req.getCity());
+        shop.setShopImages(req.getShopImages());
         shop.setPostalCode(req.getPostalCode());
         shop.setPhone(req.getPhone());
         shop.setEmail(req.getShopEmail());

@@ -35,7 +35,6 @@ public class AuthController {
     private final JwtTokenProvider tokenProvider;
     private final UserService userService;
     private final BarbershopService barbershopService;
-    private final PasswordEncoder passwordEncoder;
     private final BarberMapper barberMapper;
     private final UserMapper userMapper;
     private final AdminMapper adminMapper;
@@ -45,12 +44,11 @@ public class AuthController {
 
     public AuthController(AuthenticationManager authManager,
                           JwtTokenProvider tokenProvider,
-                          UserService userService, BarbershopService barbershopService, PasswordEncoder passwordEncoder, BarberMapper barberMapper, UserMapper userMapper, AdminMapper adminMapper, BarbershopMapper barbershopMapper, CustomerMapper customerMapper, GoogleTokenVerifierService googleTokenVerifierService) {
+                          UserService userService, BarbershopService barbershopService, BarberMapper barberMapper, UserMapper userMapper, AdminMapper adminMapper, BarbershopMapper barbershopMapper, CustomerMapper customerMapper, GoogleTokenVerifierService googleTokenVerifierService) {
         this.authManager = authManager;
         this.tokenProvider = tokenProvider;
         this.userService = userService;
         this.barbershopService = barbershopService;
-        this.passwordEncoder = passwordEncoder;
         this.barberMapper = barberMapper;
         this.userMapper = userMapper;
         this.adminMapper = adminMapper;
@@ -87,14 +85,7 @@ public class AuthController {
 
         User user = userService.findByEmail(email);
         if (user == null) {
-            Customer customer = new Customer();
-            customer.setEmail(email);
-            customer.setName(name);
-            customer.setProfilePicture(picture);
-            customer.setRole(Roles.CUSTOMER);
-            String randomPassword = UUID.randomUUID().toString();
-            customer.setPassword(passwordEncoder.encode(randomPassword));
-            user = userService.registerCustomer(customer);
+            user = userService.registerGoogleCustomer(email,name,picture);
         }
 
         String token = tokenProvider.generateToken(
@@ -174,18 +165,17 @@ public class AuthController {
 
         Barbershop barbershop = barbershopMapper.toEntity(request);
         Admin admin = adminMapper.toEntity(request);
-        Barbershop savedBarbershop = barbershopService.createBarbershopWithAdmin(barbershop, admin);
+        Barbershop savedBarbershop = barbershopService.createBarbershop(barbershop);
+        Admin savedAdmin = userService.registerAdmin(admin, savedBarbershop);
         return ResponseEntity.status(201).body(barbershopMapper.toDTO(savedBarbershop));
     }
     @GetMapping("/me")
     public ResponseEntity<?> getCurrentUser(@AuthenticationPrincipal UserPrincipal userPrincipal) {
-        // Defensive check
         if (userPrincipal == null) {
             System.out.println("error null principal");
             return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
         }
         User user = userService.findById(userPrincipal.getId());
-        System.out.println("hanyo");
         return ResponseEntity.ok(userMapper.toDTO(user));
     }
 }

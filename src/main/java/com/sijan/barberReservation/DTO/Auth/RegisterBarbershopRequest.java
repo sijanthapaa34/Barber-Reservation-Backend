@@ -5,6 +5,7 @@ import lombok.Data;
 import org.hibernate.validator.constraints.URL;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Data
 public class RegisterBarbershopRequest {
@@ -17,11 +18,15 @@ public class RegisterBarbershopRequest {
     @NotBlank(message = "Address is required")
     private String address;
 
+    private String description;
+
     @NotBlank(message = "City is required")
     private String city;
 
     private String state;
     private String postalCode;
+    private String adminProfile;
+    private List<String> shopImages;
 
     @NotBlank(message = "Password is required")
     @Size(min = 6, message = "Password must be at least 6 characters")
@@ -42,10 +47,4 @@ public class RegisterBarbershopRequest {
     private String adminEmail;
     private String website;
     private String operatingHours;
-    @URL(message = "Profile picture must be a valid URL")
-    @Size(max = 2048, message = "URL is too long")
-    private String adminProfilePicture;
-    @URL(message = "Profile picture must be a valid URL")
-    @Size(max = 2048, message = "URL is too long")
-    private String barbershopProfilePicture;
 }

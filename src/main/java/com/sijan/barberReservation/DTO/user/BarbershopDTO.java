@@ -16,12 +16,14 @@ public class BarbershopDTO {
     private Long id;
     private String name;
     private String address;
+    private String description;
     private String city;
     private String state;
     private String postalCode;
     private String phone;
     private String email;
     private String website;
+    private List<String> shopImages;
     private String operatingHours;
     private String profilePicture;
     private Double rating;

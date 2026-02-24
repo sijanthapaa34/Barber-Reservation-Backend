@@ -22,30 +22,38 @@ import java.util.UUID;
 public class GoogleDriveService {
 
     private Drive driveService;
-    private final String folderId = "https://drive.google.com/drive/folders/1BQrYoLbt-HNbQWUqPWN-5-F5RyS1OFM7?usp=drive_link";
+
+    private String folderId = "1juM6JqGpS3PvLZtjM0CjqZw6PKABzhU3";
 
     @PostConstruct
-    public void init() throws Exception {
+    public void init() {
+        try {
+            InputStream credentialsStream = getClass()
+                    .getClassLoader()
+                    .getResourceAsStream("service-account.json");
 
-        InputStream credentialsStream = getClass()
-                .getClassLoader()
-                .getResourceAsStream("service-account.json");
+            if (credentialsStream == null) {
+                throw new RuntimeException("Credentials file 'service-account.json' not found in classpath!");
+            }
 
-        if (credentialsStream == null) {
-            throw new RuntimeException("service-account.json not found!");
+            GoogleCredentials credentials = GoogleCredentials
+                    .fromStream(credentialsStream)
+                    .createScoped(List.of("https://www.googleapis.com/auth/drive"));
+
+            driveService = new Drive.Builder(
+                    GoogleNetHttpTransport.newTrustedTransport(),
+                    JacksonFactory.getDefaultInstance(),
+                    new HttpCredentialsAdapter(credentials)
+            )
+                    .setApplicationName("BarberReservationApp")
+                    .build();
+
+            System.out.println("Google Drive Service Initialized Successfully for folder: " + folderId);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Failed to initialize Google Drive Service: " + e.getMessage());
         }
-
-        GoogleCredentials credentials = GoogleCredentials
-                .fromStream(credentialsStream)
-                .createScoped(List.of("https://www.googleapis.com/auth/drive"));
-
-        driveService = new Drive.Builder(
-                GoogleNetHttpTransport.newTrustedTransport(),
-                JacksonFactory.getDefaultInstance(),
-                new HttpCredentialsAdapter(credentials)
-        )
-                .setApplicationName("BarberReservationApp")
-                .build();
     }
 
     public String uploadProfilePicture(MultipartFile multipartFile) throws IOException {
@@ -58,31 +66,39 @@ public class GoogleDriveService {
         String extension = originalName.substring(originalName.lastIndexOf("."));
         String newFileName = UUID.randomUUID() + extension;
 
+        // Create temp file
         java.io.File tempFile = java.io.File.createTempFile("upload-", extension);
         multipartFile.transferTo(tempFile);
 
+        // Set metadata
         File fileMetadata = new File();
         fileMetadata.setName(newFileName);
         fileMetadata.setParents(Collections.singletonList(folderId));
 
-        FileContent mediaContent =
-                new FileContent(multipartFile.getContentType(), tempFile);
+        FileContent mediaContent = new FileContent(multipartFile.getContentType(), tempFile);
 
+        // Upload
+        // FIX 2: supportsAllDrives(true) ensures this works for both regular folders and Shared Drives
         File uploadedFile = driveService.files()
                 .create(fileMetadata, mediaContent)
-                .setFields("id")
+                .setSupportsAllDrives(true)
+                .setFields("id, parents")
                 .execute();
 
-        // Make public
+        // Set Permission to Public
         Permission permission = new Permission();
         permission.setType("anyone");
         permission.setRole("reader");
 
         driveService.permissions()
                 .create(uploadedFile.getId(), permission)
+                .setSupportsAllDrives(true)
                 .execute();
 
-        tempFile.delete();
+        // Delete temp file
+        if (tempFile.exists()) {
+            tempFile.delete();
+        }
 
         return "https://drive.google.com/uc?id=" + uploadedFile.getId();
     }

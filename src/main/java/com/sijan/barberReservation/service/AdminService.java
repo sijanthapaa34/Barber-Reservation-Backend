@@ -26,11 +26,4 @@ public class AdminService {
         return adminRepository.findById(adminId)
                 .orElseThrow(()-> new RuntimeException("Admin id not found"));
     }
-    public void register(Admin admin) {
-        adminRepository.save(admin);
-    }
-
-    public Admin findByEmail(String adminEmail) {
-        return adminRepository.findByEmail(adminEmail);
-    }
 }

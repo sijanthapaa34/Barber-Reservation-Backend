@@ -49,8 +49,6 @@ public class ServiceOffering {
     @ManyToMany(mappedBy = "services")
     private List<Appointment> appointments;
 
-    private String serviceImage; // primary image URL
-
     @ElementCollection
     @CollectionTable(name = "service_images", joinColumns = @JoinColumn(name = "service_id"))
     @Column(name = "image_url")

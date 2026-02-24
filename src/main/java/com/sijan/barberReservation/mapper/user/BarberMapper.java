@@ -19,6 +19,7 @@ public class BarberMapper {
         dto.setName(barber.getName());
         dto.setActive(barber.getActive() != null ? barber.getActive() : true);
         dto.setEmail(barber.getEmail());
+        dto.setWorkImages(barber.getWorkImages());
         dto.setPhone(barber.getPhone());
         dto.setBarbershop(barber.getBarbershop().getName());
         dto.setBio(barber.getBio());
@@ -36,6 +37,7 @@ public class BarberMapper {
         barber.setName(req.getName());
         barber.setEmail(req.getEmail());
         barber.setPhone(req.getPhone());
+        barber.setWorkImages(req.getWorkImages());
         barber.setPassword(req.getPassword());
         barber.setBio(req.getBio());
         barber.setExperienceYears(req.getExperienceYears());

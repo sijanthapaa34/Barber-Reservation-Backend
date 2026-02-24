@@ -6,10 +6,13 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class AdminMapper {
+
     public Admin toEntity(RegisterBarbershopRequest request) {
         Admin admin = new Admin();
         admin.setName(request.getAdminName());
         admin.setEmail(request.getAdminEmail());
+        admin.setPassword(request.getPassword());
+        admin.setProfilePicture(request.getAdminProfile());
         admin.setPhone(request.getPhone());
         return admin;
     }

@@ -1,6 +1,7 @@
 package com.sijan.barberReservation.service;
 
 import com.sijan.barberReservation.DTO.appointment.*;
+import com.sijan.barberReservation.DTO.user.CustomerDTO;
 import com.sijan.barberReservation.exception.appointment.AppointmentAlreadyCancelledException;
 import com.sijan.barberReservation.exception.appointment.AppointmentNotFoundException;
 import com.sijan.barberReservation.exception.appointment.AppointmentSlotUnavailableException;
@@ -123,7 +124,6 @@ public class AppointmentService {
         LocalDateTime startOfDay = date.atStartOfDay();
         LocalDateTime endOfDay   = date.atTime(LocalTime.MAX);
 
-        // Only consider scheduled appointments (ignore cancelled)
         List<Appointment> bookedAppointments =
                 appointmentRepository.findByBarberAndStatusAndScheduledTimeBetween(
                         barber,
@@ -164,11 +164,22 @@ public class AppointmentService {
         return availableSlots;
     }
 
-    public List<Appointment> getBookedAppointments(Barber barber, LocalDate date) {
-
-        LocalDateTime startOfDay = date.atStartOfDay();
-        LocalDateTime endOfDay = date.atTime(23, 59, 59);
-
+    public List<Appointment> getBookedAppointments(Barber barber, LocalDate startDate, LocalDate endDate) {
+        LocalDateTime startOfDay;
+        LocalDateTime endOfDay;
+        if (startDate == null && endDate == null) {
+            startOfDay = LocalDate.now().atStartOfDay();
+            endOfDay = LocalDate.now().atTime(23, 59, 59);
+        }
+        else if (startDate != null && endDate == null) {
+            startOfDay = startDate.atStartOfDay();
+            endOfDay = startDate.atTime(23, 59, 59);
+        }
+        else {
+            assert startDate != null;
+            startOfDay = startDate.atStartOfDay();
+            endOfDay = endDate.atTime(23, 59, 59);
+        }
         return appointmentRepository.findByBarberAndStatusAndScheduledTimeBetween(
                 barber,
                 AppointmentStatus.SCHEDULED,
@@ -177,14 +188,29 @@ public class AppointmentService {
         );
     }
 
-    public List<Appointment> getBarberAppointments(Barber barber, LocalDate date) {
-        LocalDateTime startOfDay = date.atStartOfDay();
-        LocalDateTime endOfDay = date.atTime(LocalTime.MAX);
+    public Page<Appointment> getBarberAppointments(Barber barber, LocalDate startDate, LocalDate endDate,Pageable pageable) {
+        LocalDateTime startOfDay;
+        LocalDateTime endOfDay;
+
+        if (startDate == null && endDate == null) {
+            startOfDay = LocalDate.now().atStartOfDay();
+            endOfDay = LocalDate.now().atTime(23, 59, 59);
+        }
+        else if (startDate != null && endDate == null) {
+            startOfDay = startDate.atStartOfDay();
+            endOfDay = startDate.atTime(23, 59, 59);
+        }
+        else {
+            assert startDate != null;
+            startOfDay = startDate.atStartOfDay();
+            endOfDay = endDate.atTime(23, 59, 59);
+        }
 
         return appointmentRepository.findByBarberAndScheduledTimeBetween(
                 barber,
                 startOfDay,
-                endOfDay
+                endOfDay,
+                pageable
         );
     }
 
@@ -203,7 +229,7 @@ public class AppointmentService {
     public AvailableSlotsResponseDTO getAvailability(Barber barber, List<ServiceOffering> services, @NotNull LocalDate date) {
         List<LocalDateTime> availableSlotTimes = computeAvailableSlots(barber, date, services,null);
 
-        List<Appointment> bookedAppointments = getBookedAppointments(barber, date);
+        List<Appointment> bookedAppointments = getBookedAppointments(barber, date, null);
 
         List<TimeSlotDTO> availableSlots = appointmentSlotMapper.toAvailableSlots(
                 availableSlotTimes,
@@ -270,6 +296,42 @@ public class AppointmentService {
         if (!availableSlots.contains(newDateTime)) {
             throw new AppointmentSlotUnavailableException("Selected slot is not available");
         }
+    }
+
+    public Double getEarnings(Barber barber, LocalDate startDate, LocalDate endDate) {
+        LocalDate today = LocalDate.now();
+
+        // Get Sunday of current week
+        LocalDate sunday = today.with(java.time.DayOfWeek.SUNDAY);
+
+        // Get Friday of current week
+        LocalDate friday = today.with(java.time.DayOfWeek.FRIDAY);
+
+        LocalDateTime startOfDay;
+        LocalDateTime endOfDay;
+
+        // Case 1: both null → Sunday to Friday (current week)
+        if (startDate == null && endDate == null) {
+            startOfDay = sunday.atStartOfDay();
+            endOfDay = friday.atTime(23, 59, 59);
+        }
+
+        // Case 2: start provided, end null → startDate to Friday
+        else if (startDate != null && endDate == null) {
+            startOfDay = startDate.atStartOfDay();
+            endOfDay = friday.atTime(23, 59, 59);
+        }
+
+        // Case 3: both provided
+        else {
+            startOfDay = startDate.atStartOfDay();
+            endOfDay = endDate.atTime(23, 59, 59);
+        }
+
+        Double earnings = appointmentRepository
+                .sumEarningsByBarberAndDate(barber, startOfDay, endOfDay);
+
+        return earnings != null ? earnings : 0.0;
     }
 }
 

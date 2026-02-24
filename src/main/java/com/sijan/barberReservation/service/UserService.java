@@ -1,6 +1,7 @@
 package com.sijan.barberReservation.service;
 
 import com.sijan.barberReservation.model.*;
+import com.sijan.barberReservation.repository.AdminRepository;
 import com.sijan.barberReservation.repository.BarberRepository;
 import com.sijan.barberReservation.repository.CustomerRepository;
 import com.sijan.barberReservation.repository.UserRepository;
@@ -8,19 +9,23 @@ import jakarta.transaction.Transactional;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.UUID;
+
 @Service
 public class UserService {
     private final UserRepository userRepository;
     private final CustomerRepository customerRepository;
+    private final AdminRepository adminRepository;
     private final BarberRepository barberRepository;
     private final PasswordEncoder passwordEncoder;
 
     public UserService(UserRepository userRepository,
-                       CustomerRepository customerRepository,
+                       CustomerRepository customerRepository, AdminRepository adminRepository,
                        BarberRepository barberRepository,
                        PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.customerRepository = customerRepository;
+        this.adminRepository = adminRepository;
         this.barberRepository = barberRepository;
         this.passwordEncoder = passwordEncoder;
     }
@@ -50,6 +55,20 @@ public class UserService {
         barber.setBarbershop(shop);
         return barberRepository.save(barber);
     }
+    public Admin registerAdmin(Admin admin, Barbershop shop) {
+        if(userRepository.existsByEmail(admin.getEmail())) {
+            throw new RuntimeException("User with this email already exists");
+        }
+        admin.setRole(Roles.SHOP_ADMIN);
+        String rawPassword = admin.getPassword();
+        String encodedPassword = passwordEncoder.encode(rawPassword);
+        admin.setPassword(encodedPassword);
+        admin.setBarbershop(shop);
+        return adminRepository.save(admin);
+    }
+
+
+
 
     public User findById(Long id) {
         return userRepository.findById(id)
@@ -59,5 +78,16 @@ public class UserService {
     @Transactional
     public void uploadProfilePicture(User user, String fileUrl) {
         user.setProfilePicture(fileUrl);
+    }
+
+    public User registerGoogleCustomer(String email, String name, String picture) {
+        Customer customer = new Customer();
+        customer.setEmail(email);
+        customer.setName(name);
+        customer.setProfilePicture(picture);
+        customer.setRole(Roles.CUSTOMER);
+        String randomPassword = UUID.randomUUID().toString();
+        customer.setPassword(passwordEncoder.encode(randomPassword));
+        return customerRepository.save(customer);
     }
 }

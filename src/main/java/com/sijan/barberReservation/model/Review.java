@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Data
@@ -22,11 +23,10 @@ public class Review {
     private Barbershop barberShop;
     @ManyToOne(fetch = FetchType.LAZY)
     private Customer customer;
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(unique = true)
-    private Appointment appointment;
     private int rating;
-    private String comment;
+
+    private List<String> images;
+    private List<String> comments;
     @CreationTimestamp
     private LocalDateTime createdAt;
 }

@@ -53,7 +53,7 @@ public class ServiceController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/barberShop/{barberShopId}")
+    @GetMapping("/barbershop/{barberShopId}")
     public ResponseEntity<PageResponse<ServiceDTO>> getAllByBarbershop( @PathVariable Long barberShopId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size

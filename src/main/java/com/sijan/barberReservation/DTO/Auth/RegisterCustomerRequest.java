@@ -18,8 +18,4 @@ public class RegisterCustomerRequest {
     @Size(min = 6, message = "Password must be at least 6 characters")
     private String password;
     private String preferences;
-    @URL(message = "Profile picture must be a valid URL")
-    @Size(max = 2048, message = "URL is too long")
-    private String profilePicture;
-
 }

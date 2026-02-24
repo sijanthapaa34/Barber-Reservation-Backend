@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -16,6 +17,7 @@ public class BarberDTO {
     private boolean active;
     private String email;
     private String phone;
+    private List<String> workImages;
     private String bio;
     private String profilePicture;
     private Double rating;

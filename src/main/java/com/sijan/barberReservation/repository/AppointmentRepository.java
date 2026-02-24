@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -35,7 +36,18 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
 
     List<Appointment> findByBarberAndStatusAndScheduledTimeBetween(Barber barber, AppointmentStatus status, LocalDateTime start, LocalDateTime end);
 
-    List<Appointment> findByBarberAndScheduledTimeBetween(Barber barber, LocalDateTime dayStart, LocalDateTime dayEnd);
+    Page<Appointment> findByBarberAndScheduledTimeBetween(Barber barber, LocalDateTime dayStart, LocalDateTime dayEnd, Pageable pageable);
 
     Page<Appointment> findAllByBarbershop(Barbershop shop, Pageable pageable);
+    @Query("""
+       SELECT COALESCE(SUM(a.totalPrice), 0)
+       FROM Appointment a
+       WHERE a.barber = :barber
+       AND a.scheduledTime BETWEEN :startDate AND :endDate
+       """)
+    Double sumEarningsByBarberAndDate(
+            @Param("barber") Barber barber,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate
+    );
 }

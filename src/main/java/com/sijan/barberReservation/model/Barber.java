@@ -8,6 +8,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -59,6 +60,14 @@ public class Barber extends User {
 
     @OneToMany(mappedBy = "barber")
     private List<BarberLeave> leaves;
+
+    @ElementCollection
+    @CollectionTable(
+            name = "barber_work_images",
+            joinColumns = @JoinColumn(name = "barber_id")
+    )
+    @Column(name = "work_images")
+    private List<String> workImages = new ArrayList<>();;
 
     // Helper method to check if barber is top rated
     @Transient

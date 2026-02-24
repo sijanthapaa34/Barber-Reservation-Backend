@@ -20,6 +20,7 @@ public class ServiceMapper {
         dto.setPrice(service.getPrice());
         dto.setDurationMinutes(service.getDurationMinutes());
         dto.setBarberShop(service.getBarbershop().getName());
+        dto.setServiceImages(service.getServiceImages());
         dto.setCreatedAt(service.getCreatedAt());
         dto.setUpdatedAt(service.getUpdatedAt());
         return dto;
@@ -33,8 +34,6 @@ public class ServiceMapper {
         service.setPrice(dto.getPrice());
         service.setAvailable(dto.getAvailable());
         service.setCategory(dto.getCategory());
-
-        service.setServiceImage(dto.getServiceImage());
         service.setServiceImages(
                 dto.getServiceImages() != null
                         ? new ArrayList<>(dto.getServiceImages())

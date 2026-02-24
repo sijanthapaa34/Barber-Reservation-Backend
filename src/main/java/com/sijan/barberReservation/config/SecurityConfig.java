@@ -50,6 +50,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/login").permitAll()
                         .requestMatchers("/api/auth/customer").permitAll()
                         .requestMatchers("/api/auth/google").permitAll()
+                        .requestMatchers("/api/users/").permitAll()
 
                         // 3. Public Barbershop Endpoints
                         .requestMatchers(HttpMethod.GET, "/api/barbershop/nearby").permitAll()
@@ -59,7 +60,7 @@ public class SecurityConfig {
 
                         // 4. Protected Roles
                         .requestMatchers("/api/admin/**").hasAnyRole("MAIN_ADMIN", "SHOP_ADMIN")
-                        .requestMatchers("/barber/**").hasRole("BARBER")
+                        .requestMatchers("/barber/**").hasAnyRole("BARBER","MAIN_ADMIN", "SHOP_ADMIN")
                         .requestMatchers("/customer/**").hasRole("CUSTOMER")
                         // Note: Ensure your barbershop update endpoint is protected by role or specific path
 

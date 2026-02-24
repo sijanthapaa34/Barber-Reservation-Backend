@@ -25,7 +25,7 @@ public class RegisterBarberRequest {
     private String phone;
     private String bio;
     private Integer experienceYears;
-    private String profilePicture;
     private List<String> skills;
+    private List<String> workImages;
     private Double commissionRate = 30.0;
 }

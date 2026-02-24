@@ -11,6 +11,7 @@ import org.hibernate.validator.constraints.URL;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -34,6 +35,7 @@ public class Barbershop {
     private String city;
 
     private String state;
+    private String description;
     private String postalCode;
     private String country;
 
@@ -82,10 +84,18 @@ public class Barbershop {
     @OneToMany(mappedBy = "barbershop", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Appointment> appointments;
 
-    @ManyToOne
+    @OneToOne(mappedBy = "barbershop", cascade = CascadeType.ALL, orphanRemoval = true)
     private Admin admin;
 
     @URL(message = "Profile picture must be a valid URL")
     @Size(max = 2048, message = "URL is too long")
     private String profilePicture;
+
+    @ElementCollection
+    @CollectionTable(
+            name = "barbershop_shop_images",
+            joinColumns = @JoinColumn(name = "barbershop_id")
+    )
+    @Column(name = "shop_images")
+    private List<String> shopImages = new ArrayList<>();;
 }

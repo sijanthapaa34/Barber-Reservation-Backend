@@ -24,15 +24,12 @@ public class BarbershopService {
     private static final double EARTH_RADIUS_KM = 6371.0;
 
     private final BarbershopRepository barbershopRepository;
-    private final AdminService adminService;
 //    private final GoogleMapsService googleMapsService;
 
-    public BarbershopService(BarbershopRepository barbershopRepository,
-                             AdminService adminService
+    public BarbershopService(BarbershopRepository barbershopRepository
 //                             GoogleMapsService googleMapsService
     ) {
         this.barbershopRepository = barbershopRepository;
-        this.adminService = adminService;
 //        this.googleMapsService = googleMapsService;
     }
 
@@ -53,19 +50,13 @@ public class BarbershopService {
         return barbershopRepository.save(barberShop);
     }
 
-    public Barbershop createBarbershopWithAdmin(Barbershop barbershop, Admin admin) {
-        barbershop.setAdmin(admin);
+    public Barbershop createBarbershop(Barbershop barbershop) {
         String fullAddress = String.format("%s, %s, %s, %s",
                 barbershop.getAddress(), barbershop.getCity(),
                 barbershop.getState(), barbershop.getPostalCode());
         barbershop.setFullAddress(fullAddress);
 
-        Barbershop savedBarbershop = barbershopRepository.save(barbershop);
-
-        admin.setRole(Roles.SHOP_ADMIN);
-        admin.setBarbershop(savedBarbershop);
-        adminService.register(admin);
-        return savedBarbershop;
+        return barbershopRepository.save(barbershop);
     }
 
     public Page<Barbershop> findTopRated(Pageable pageable) {

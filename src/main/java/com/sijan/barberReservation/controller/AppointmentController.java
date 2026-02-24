@@ -1,6 +1,7 @@
 package com.sijan.barberReservation.controller;
 
 import com.sijan.barberReservation.DTO.appointment.*;
+import com.sijan.barberReservation.DTO.user.CustomerDTO;
 import com.sijan.barberReservation.mapper.appointment.AppointmentDetailsMapper;
 import com.sijan.barberReservation.mapper.appointment.CreateAppointmentMapper;
 import com.sijan.barberReservation.mapper.appointment.PageMapper;
@@ -13,6 +14,8 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -112,6 +115,26 @@ public class AppointmentController {
                 appointmentService.getAvailability(barber, services, date);
 
         return ResponseEntity.ok(response);
+    }
+    @GetMapping("/barber/{barberId}")
+    public ResponseEntity<PageResponse<AppointmentDetailsResponse>> getByBarber(
+            @PathVariable Long barberId,
+            @RequestParam(required = false) LocalDate startDate,
+            @RequestParam(required = false) LocalDate endDate,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size);
+
+        Page<Appointment> response = appointmentService.getBarberAppointments(barberService.findById(barberId), startDate, endDate, pageable);
+        return ResponseEntity.ok(pageMapper.toAppointmentPageResponse(response));
+    }
+    @GetMapping("/barber/{barberId}/earnings")
+    public ResponseEntity<Double> getEarnings(
+            @PathVariable Long barberId,
+            @RequestParam(required = false) LocalDate startDate,
+            @RequestParam(required = false) LocalDate endDate) {
+        Double earnings = appointmentService.getEarnings(barberService.findById(barberId), startDate, endDate);
+        return ResponseEntity.ok(earnings);
     }
 }
 
