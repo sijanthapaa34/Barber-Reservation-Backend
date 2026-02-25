@@ -19,7 +19,7 @@ public class ReviewDTO {
     private String targetType;
     private Long targetId;
 
-    private List<String> images; // optional if you add image support later
+    private List<String> images;
 
     private LocalDateTime date;
 }
