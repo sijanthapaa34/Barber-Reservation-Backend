@@ -78,22 +78,33 @@ public class AppointmentService {
         return appointmentRepository.save(appointment);
     }
 
-    public Page<Appointment> getUpcoming(Customer customer, int page, int size) {
-        LocalDateTime now = LocalDateTime.now();
-
-        return appointmentRepository.findUpcomingByCustomer(
+    public Page<Appointment> getUpcomingByCustomer(Customer customer, int page, int size) {
+       return appointmentRepository.findUpcomingByCustomer(
                 customer,
-                now,
+                LocalDateTime.now(),
                 PageRequest.of(page, size)
         );
     }
 
-    public Page<Appointment> getPast(Customer customer, int page, int size) {
-        LocalDateTime now = LocalDateTime.now();
-
+    public Page<Appointment> getPastByCustomer(Customer customer, int page, int size) {
         return appointmentRepository.findPastByCustomer(
                 customer,
-                now,
+                LocalDateTime.now(),
+                PageRequest.of(page, size)
+        );
+    }
+    public Page<Appointment> getUpcomingByBarber(Barber barber, int page, int size) {
+        return appointmentRepository.findUpcomingByBarber(
+                barber,
+                LocalDateTime.now(),
+                PageRequest.of(page, size)
+        );
+    }
+
+    public Page<Appointment> getPastByBarber(Barber barber, int page, int size) {
+        return appointmentRepository.findPastByBarber(
+                barber,
+                LocalDateTime.now(),
                 PageRequest.of(page, size)
         );
     }

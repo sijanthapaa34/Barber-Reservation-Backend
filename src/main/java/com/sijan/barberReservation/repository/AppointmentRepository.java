@@ -3,6 +3,7 @@ package com.sijan.barberReservation.repository;
 
 import com.sijan.barberReservation.model.*;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -45,9 +46,23 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
        WHERE a.barber = :barber
        AND a.scheduledTime BETWEEN :startDate AND :endDate
        """)
-    Double sumEarningsByBarberAndDate(
-            @Param("barber") Barber barber,
-            @Param("startDate") LocalDateTime startDate,
-            @Param("endDate") LocalDateTime endDate
-    );
+    Double sumEarningsByBarberAndDate(@Param("barber") Barber barber, @Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
+
+    @Query("""
+    SELECT a
+    FROM Appointment a
+    WHERE a.barber = :barber
+      AND a.scheduledTime >= :from
+    ORDER BY a.scheduledTime ASC
+""")
+    Page<Appointment> findUpcomingByBarber(@Param("barber") Barber barber,  @Param("from") LocalDateTime from, PageRequest of);
+
+    @Query("""
+    SELECT a
+    FROM Appointment a
+    WHERE a.barber = :barber
+      AND a.scheduledTime < :to
+    ORDER BY a.scheduledTime DESC
+""")
+    Page<Appointment> findPastByBarber(@Param("barber") Barber barber,  @Param("to") LocalDateTime to, PageRequest of);
 }

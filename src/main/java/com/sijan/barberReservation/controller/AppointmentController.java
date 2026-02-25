@@ -76,22 +76,39 @@ public class AppointmentController {
     }
 
     @GetMapping("/upcoming")
-    public ResponseEntity<PageResponse<AppointmentDetailsResponse>> upcoming(@RequestParam(defaultValue = "0") int page,
+    public ResponseEntity<PageResponse<AppointmentDetailsResponse>> upcomingByCustomer(@RequestParam(defaultValue = "0") int page,
                                                                              @RequestParam(defaultValue = "10") int size,
                                                                              @AuthenticationPrincipal UserPrincipal userPrincipal
     ) {
         Customer customer = customerService.findById(userPrincipal.getId());
-        Page<Appointment> result = appointmentService.getUpcoming(customer, page, size);
+        Page<Appointment> result = appointmentService.getUpcomingByCustomer(customer, page, size);
         return ResponseEntity.ok(pageMapper.toAppointmentPageResponse(result));
     }
 
     @GetMapping("/past")
-    public ResponseEntity<PageResponse<AppointmentDetailsResponse>> past(@RequestParam(defaultValue = "0") int page,
+    public ResponseEntity<PageResponse<AppointmentDetailsResponse>> pastByCustomer(@RequestParam(defaultValue = "0") int page,
                                                                          @RequestParam(defaultValue = "10") int size,
                                                                          @AuthenticationPrincipal UserPrincipal userPrincipal
     ) {
         Customer customer = customerService.findById(userPrincipal.getId());
-        Page<Appointment> result = appointmentService.getPast(customer, page, size);
+        Page<Appointment> result = appointmentService.getPastByCustomer(customer, page, size);
+        return ResponseEntity.ok(pageMapper.toAppointmentPageResponse(result));
+    }
+    @GetMapping("barber/{barberId}/upcoming")
+    public ResponseEntity<PageResponse<AppointmentDetailsResponse>> upcomingByBarber(@PathVariable Long barberId,@RequestParam(defaultValue = "0") int page,
+                                                                                       @RequestParam(defaultValue = "10") int size
+    ) {
+        Barber barber = barberService.findById(barberId);
+        Page<Appointment> result = appointmentService.getUpcomingByBarber(barber, page, size);
+        return ResponseEntity.ok(pageMapper.toAppointmentPageResponse(result));
+    }
+
+    @GetMapping("barber/{barberId}/past")
+    public ResponseEntity<PageResponse<AppointmentDetailsResponse>> pastByBarber(@PathVariable Long barberId,@RequestParam(defaultValue = "0") int page,
+                                                                                   @RequestParam(defaultValue = "10") int size
+    ) {
+        Barber barber = barberService.findById(barberId);
+        Page<Appointment> result = appointmentService.getPastByBarber(barber, page, size);
         return ResponseEntity.ok(pageMapper.toAppointmentPageResponse(result));
     }
 
