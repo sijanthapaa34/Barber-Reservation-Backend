@@ -1,6 +1,7 @@
 package com.sijan.barberReservation.service;
 
 import com.sijan.barberReservation.DTO.Auth.ChangePasswordRequest;
+import com.sijan.barberReservation.exception.auth.InvalidPasswordException;
 import com.sijan.barberReservation.exception.barber.BarberNotFoundException;
 import com.sijan.barberReservation.exception.role.ResourceNotFoundException;
 import com.sijan.barberReservation.model.*;
@@ -13,6 +14,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @Service
 public class BarberService {
@@ -38,23 +40,13 @@ public class BarberService {
         return barberRepository.findByBarbershop(shop, pageable);
     }
 
-    public Barber updateBarberProfile(Barber barber) {
-        return barberRepository.save(barber);
-    }
-
-    public void changePassword(String mail, ChangePasswordRequest request) {
-
-
-        Barber barber = barberRepository.findByEmail(mail)
-                .orElseThrow(() -> new RuntimeException("Customer not found"));
-
-        if (!passwordEncoder.matches(request.getCurrentPassword(), barber.getPassword())) {
-            throw new RuntimeException("Current password is incorrect");
+    @Transactional
+    public void changePassword(Barber barber, String currentPassword, String newPassword) {
+        if (!passwordEncoder.matches(currentPassword, barber.getPassword())) {
+            throw new InvalidPasswordException("Current password is incorrect");
         }
 
-        String encodedNewPassword = passwordEncoder.encode(request.getNewPassword());
-        barber.setPassword(encodedNewPassword);
-        barberRepository.save(barber);
+        barber.setPassword(passwordEncoder.encode(newPassword));
     }
     public void applyForLeave(String mail, LocalDate startDate, LocalDate endDate, String reason) {
 
@@ -64,7 +56,7 @@ public class BarberService {
     public void activateBarber(Barber barber) {
         barber.setActive(true);
     }
-
+    @Transactional
     public void deactivateBarber(Barber barber) {
         barber.setActive(false);
     }
@@ -75,5 +67,15 @@ public class BarberService {
             throw new ResourceNotFoundException("Admin has no assigned barbershop");
         }
         return barberLeaveRepository.findByBarbershopAndStatus(barberShop, pageable, LeaveStatus.PENDING);
+    }
+
+    @Transactional
+    public Barber update(Barber barber, String name, String phone, String bio, List<String> skills, Integer experienceYears) {
+        barber.setName(name);
+        barber.setPhone(phone);
+        barber.setBio(bio);
+        barber.setSkills(skills);
+        barber.setExperienceYears(experienceYears);
+        return barber;
     }
 }

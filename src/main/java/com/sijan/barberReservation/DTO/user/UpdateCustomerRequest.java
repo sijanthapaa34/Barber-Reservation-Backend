@@ -7,9 +7,8 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class UpdateUserRequest {
+public class UpdateCustomerRequest {
     private String name;
     private String phone;
-    private String profilePicture;
 }
 

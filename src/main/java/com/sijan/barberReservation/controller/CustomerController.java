@@ -1,18 +1,13 @@
 package com.sijan.barberReservation.controller;
 
 import com.sijan.barberReservation.DTO.Auth.ChangePasswordRequest;
-import com.sijan.barberReservation.DTO.appointment.PageResponse;
 import com.sijan.barberReservation.DTO.user.CustomerDTO;
-import com.sijan.barberReservation.DTO.user.UpdateUserRequest;
+import com.sijan.barberReservation.DTO.user.UpdateCustomerRequest;
 import com.sijan.barberReservation.mapper.user.CustomerMapper;
 import com.sijan.barberReservation.model.Customer;
 import com.sijan.barberReservation.service.CustomerService;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.awt.print.Pageable;
-import java.time.LocalDate;
 
 @RestController
 @RequestMapping("/api/customers")
@@ -35,16 +30,14 @@ public class CustomerController {
 
     // PUT /api/customers/me - Update customer info
     @PutMapping("/{customerId}/update")
-    public ResponseEntity<CustomerDTO> updateMyProfile(@PathVariable Long customerId, @RequestBody UpdateUserRequest request) {
+    public ResponseEntity<CustomerDTO> updateMyProfile(@PathVariable Long customerId, @RequestBody UpdateCustomerRequest request) {
         Customer customer = customerService.findById(customerId);
-
         Customer updated = customerService.update(customer, request.getName(), request.getPhone());
-
         return ResponseEntity.ok(customerMapper.toDTO(updated));
     }
 
     // PUT /api/customers/me/change-password - Change password
-    @PutMapping("/{customerId}/password")
+    @PutMapping("/{customerId}/change-password")
     public ResponseEntity<Void> changePassword(@PathVariable Long customerId, @RequestBody ChangePasswordRequest request) {
         Customer customer = customerService.findById(customerId);
         customerService.changePassword(customer, request.getCurrentPassword(), request.getNewPassword());

@@ -1,10 +1,11 @@
 package com.sijan.barberReservation.controller;
 
-import com.sijan.barberReservation.DTO.appointment.AppointmentDetailsResponse;
 import com.sijan.barberReservation.DTO.appointment.PageResponse;
 import com.sijan.barberReservation.DTO.user.BarberDTO;
 import com.sijan.barberReservation.DTO.Auth.ChangePasswordRequest;
 import com.sijan.barberReservation.DTO.user.LeaveRequestDTO;
+import com.sijan.barberReservation.DTO.user.UpdateBarberRequest;
+import com.sijan.barberReservation.DTO.user.UpdateCustomerRequest;
 import com.sijan.barberReservation.mapper.appointment.AppointmentDetailsMapper;
 import com.sijan.barberReservation.mapper.appointment.PageMapper;
 import com.sijan.barberReservation.mapper.user.BarberMapper;
@@ -20,7 +21,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/barbers")
@@ -43,7 +44,7 @@ public class BarberController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<BarberDTO> getMyProfile(@PathVariable Long id) {
+    public ResponseEntity<BarberDTO> findById(@PathVariable Long id) {
         Barber barber = barberService.findById(id);
         return ResponseEntity.ok(barberMapper.toDTO(barber));
     }
@@ -72,17 +73,21 @@ public class BarberController {
             return ResponseEntity.badRequest().body("Start date cannot be after end date");
         }
 
-        // Delegate to service
         barberService.applyForLeave(email, request.getStartDate(), request.getEndDate(), request.getReason());
         return ResponseEntity.ok("Leave request submitted successfully");
     }
 
+    @PutMapping("/{barberId}/update")
+    public ResponseEntity<BarberDTO> updateProfile(@PathVariable Long barberId, @RequestBody UpdateBarberRequest request) {
+        Barber barber = barberService.findById(barberId);
+        Barber updated = barberService.update(barber, request.getName(), request.getPhone(), request.getBio(), request.getSkills(), request.getExperienceYears());
+        return ResponseEntity.ok(barberMapper.toDTO(updated));
+    }
 
-    @PutMapping("/me/change-password")
-    public ResponseEntity<Void> changePassword(
-            @RequestBody ChangePasswordRequest request) {
-        String email = getCurrentUserEmail();
-        barberService.changePassword(email, request);
+
+    @PutMapping("/{barberId}/change-password")
+    public ResponseEntity<Void> changePassword(@PathVariable Long barberId, @RequestBody ChangePasswordRequest request) {
+        barberService.changePassword(barberService.findById(barberId), request.getCurrentPassword(), request.getNewPassword());
         return ResponseEntity.ok().build();
     }
 

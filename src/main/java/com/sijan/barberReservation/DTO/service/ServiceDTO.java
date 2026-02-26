@@ -23,7 +23,8 @@ public class ServiceDTO {
     private Boolean available;
     private String category;
     private Integer durationMinutes;
-    private String barberShop;
+    private String barbershop;
+    private Integer barbershopId;
     private List<String> serviceImages;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

@@ -1,7 +1,5 @@
 package com.sijan.barberReservation.service;
 
-import com.sijan.barberReservation.DTO.Auth.ChangePasswordRequest;
-import com.sijan.barberReservation.DTO.user.UpdateUserRequest;
 import com.sijan.barberReservation.exception.auth.InvalidPasswordException;
 import com.sijan.barberReservation.exception.customer.CustomerNotFoundException;
 import com.sijan.barberReservation.model.Admin;

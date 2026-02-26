@@ -1,4 +1,4 @@
-package com.sijan.barberReservation.DTO.Auth;
+package com.sijan.barberReservation.DTO.user;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -14,8 +14,5 @@ public class UpdateBarberRequest {
     private String phone;
     private String bio;
     private Integer experienceYears;
-    private String profilePicture;
     private List<String> skills;
-    private Double commissionRate;
-    private Boolean active;
 }
