@@ -3,6 +3,7 @@ package com.sijan.barberReservation.config;
 import com.sijan.barberReservation.security.JwtAuthenticationFilter;
 import com.sijan.barberReservation.security.JwtTokenProvider;
 import com.sijan.barberReservation.service.MyUserDetailsService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -19,56 +20,70 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.util.Arrays;
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
 
     private final JwtTokenProvider tokenProvider;
 
-    public SecurityConfig(JwtTokenProvider tokenProvider) {
-        this.tokenProvider = tokenProvider;
+    // 1. MANUALLY CREATE THE BEAN HERE
+    // This fixes the "could not be found" error
+    @Bean
+    public JwtAuthenticationFilter jwtAuthenticationFilter(MyUserDetailsService userDetailsService) {
+        return new JwtAuthenticationFilter(tokenProvider, userDetailsService);
     }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationFilter jwtAuthenticationFilter) throws Exception {
 
         http
+                // Disable CSRF (Required for Login POST to work)
                 .csrf(AbstractHttpConfigurer::disable)
+
+                // Enable CORS
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                )
-                .authorizeHttpRequests(auth -> auth
-                        // 1. CORS Preflight
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                        // 2. Explicit Public Auth Endpoints
-                        // We MUST list these individually. If we use "/api/auth/**", it makes /me public too!
-                        .requestMatchers("/api/auth/login").permitAll()
-                        .requestMatchers("/api/auth/customer").permitAll()
-                        .requestMatchers("/api/auth/google").permitAll()
-                        .requestMatchers("/api/users/").permitAll()
+                // Stateless Session
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-                        // 3. Public Barbershop Endpoints
-                        .requestMatchers(HttpMethod.GET, "/api/barbershop/nearby").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/barbershop/top-rated").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/barbershop/search/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/barbershop/{id}").permitAll()
+                // Authorization Rules
+                .authorizeHttpRequests(auth -> {
+                    auth
+                            // Allow Preflight
+                            .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                        // 4. Protected Roles
-                        .requestMatchers("/api/admin/**").hasAnyRole("MAIN_ADMIN", "SHOP_ADMIN")
-                        .requestMatchers("/barber/**").hasAnyRole("BARBER","MAIN_ADMIN", "SHOP_ADMIN")
-                        .requestMatchers("/customer/**").hasRole("CUSTOMER")
-                        // Note: Ensure your barbershop update endpoint is protected by role or specific path
+                            // Public Endpoints
+                            .requestMatchers("/api/auth/login").permitAll()
+                            .requestMatchers("/api/auth/customer").permitAll()
+                            .requestMatchers("/api/auth/google").permitAll()
+                            .requestMatchers("/api/users/").permitAll()
 
-                        // 5. Catch-All: ANYTHING ELSE (including /api/auth/me) requires Authentication
-                        .anyRequest().authenticated()
-                )
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                            // Public Shop Endpoints
+                            .requestMatchers(HttpMethod.GET, "/api/shops/**").permitAll()
+                            .requestMatchers(HttpMethod.GET, "/api/barbershop/**").permitAll()
 
+                            // Role Protected
+                            .requestMatchers("/api/admin/**").hasRole("MAIN_ADMIN")
+                            .requestMatchers("/api/barber/**").hasRole("BARBER")
+                            .requestMatchers("/api/customer/**").hasRole("CUSTOMER")
+
+                            // Catch-all
+                            .anyRequest().authenticated();
+                })
+
+                // Add Filter
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+
+                // Exception Handling (Returns 401 instead of 403 for missing tokens)
+                .exceptionHandling(e -> e
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            response.sendError(401, "Unauthorized");
+                        })
+                );
 
         return http.build();
     }
@@ -76,10 +91,14 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(Arrays.asList("*"));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("*"));
-        // Removed setAllowCredentials(true) for JWT compatibility
+
+        // Allow your frontend origins
+        configuration.setAllowedOriginPatterns(List.of("*"));
+
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setExposedHeaders(List.of("Authorization"));
+        configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
@@ -87,13 +106,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(
-            AuthenticationConfiguration config) throws Exception {
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
-    }
-
-    @Bean
-    public JwtAuthenticationFilter jwtAuthenticationFilter(MyUserDetailsService userDetailsService) {
-        return new JwtAuthenticationFilter(tokenProvider, userDetailsService);
     }
 }
