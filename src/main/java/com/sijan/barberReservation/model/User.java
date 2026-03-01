@@ -37,6 +37,7 @@ public class User {
     private LocalDateTime createdAt;
     @UpdateTimestamp
     private LocalDateTime updatedAt;
+    private LocalDateTime lastLogin;
     @OneToMany(mappedBy = "user")
     private List<Notification> notifications;
 }

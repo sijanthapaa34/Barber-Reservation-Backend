@@ -12,9 +12,11 @@ import com.sijan.barberReservation.DTO.Auth.RegisterCustomerRequest;
 import com.sijan.barberReservation.mapper.user.*;
 import com.sijan.barberReservation.model.*;
 import com.sijan.barberReservation.security.JwtTokenProvider;
+import com.sijan.barberReservation.service.AuthService;
 import com.sijan.barberReservation.service.BarbershopService;
 import com.sijan.barberReservation.service.GoogleTokenVerifierService;
 import com.sijan.barberReservation.service.UserService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -31,7 +33,7 @@ import java.util.UUID;
 @RequestMapping("/api/auth")
 public class AuthController {
 
-    private final AuthenticationManager authManager;
+    private final AuthService authService;
     private final JwtTokenProvider tokenProvider;
     private final UserService userService;
     private final BarbershopService barbershopService;
@@ -40,12 +42,11 @@ public class AuthController {
     private final AdminMapper adminMapper;
     private final BarbershopMapper barbershopMapper;
     private final CustomerMapper customerMapper;
-    private final GoogleTokenVerifierService googleTokenVerifierService;
 
-    public AuthController(AuthenticationManager authManager,
+    public AuthController(AuthService authService,
                           JwtTokenProvider tokenProvider,
-                          UserService userService, BarbershopService barbershopService, BarberMapper barberMapper, UserMapper userMapper, AdminMapper adminMapper, BarbershopMapper barbershopMapper, CustomerMapper customerMapper, GoogleTokenVerifierService googleTokenVerifierService) {
-        this.authManager = authManager;
+                          UserService userService, BarbershopService barbershopService, BarberMapper barberMapper, UserMapper userMapper, AdminMapper adminMapper, BarbershopMapper barbershopMapper, CustomerMapper customerMapper) {
+        this.authService = authService;
         this.tokenProvider = tokenProvider;
         this.userService = userService;
         this.barbershopService = barbershopService;
@@ -54,16 +55,11 @@ public class AuthController {
         this.adminMapper = adminMapper;
         this.barbershopMapper = barbershopMapper;
         this.customerMapper = customerMapper;
-        this.googleTokenVerifierService = googleTokenVerifierService;
     }
 
     @PostMapping("/login")
-    public ResponseEntity<Map<String, String>> login(@RequestBody AuthRequest request){
-        Authentication auth = authManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
-        User user = userService.findByEmail(request.getEmail());
-
-        String token = tokenProvider.generateToken(user.getEmail(),user.getId() ,user.getRole().toString());
+    public ResponseEntity<Map<String, String>> login(@RequestBody AuthRequest request, HttpServletRequest httpRequest){
+        String token = authService.login(request, httpRequest);
 
         Map<String, String> response = new HashMap<>();
         response.put("token", token);
@@ -74,25 +70,10 @@ public class AuthController {
 
     @PostMapping("/google")
     public ResponseEntity<Map<String, String>> loginWithGoogle(
-            @RequestBody GoogleLoginRequest request
+            @RequestBody GoogleLoginRequest request, HttpServletRequest httpRequest
     ) throws Exception {
 
-        var payload = googleTokenVerifierService.verifyToken(request.getIdToken());
-
-        String email = payload.getEmail();
-        String name = (String) payload.get("name");
-        String picture = (String) payload.get("picture");
-
-        User user = userService.findByEmail(email);
-        if (user == null) {
-            user = userService.registerGoogleCustomer(email,name,picture);
-        }
-
-        String token = tokenProvider.generateToken(
-                user.getEmail(),
-                user.getId(),
-                user.getRole().toString()
-        );
+        String token = authService.loginWithGoogle(request, httpRequest);
 
         Map<String, String> response = new HashMap<>();
         response.put("token", token);

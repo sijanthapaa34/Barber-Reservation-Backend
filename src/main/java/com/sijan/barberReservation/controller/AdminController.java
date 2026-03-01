@@ -12,6 +12,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -81,6 +82,7 @@ public class AdminController {
 
     // GET /api/admin/barbers/leaves - View all barber leave requests
     @GetMapping("/main/dashboard")
+    @PreAuthorize("hasRole('MAIN_ADMIN')")
     public ResponseEntity<AdminDashboardResponse> getDashboardDetails(
     ) {
         return ResponseEntity.ok(adminService.getDashboardData());
