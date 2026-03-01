@@ -6,6 +6,9 @@ import com.sijan.barberReservation.DTO.user.UpdateBarbershopRequest;
 import com.sijan.barberReservation.model.Barbershop;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 @Component
 public class BarbershopMapper {
     public BarbershopDTO toDTO(Barbershop shop) {
@@ -45,6 +48,12 @@ public class BarbershopMapper {
         shop.setOperatingHours(req.getOperatingHours());
 
         return shop;
+    }
+
+    public List<BarbershopDTO> toDTOs(List<Barbershop> shops) {
+        return shops.stream()
+                .map(this::toDTO)
+                .collect(Collectors.toList());
     }
 
     public Barbershop toEntity(UpdateBarbershopRequest req) {

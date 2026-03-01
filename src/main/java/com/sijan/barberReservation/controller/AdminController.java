@@ -80,7 +80,12 @@ public class AdminController {
     }
 
     // GET /api/admin/barbers/leaves - View all barber leave requests
-    @GetMapping("/barbers/leaves")
+    @GetMapping("/main/dashboard")
+    public ResponseEntity<AdminDashboardResponse> getDashboardDetails(
+    ) {
+        return ResponseEntity.ok(adminService.getDashboardData());
+    }
+    @GetMapping("/admin/leaves")
     public ResponseEntity<PageResponse<BarberLeaveDTO>> getAllBarberLeaves(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,

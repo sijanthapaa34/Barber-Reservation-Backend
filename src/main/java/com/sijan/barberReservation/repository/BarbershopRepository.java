@@ -18,4 +18,8 @@ public interface BarbershopRepository extends JpaRepository<Barbershop, Long> {
     @Query("SELECT b FROM Barbershop b WHERE LOWER(b.name) LIKE LOWER(CONCAT('%', :word, '%')) " +
             "OR LOWER(b.city) LIKE LOWER(CONCAT('%', :word, '%'))")
     Page<Barbershop> searchByKeyword(@Param("word") String word, Pageable pageable);
+
+    long countByActiveTrue();
+
+    List<Barbershop> findTop4ByActiveTrueOrderByRatingDesc();
 }
