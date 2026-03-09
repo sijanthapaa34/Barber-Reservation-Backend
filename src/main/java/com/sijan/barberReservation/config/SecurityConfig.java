@@ -53,6 +53,7 @@ public class SecurityConfig {
                 // Authorization Rules
                 .authorizeHttpRequests(auth -> {
                     auth
+                            .requestMatchers("/error").permitAll()
                             // Allow Preflight
                             .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
@@ -67,7 +68,7 @@ public class SecurityConfig {
                             .requestMatchers(HttpMethod.GET, "/api/barbershop/**").permitAll()
 
                             // Role Protected
-                            .requestMatchers("/api/admin/**").hasRole("MAIN_ADMIN")
+                            .requestMatchers("/api/admin/**").hasAnyRole("MAIN_ADMIN", "SHOP_ADMIN")
                             .requestMatchers("/api/barber/**").hasRole("BARBER")
                             .requestMatchers("/api/customer/**").hasRole("CUSTOMER")
 

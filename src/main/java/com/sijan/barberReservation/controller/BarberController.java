@@ -5,7 +5,6 @@ import com.sijan.barberReservation.DTO.user.BarberDTO;
 import com.sijan.barberReservation.DTO.Auth.ChangePasswordRequest;
 import com.sijan.barberReservation.DTO.user.LeaveRequestDTO;
 import com.sijan.barberReservation.DTO.user.UpdateBarberRequest;
-import com.sijan.barberReservation.DTO.user.UpdateCustomerRequest;
 import com.sijan.barberReservation.mapper.appointment.AppointmentDetailsMapper;
 import com.sijan.barberReservation.mapper.appointment.PageMapper;
 import com.sijan.barberReservation.mapper.user.BarberMapper;
@@ -20,8 +19,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/barbers")

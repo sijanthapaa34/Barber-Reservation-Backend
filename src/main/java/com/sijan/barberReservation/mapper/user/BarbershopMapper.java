@@ -22,6 +22,8 @@ public class BarbershopMapper {
         dto.setState(shop.getState());
         dto.setPostalCode(shop.getPostalCode());
         dto.setPhone(shop.getPhone());
+        dto.setLatitude(shop.getLatitude());
+        dto.setLongitude(shop.getLongitude());
         dto.setEmail(shop.getEmail());
         dto.setProfilePicture(shop.getProfilePicture());
         dto.setWebsite(shop.getWebsite());

@@ -9,6 +9,7 @@ import jakarta.transaction.Transactional;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Service
@@ -89,5 +90,13 @@ public class UserService {
         String randomPassword = UUID.randomUUID().toString();
         customer.setPassword(passwordEncoder.encode(randomPassword));
         return customerRepository.save(customer);
+    }
+
+    public long count() {
+        return userRepository.count();
+    }
+
+    public int countByLastLoginAfter(LocalDateTime localDateTime) {
+        return userRepository.countByLastLoginAfter(localDateTime);
     }
 }

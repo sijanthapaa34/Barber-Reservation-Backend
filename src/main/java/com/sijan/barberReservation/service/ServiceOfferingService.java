@@ -1,11 +1,13 @@
 package com.sijan.barberReservation.service;
 
+import com.sijan.barberReservation.DTO.service.ServiceDTO;
 import com.sijan.barberReservation.exception.service.ServiceNotFoundException;
 import com.sijan.barberReservation.model.Admin;
 import com.sijan.barberReservation.model.Barbershop;
 import com.sijan.barberReservation.model.ServiceOffering;
 import com.sijan.barberReservation.repository.ServiceRepository;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
@@ -52,5 +54,9 @@ public class ServiceOfferingService {
 
     public Page<ServiceOffering> getAllByBarbershop(Barbershop barberShop, Pageable pageable) {
         return serviceRepository.findByBarbershop(barberShop, pageable);
+    }
+
+    public List<ServiceOffering> findPopularServices(Barbershop shop, PageRequest of) {
+        return serviceRepository.findPopularServices(shop,of);
     }
 }

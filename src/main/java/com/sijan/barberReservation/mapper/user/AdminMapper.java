@@ -1,6 +1,7 @@
 package com.sijan.barberReservation.mapper.user;
 
 import com.sijan.barberReservation.DTO.Auth.RegisterBarbershopRequest;
+import com.sijan.barberReservation.DTO.user.AdminDTO;
 import com.sijan.barberReservation.model.Admin;
 import org.springframework.stereotype.Component;
 
@@ -15,5 +16,19 @@ public class AdminMapper {
         admin.setProfilePicture(request.getAdminProfile());
         admin.setPhone(request.getPhone());
         return admin;
+    }
+
+    public AdminDTO toDTO(Admin updated) {
+        AdminDTO adminDTO = new AdminDTO(
+                updated.getId(),
+                updated.getName(),
+                updated.getEmail(),
+                updated.getPreferredContactMethod(), // maps to phone
+                updated.getAdminLevel(),
+                updated.getProfileImage(),
+                updated.getBarbershop() != null ? updated.getBarbershop().getId() : null,
+                updated.getBarbershop() != null ? updated.getBarbershop().getName() : null
+        );
+        return adminDTO;
     }
 }

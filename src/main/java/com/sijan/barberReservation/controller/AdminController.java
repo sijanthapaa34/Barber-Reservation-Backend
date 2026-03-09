@@ -1,10 +1,13 @@
 package com.sijan.barberReservation.controller;
 
 
+import com.sijan.barberReservation.DTO.Auth.ChangePasswordRequest;
 import com.sijan.barberReservation.DTO.appointment.AppointmentDetailsResponse;
 import com.sijan.barberReservation.DTO.appointment.PageResponse;
 import com.sijan.barberReservation.DTO.user.*;
 import com.sijan.barberReservation.mapper.appointment.PageMapper;
+import com.sijan.barberReservation.mapper.user.AdminMapper;
+import com.sijan.barberReservation.mapper.user.UpdateUserRequestMapper;
 import com.sijan.barberReservation.model.*;
 import com.sijan.barberReservation.service.*;
 import org.springframework.data.domain.Page;
@@ -22,14 +25,16 @@ import org.springframework.web.bind.annotation.*;
 public class AdminController {
 
     private final AdminService adminService;
+    private final AdminMapper adminMapper;
     private final AppointmentService appointmentService;
     private final BarberService barberService;
     private final BarberLeaveService barberLeaveService;
     private final PageMapper pageMapper;
 
 
-    public AdminController(AdminService adminService, AppointmentService appointmentService, BarberService barberService, BarberLeaveService barberLeaveService, PageMapper pageMapper) {
+    public AdminController(AdminService adminService, AdminMapper adminMapper, AppointmentService appointmentService, BarberService barberService, BarberLeaveService barberLeaveService, PageMapper pageMapper) {
         this.adminService = adminService;
+        this.adminMapper = adminMapper;
         this.appointmentService = appointmentService;
         this.barberService = barberService;
         this.barberLeaveService = barberLeaveService;
@@ -80,13 +85,33 @@ public class AdminController {
         return ResponseEntity.ok(pageMapper.toAppointmentPageResponse(result));
     }
 
-    // GET /api/admin/barbers/leaves - View all barber leave requests
     @GetMapping("/main/dashboard")
     @PreAuthorize("hasRole('MAIN_ADMIN')")
     public ResponseEntity<AdminDashboardResponse> getDashboardDetails(
     ) {
         return ResponseEntity.ok(adminService.getDashboardData());
     }
+
+    @GetMapping("/{adminId}/dashboard")
+    @PreAuthorize("hasRole('SHOP_ADMIN')")
+    public ResponseEntity<ShopAdminDashboardResponse> getShopAdminDashboardDetails(@PathVariable Long adminId
+    ) {
+        return ResponseEntity.ok(adminService.getShopAdminDashboardData(adminService.findById(adminId)));
+    }
+    @PutMapping("/{adminId}/update")
+    public ResponseEntity<AdminDTO> updateProfile(@PathVariable Long adminId, @RequestBody UpdateUserRequest request) {
+        Admin admin = adminService.findById(adminId);
+        Admin updated = adminService.update(admin, request.getName(), request.getPhone());
+        return ResponseEntity.ok(adminMapper.toDTO(updated));
+    }
+
+
+    @PutMapping("/{adminId}/change-password")
+    public ResponseEntity<Void> changePassword(@PathVariable Long adminId, @RequestBody ChangePasswordRequest request) {
+        adminService.changePassword(adminService.findById(adminId), request.getCurrentPassword(), request.getNewPassword());
+        return ResponseEntity.ok().build();
+    }
+
     @GetMapping("/admin/leaves")
     public ResponseEntity<PageResponse<BarberLeaveDTO>> getAllBarberLeaves(
             @RequestParam(defaultValue = "0") int page,

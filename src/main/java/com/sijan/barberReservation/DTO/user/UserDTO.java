@@ -18,5 +18,6 @@ public class UserDTO {
     private String phone;
     private Boolean active = true;
     private Roles role;
+    private Long shopId;
     private String profilePicture;
 }

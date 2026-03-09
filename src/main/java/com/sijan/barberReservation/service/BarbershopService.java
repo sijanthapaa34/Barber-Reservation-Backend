@@ -1,5 +1,6 @@
 package com.sijan.barberReservation.service;
 
+import com.sijan.barberReservation.exception.barbershop.BarbershopNotFoundException;
 import com.sijan.barberReservation.exception.role.AccessDeniedException;
 import com.sijan.barberReservation.model.Admin;
 import com.sijan.barberReservation.model.AdminLevel;
@@ -35,7 +36,7 @@ public class BarbershopService {
 
     public Barbershop findById(Long id){
         return barbershopRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Barbershop not found"));
+                .orElseThrow(() -> new BarbershopNotFoundException(id));
     }
 
     public Barbershop update(Barbershop barberShop, Admin admin) {
@@ -134,5 +135,17 @@ public class BarbershopService {
         double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
         return EARTH_RADIUS_KM * c;
+    }
+
+    public Page<Barbershop> getAll(Pageable pageable) {
+        return barbershopRepository.findAll(pageable);
+    }
+
+    public long countByActiveTrue() {
+        return barbershopRepository.countByActiveTrue();
+    }
+
+    public List<Barbershop> findTop4ByActiveTrueOrderByRatingDesc() {
+        return barbershopRepository.findTop4ByActiveTrueOrderByRatingDesc();
     }
 }

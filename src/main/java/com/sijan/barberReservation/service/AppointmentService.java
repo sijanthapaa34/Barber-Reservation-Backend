@@ -344,5 +344,25 @@ public class AppointmentService {
 
         return earnings != null ? earnings : 0.0;
     }
+
+    public long count() {
+        return appointmentRepository.count();
+    }
+
+    public Integer countByShopAndScheduledTimeBetween(Barbershop shop, LocalDateTime startOfDay, LocalDateTime endOfDay) {
+        return appointmentRepository.countByBarbershopAndScheduledTimeBetween(shop,startOfDay,endOfDay);
+    }
+
+    public Double sumRevenueByShopAndScheduledTimeBetween(Barbershop shop, LocalDateTime startOfDay, LocalDateTime endOfDay) {
+        return appointmentRepository.sumRevenueByBarbershopAndScheduledTimeBetween(shop,startOfDay,endOfDay);
+    }
+
+    public Integer countByShopAndStatus(Barbershop shop, AppointmentStatus appointmentStatus) {
+        return appointmentRepository.countByBarbershopAndStatus(shop, appointmentStatus);
+    }
+
+    public List<Appointment> findUpcomingByShop(Barbershop shop, LocalDateTime now, PageRequest of) {
+        return appointmentRepository.findUpcomingByBarbershop(shop, now, of);
+    }
 }
 

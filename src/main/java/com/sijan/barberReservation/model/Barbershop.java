@@ -41,10 +41,13 @@ public class Barbershop {
 
     @DecimalMin(value = "-90.000000", message = "Latitude must be between -90 and 90")
     @DecimalMax(value = "90.000000", message = "Latitude must be between -90 and 90")
+    @Column(precision = 10, scale = 7)
     private BigDecimal latitude;
 
     @DecimalMin(value = "-180.000000", message = "Longitude must be between -180 and 180")
     @DecimalMax(value = "180.000000", message = "Longitude must be between -180 and 180")
+    @Column(precision = 10, scale = 7)
+
     private BigDecimal longitude;
 
     @Pattern(regexp = "^[+]?[1-9]\\d{1,14}$", message = "Invalid phone number format")

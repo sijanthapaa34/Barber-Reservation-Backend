@@ -1,6 +1,7 @@
 package com.sijan.barberReservation.service;
 
 import com.sijan.barberReservation.DTO.Auth.ChangePasswordRequest;
+import com.sijan.barberReservation.DTO.user.BarberDTO;
 import com.sijan.barberReservation.exception.auth.InvalidPasswordException;
 import com.sijan.barberReservation.exception.barber.BarberNotFoundException;
 import com.sijan.barberReservation.exception.role.ResourceNotFoundException;
@@ -9,6 +10,7 @@ import com.sijan.barberReservation.repository.BarberLeaveRepository;
 import com.sijan.barberReservation.repository.BarberRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -22,7 +24,6 @@ public class BarberService {
     private final BarberRepository barberRepository;
     private final BarberLeaveRepository barberLeaveRepository;
     private final PasswordEncoder passwordEncoder;
-
 
     public BarberService(BarberRepository barberRepository, BarberLeaveRepository barberLeaveRepository, PasswordEncoder passwordEncoder) {
         this.barberRepository = barberRepository;
@@ -45,7 +46,6 @@ public class BarberService {
         if (!passwordEncoder.matches(currentPassword, barber.getPassword())) {
             throw new InvalidPasswordException("Current password is incorrect");
         }
-
         barber.setPassword(passwordEncoder.encode(newPassword));
     }
     public void applyForLeave(String mail, LocalDate startDate, LocalDate endDate, String reason) {
@@ -77,5 +77,17 @@ public class BarberService {
         barber.setSkills(skills);
         barber.setExperienceYears(experienceYears);
         return barber;
+    }
+
+    public Integer countByBarbershop(Barbershop shop) {
+        return barberRepository.countByBarbershop(shop);
+    }
+
+    public Integer countByBarbershopAndAvailableTrue(Barbershop shop) {
+        return barberRepository.countByBarbershopAndAvailableTrue(shop);
+    }
+
+    public List<Barber> findTopBarbersByShops(Barbershop shop, PageRequest of) {
+        return barberRepository.findTopBarbersByBarbershop(shop, of);
     }
 }

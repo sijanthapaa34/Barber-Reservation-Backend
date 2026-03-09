@@ -2,7 +2,7 @@ package com.sijan.barberReservation.controller;
 
 import com.sijan.barberReservation.DTO.Auth.ChangePasswordRequest;
 import com.sijan.barberReservation.DTO.user.CustomerDTO;
-import com.sijan.barberReservation.DTO.user.UpdateCustomerRequest;
+import com.sijan.barberReservation.DTO.user.UpdateUserRequest;
 import com.sijan.barberReservation.mapper.user.CustomerMapper;
 import com.sijan.barberReservation.model.Customer;
 import com.sijan.barberReservation.service.CustomerService;
@@ -30,7 +30,7 @@ public class CustomerController {
 
     // PUT /api/customers/me - Update customer info
     @PutMapping("/{customerId}/update")
-    public ResponseEntity<CustomerDTO> updateMyProfile(@PathVariable Long customerId, @RequestBody UpdateCustomerRequest request) {
+    public ResponseEntity<CustomerDTO> updateMyProfile(@PathVariable Long customerId, @RequestBody UpdateUserRequest request) {
         Customer customer = customerService.findById(customerId);
         Customer updated = customerService.update(customer, request.getName(), request.getPhone());
         return ResponseEntity.ok(customerMapper.toDTO(updated));

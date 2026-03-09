@@ -47,7 +47,7 @@ public class BarbershopController {
 
     // Update barbershop details
     @PutMapping("/{barbershopId}")
-    @PreAuthorize("hasRole('ADMIN') or @barbershopSecurity.isOwner(authentication, #id)")
+    @PreAuthorize("hasRole('SHOP_ADMIN')")
     public ResponseEntity<BarbershopDTO> update(
             @PathVariable Long barbershopId,
             @RequestBody @Valid UpdateBarbershopRequest request,
@@ -59,6 +59,7 @@ public class BarbershopController {
         return ResponseEntity.ok(barbershopMapper.toDTO(updatedShop));
     }
 
+
     @GetMapping("/nearby")
     public ResponseEntity<PageResponse<BarbershopDTO>> findNearby(
             @RequestParam(defaultValue = "0") int page,
@@ -69,6 +70,14 @@ public class BarbershopController {
         Pageable pageable = PageRequest.of(page, size);
         Page<Barbershop> shops = barbershopService.findNearby(
                 latitude, longitude, radiusKm, pageable);
+        return ResponseEntity.ok(pageMapper.toBarbershopPageResponse(shops));
+    }
+    @GetMapping("/all")
+    public ResponseEntity<PageResponse<BarbershopDTO>> getAll(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Barbershop> shops = barbershopService.getAll(pageable);
         return ResponseEntity.ok(pageMapper.toBarbershopPageResponse(shops));
     }
 

@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.beans.Transient;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -23,6 +24,8 @@ public class BarbershopDTO {
     private String phone;
     private String email;
     private String website;
+    private BigDecimal longitude;
+    private BigDecimal latitude;
     private List<String> shopImages;
     private String operatingHours;
     private String profilePicture;

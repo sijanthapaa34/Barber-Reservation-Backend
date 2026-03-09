@@ -65,4 +65,14 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     ORDER BY a.scheduledTime DESC
 """)
     Page<Appointment> findPastByBarber(@Param("barber") Barber barber,  @Param("to") LocalDateTime to, PageRequest of);
+
+    @Query("SELECT COALESCE(SUM(a.totalPrice), 0) FROM Appointment a WHERE a.barbershop = :shop AND a.scheduledTime BETWEEN :start AND :end")
+    Double sumRevenueByBarbershopAndScheduledTimeBetween(@Param("shop") Barbershop shop, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+
+    @Query("SELECT a FROM Appointment a WHERE a.barbershop = :shop AND a.scheduledTime >= :now ORDER BY a.scheduledTime ASC")
+    List<Appointment> findUpcomingByBarbershop(@Param("shop") Barbershop shop, @Param("now") LocalDateTime now, Pageable pageable);
+
+    Integer countByBarbershopAndStatus(Barbershop shop, AppointmentStatus appointmentStatus);
+
+    Integer countByBarbershopAndScheduledTimeBetween(Barbershop shop, LocalDateTime startOfDay, LocalDateTime endOfDay);
 }

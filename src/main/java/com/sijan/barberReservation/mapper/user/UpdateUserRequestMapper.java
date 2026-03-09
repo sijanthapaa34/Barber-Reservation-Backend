@@ -1,13 +1,13 @@
 package com.sijan.barberReservation.mapper.user;
 
 import com.sijan.barberReservation.DTO.user.BarberDTO;
-import com.sijan.barberReservation.DTO.user.UpdateCustomerRequest;
+import com.sijan.barberReservation.DTO.user.UpdateUserRequest;
 import com.sijan.barberReservation.model.Barber;
 import org.springframework.stereotype.Component;
 
 @Component
 public class UpdateUserRequestMapper {
-    public Barber toEntity(UpdateCustomerRequest request) {
+    public Barber toEntity(UpdateUserRequest request) {
         Barber barber = new Barber();
 
         barber.setName(request.getName());
