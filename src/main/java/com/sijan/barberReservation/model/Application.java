@@ -7,6 +7,8 @@ import lombok.AllArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Data
@@ -37,6 +39,9 @@ public class Application {
     private String bio;
     private String city;
     private String profilePictureUrl;
+    private Long barbershopId;
+    private String barberShop;
+
 
     // Shop Specific
     private String shopName;
@@ -55,8 +60,10 @@ public class Application {
     private String website;
     private String operatingHours;
     private String description;
-    @Column(length = 5000)
-    private String shopImages;
+    @ElementCollection
+    @CollectionTable(name = "application_shop_images", joinColumns = @JoinColumn(name = "application_id"))
+    @Column(name = "image_url", length = 500)
+    private List<String> shopImages = new ArrayList<>();
 
     // Documents
     @Column(length = 500)

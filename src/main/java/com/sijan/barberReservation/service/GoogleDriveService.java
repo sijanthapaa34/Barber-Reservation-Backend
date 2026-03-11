@@ -72,6 +72,7 @@ public class GoogleDriveService {
         // 2. Upload new file
         return uploadFile(multipartFile, PROFILE_FOLDER_ID, fileName);
     }
+
     public String uploadApplicationFile(MultipartFile multipartFile, String type, String email) throws Exception {
         String folderId;
 

@@ -19,6 +19,8 @@ public class ApplicationRequest {
     private String city;
     private String profilePictureUrl;
     private String licenseUrl;
+    private Long barbershopId;
+    private String barbershopName;
 
     private String shopName;
     private String ownerName;

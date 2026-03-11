@@ -2,11 +2,11 @@ package com.sijan.barberReservation.mapper.application;
 
 import com.sijan.barberReservation.DTO.application.ApplicationDetailResponse;
 import com.sijan.barberReservation.DTO.application.ApplicationRequest;
-import com.sijan.barberReservation.model.Application;
-import com.sijan.barberReservation.model.ApplicationStatus;
-import com.sijan.barberReservation.model.ApplicationType;
+import com.sijan.barberReservation.model.*;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.stream.Collectors;
@@ -42,6 +42,7 @@ public class ApplicationMapper {
         dto.setCity(app.getCity());
         dto.setProfilePictureUrl(app.getProfilePictureUrl());
         dto.setLicenseUrl(app.getLicenseUrl());
+        dto.setBarberShop(app.getBarberShop());
 
         // Shop
         dto.setShopName(app.getShopName());
@@ -57,6 +58,7 @@ public class ApplicationMapper {
         dto.setOperatingHours(app.getOperatingHours());
         dto.setDescription(app.getDescription());
         dto.setDocumentUrl(app.getDocumentUrl());
+        dto.setShopImages(app.getShopImages());
 
         // Review
         dto.setReviewedBy(app.getReviewedBy());
@@ -76,7 +78,6 @@ public class ApplicationMapper {
         }
 
         app.setStatus(ApplicationStatus.PENDING);
-
         // Common
         app.setName(req.getName());
         app.setEmail(req.getEmail());
@@ -89,6 +90,8 @@ public class ApplicationMapper {
         app.setCity(req.getCity());
         app.setProfilePictureUrl(req.getProfilePictureUrl());
         app.setLicenseUrl(req.getLicenseUrl());
+        app.setBarberShop(req.getBarbershopName());
+        app.setBarbershopId(req.getBarbershopId());
 
         // Skills List -> String
         if (req.getSkills() != null && !req.getSkills().isEmpty()) {
@@ -109,7 +112,52 @@ public class ApplicationMapper {
         app.setOperatingHours(req.getOperatingHours());
         app.setDescription(req.getDescription());
         app.setDocumentUrl(req.getDocumentUrl());
+        if (req.getShopImages() != null && !req.getShopImages().isEmpty()) {
+            app.setShopImages(new ArrayList<>(req.getShopImages()));
+        } else {
+            app.setShopImages(new ArrayList<>());
+        }
 
         return app;
+    }
+
+    public Barber toBarber(Application application) {
+        Barber barber = new Barber();
+        barber.setName(application.getName());
+        barber.setEmail(application.getEmail());
+        barber.setPhone(application.getPhone());
+        barber.setPassword(application.getPassword());
+        barber.setBio(application.getBio());
+        barber.setExperienceYears(application.getExperienceYears());
+        barber.setCreatedAt(LocalDateTime.now());
+        return barber;
+    }
+
+    public Admin toAdmin(Application application) {
+        Admin admin = new Admin();
+        admin.setName(application.getName());
+        admin.setEmail(application.getEmail());
+        admin.setPassword(application.getPassword());
+        admin.setProfilePicture(application.getProfilePictureUrl());
+        admin.setPhone(application.getPhone());
+        return admin;
+    }
+
+    public Barbershop toBarbershop(Application application) {
+        Barbershop shop = new Barbershop();
+        shop.setName(application.getShopName());
+        shop.setDescription(application.getDescription());
+        shop.setState(application.getState());
+        shop.setAddress(application.getAddress());
+        shop.setCity(application.getCity());
+        shop.setShopImages(application.getShopImages());
+        shop.setPostalCode(application.getPostalCode());
+        shop.setPhone(application.getPhone());
+        shop.setEmail(application.getEmail());
+        shop.setLongitude(application.getLongitude());
+        shop.setLatitude(application.getLatitude());
+        shop.setWebsite(application.getWebsite());
+        shop.setOperatingHours(application.getOperatingHours());
+        return shop;
     }
 }
