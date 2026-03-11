@@ -42,6 +42,7 @@ public class ApplicationDetailResponse {
     private String operatingHours;
     private String description;
     private String documentUrl;
+    private List<String> shopImages;
 
     // --- Admin Review Info ---
     private String reviewedBy;

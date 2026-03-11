@@ -61,7 +61,9 @@ public class SecurityConfig {
                             .requestMatchers("/api/auth/login").permitAll()
                             .requestMatchers("/api/auth/customer").permitAll()
                             .requestMatchers("/api/auth/google").permitAll()
-                            .requestMatchers("/api/users/").permitAll()
+                            .requestMatchers("/api/upload/**").permitAll()
+                            .requestMatchers(HttpMethod.GET, "/api/applications/**").permitAll()
+                            .requestMatchers(HttpMethod.POST, "/api/applications").permitAll()                            .requestMatchers("/api/users/").permitAll()
 
                             // Public Shop Endpoints
                             .requestMatchers(HttpMethod.GET, "/api/shops/**").permitAll()

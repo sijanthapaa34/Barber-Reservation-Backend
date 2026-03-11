@@ -6,7 +6,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -22,11 +21,26 @@ public class UserController {
         this.userService = userService;
     }
 
-    @PostMapping("/{userId}/upload-profile")
-    public ResponseEntity<Map<String, String>> uploadProfile(@PathVariable Long userId, @RequestParam("file") MultipartFile file) throws IOException {
-        String fileUrl = googleDriveService.uploadProfilePicture(file);Map<String, String> response = new HashMap<>();
-        userService.uploadProfilePicture(userService.findById(userId), fileUrl);
-        response.put("url", fileUrl);
-        return ResponseEntity.ok(response);
+    @PostMapping("/{userId}/profile-picture")
+    public ResponseEntity<Map<String, String>> uploadProfile(
+            @PathVariable Long userId,
+            @RequestParam("file") MultipartFile file) {
+
+        try {
+            // 1. Upload to Drive (Overwrites old file if exists)
+            String fileUrl = googleDriveService.uploadUserProfilePicture(userId, file);
+
+            // 2. Update User Entity in Database
+            userService.uploadProfilePicture(userService.findById(userId), fileUrl);
+
+            Map<String, String> response = new HashMap<>();
+            response.put("url", fileUrl);
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
+        }
+
     }
 }

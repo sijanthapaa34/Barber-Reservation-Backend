@@ -35,24 +35,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String token = extractTokenFromRequest(request);
 
-        // LOG 1: Did we find a token?
         if (token != null) {
-            logger.info("=== JWT Filter: Token found ===");
 
-            // LOG 2: Is the token valid (signature/expiry)?
             if (tokenProvider.validateToken(token)) {
-                logger.info("=== JWT Filter: Token is valid ===");
-
                 try {
                     String email = tokenProvider.extractEmail(token);
-
-                    // LOG 3: Who is the user?
-                    logger.info("=== JWT Filter: Attempting to load user for email: {} ===", email);
-
                     UserPrincipal userPrincipal = (UserPrincipal) userDetailsService.loadUserByUsername(email);
-
-                    logger.info("=== JWT Filter: User loaded successfully. Role: {} ===", userPrincipal.getAuthorities());
-
                     UsernamePasswordAuthenticationToken authentication =
                             new UsernamePasswordAuthenticationToken(
                                     userPrincipal,
@@ -65,12 +53,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     );
 
                     SecurityContextHolder.getContext().setAuthentication(authentication);
-                    logger.info("=== JWT Filter: Authentication set in SecurityContext ===");
-
                 } catch (Exception e) {
-                    // LOG 4: THIS IS THE LIKELY CULPRIT
-                    logger.error("=== JWT Filter: ERROR loading user or setting context! ===", e);
-                    // Ensure context is clear if we failed
                     SecurityContextHolder.clearContext();
                 }
             } else {

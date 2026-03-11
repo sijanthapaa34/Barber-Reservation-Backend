@@ -3,7 +3,6 @@ package com.sijan.barberReservation.service;
 import com.sijan.barberReservation.exception.barbershop.BarbershopNotFoundException;
 import com.sijan.barberReservation.exception.role.AccessDeniedException;
 import com.sijan.barberReservation.model.Admin;
-import com.sijan.barberReservation.model.AdminLevel;
 import com.sijan.barberReservation.model.Barbershop;
 import com.sijan.barberReservation.model.Roles;
 import com.sijan.barberReservation.repository.BarbershopRepository;

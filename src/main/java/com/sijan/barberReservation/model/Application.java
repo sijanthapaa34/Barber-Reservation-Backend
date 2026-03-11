@@ -55,6 +55,8 @@ public class Application {
     private String website;
     private String operatingHours;
     private String description;
+    @Column(length = 5000)
+    private String shopImages;
 
     // Documents
     @Column(length = 500)

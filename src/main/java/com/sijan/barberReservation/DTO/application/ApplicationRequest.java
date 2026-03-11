@@ -27,6 +27,7 @@ public class ApplicationRequest {
     private String postalCode;
     private BigDecimal latitude;
     private BigDecimal longitude;
+    private List<String> shopImages;
     private String website;
     private String operatingHours;
     private String description;
