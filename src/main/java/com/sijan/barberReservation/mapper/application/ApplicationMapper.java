@@ -42,7 +42,7 @@ public class ApplicationMapper {
         dto.setCity(app.getCity());
         dto.setProfilePictureUrl(app.getProfilePictureUrl());
         dto.setLicenseUrl(app.getLicenseUrl());
-        dto.setBarberShop(app.getBarberShop());
+        dto.setBarbershopName(app.getBarbershopName());
 
         // Shop
         dto.setShopName(app.getShopName());
@@ -90,7 +90,7 @@ public class ApplicationMapper {
         app.setCity(req.getCity());
         app.setProfilePictureUrl(req.getProfilePictureUrl());
         app.setLicenseUrl(req.getLicenseUrl());
-        app.setBarberShop(req.getBarbershopName());
+        app.setBarbershopName(req.getBarbershopName());
         app.setBarbershopId(req.getBarbershopId());
 
         // Skills List -> String

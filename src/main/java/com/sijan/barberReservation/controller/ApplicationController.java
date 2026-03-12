@@ -29,6 +29,7 @@ public class ApplicationController {
 
     @GetMapping("/{applicationId}")
     public ResponseEntity<ApplicationDetailResponse> findById(@PathVariable Long applicationId){
+        System.out.println("Hanyi haui ");
         Application application = applicationService.findById(applicationId);
         return ResponseEntity.ok(applicationMapper.toDTO(application));
     }
@@ -39,6 +40,7 @@ public class ApplicationController {
             @RequestParam(defaultValue = "10") int size){
         Pageable pageable = PageRequest.of(page, size);
         Page<Application> application = applicationService.getRelevantForMainAdmin(pageable);
+        application.forEach(application1 -> System.out.println(application1.getType() + application1.getBarbershopName()));
         return ResponseEntity.ok(pageMapper.toApplicationPageResponse(application));
     }
 

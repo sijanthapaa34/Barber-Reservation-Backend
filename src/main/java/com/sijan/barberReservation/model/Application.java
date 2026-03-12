@@ -40,7 +40,7 @@ public class Application {
     private String city;
     private String profilePictureUrl;
     private Long barbershopId;
-    private String barberShop;
+    private String barbershopName;
 
 
     // Shop Specific

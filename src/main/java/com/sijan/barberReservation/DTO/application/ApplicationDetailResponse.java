@@ -30,7 +30,7 @@ public class ApplicationDetailResponse {
     private String city;
     private String profilePictureUrl;
     private String licenseUrl;
-    private String barberShop;
+    private String barbershopName;
 
     // --- Shop Specific Fields ---
     private String shopName;     // ADDED
