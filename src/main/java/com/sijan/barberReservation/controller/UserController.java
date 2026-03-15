@@ -27,12 +27,8 @@ public class UserController {
             @RequestParam("file") MultipartFile file) {
 
         try {
-            // 1. Upload to Drive (Overwrites old file if exists)
             String fileUrl = googleDriveService.uploadUserProfilePicture(userId, file);
-
-            // 2. Update User Entity in Database
             userService.uploadProfilePicture(userService.findById(userId), fileUrl);
-
             Map<String, String> response = new HashMap<>();
             response.put("url", fileUrl);
             return ResponseEntity.ok(response);

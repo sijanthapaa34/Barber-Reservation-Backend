@@ -141,14 +141,14 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
     @PostMapping("/barbershop")
-    public ResponseEntity<BarbershopDTO> registerBarberShop(
+    public ResponseEntity<AdminDTO> registerBarberShop(
             @RequestBody RegisterBarbershopRequest request) {
 
         Barbershop barbershop = barbershopMapper.toEntity(request);
         Admin admin = adminMapper.toEntity(request);
         Barbershop savedBarbershop = barbershopService.createBarbershop(barbershop);
         Admin savedAdmin = userService.registerAdmin(admin, savedBarbershop);
-        return ResponseEntity.status(201).body(barbershopMapper.toDTO(savedBarbershop));
+        return ResponseEntity.status(201).body(adminMapper.toDTO(savedAdmin));
     }
     @GetMapping("/me")
     public ResponseEntity<?> getCurrentUser(@AuthenticationPrincipal UserPrincipal userPrincipal) {

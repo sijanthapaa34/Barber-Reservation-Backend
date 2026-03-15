@@ -130,6 +130,7 @@ public class ApplicationMapper {
         barber.setBio(application.getBio());
         barber.setExperienceYears(application.getExperienceYears());
         barber.setCreatedAt(LocalDateTime.now());
+        barber.setProfilePicture(application.getProfilePictureUrl());
         return barber;
     }
 

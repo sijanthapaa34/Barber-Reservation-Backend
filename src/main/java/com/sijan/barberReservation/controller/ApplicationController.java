@@ -56,8 +56,6 @@ public class ApplicationController {
 
     @PostMapping
     public ResponseEntity<ApplicationDetailResponse> submitApplication(@RequestBody ApplicationRequest request) {
-        System.out.println(request.getBarbershopName() + request.getBarbershopId());
-        System.out.println("Yo mathi");
         Application application = applicationMapper.toEntity(request);
         Application savedApplication = applicationService.save(application);
         return ResponseEntity.ok(applicationMapper.toDTO(savedApplication));

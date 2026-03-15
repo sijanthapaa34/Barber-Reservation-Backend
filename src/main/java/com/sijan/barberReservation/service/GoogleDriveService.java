@@ -12,6 +12,7 @@ import jakarta.annotation.PostConstruct;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.io.InputStream;
 import java.util.Collections;
 import java.util.List;
@@ -116,7 +117,7 @@ public class GoogleDriveService {
         if (multipartFile.isEmpty()) throw new RuntimeException("File is empty");
 
         // Create temp file
-        java.io.File tempFile = java.io.File.createTempFile("upload-", getFileExtension(fileName));
+        File tempFile = File.createTempFile("upload-", getFileExtension(fileName));
         multipartFile.transferTo(tempFile);
 
         // Set metadata
