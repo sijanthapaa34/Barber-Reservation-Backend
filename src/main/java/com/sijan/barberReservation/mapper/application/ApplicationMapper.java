@@ -151,7 +151,11 @@ public class ApplicationMapper {
         shop.setState(application.getState());
         shop.setAddress(application.getAddress());
         shop.setCity(application.getCity());
-        shop.setShopImages(application.getShopImages());
+        if (application.getShopImages() != null) {
+            shop.setShopImages(new ArrayList<>(application.getShopImages()));
+        } else {
+            shop.setShopImages(new ArrayList<>()); // or Collections.emptyList()
+        }
         shop.setPostalCode(application.getPostalCode());
         shop.setPhone(application.getPhone());
         shop.setEmail(application.getEmail());

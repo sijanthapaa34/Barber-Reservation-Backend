@@ -12,11 +12,9 @@ import com.sijan.barberReservation.DTO.Auth.RegisterCustomerRequest;
 import com.sijan.barberReservation.mapper.user.*;
 import com.sijan.barberReservation.model.*;
 import com.sijan.barberReservation.security.JwtTokenProvider;
-import com.sijan.barberReservation.service.AuthService;
-import com.sijan.barberReservation.service.BarbershopService;
-import com.sijan.barberReservation.service.GoogleTokenVerifierService;
-import com.sijan.barberReservation.service.UserService;
+import com.sijan.barberReservation.service.*;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -31,31 +29,20 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/auth")
+@RequiredArgsConstructor
 public class AuthController {
 
     private final AuthService authService;
     private final JwtTokenProvider tokenProvider;
     private final UserService userService;
     private final BarbershopService barbershopService;
+    private final OtpService otpService;
+    private final EmailService emailService;
     private final BarberMapper barberMapper;
     private final UserMapper userMapper;
     private final AdminMapper adminMapper;
     private final BarbershopMapper barbershopMapper;
     private final CustomerMapper customerMapper;
-
-    public AuthController(AuthService authService,
-                          JwtTokenProvider tokenProvider,
-                          UserService userService, BarbershopService barbershopService, BarberMapper barberMapper, UserMapper userMapper, AdminMapper adminMapper, BarbershopMapper barbershopMapper, CustomerMapper customerMapper) {
-        this.authService = authService;
-        this.tokenProvider = tokenProvider;
-        this.userService = userService;
-        this.barbershopService = barbershopService;
-        this.barberMapper = barberMapper;
-        this.userMapper = userMapper;
-        this.adminMapper = adminMapper;
-        this.barbershopMapper = barbershopMapper;
-        this.customerMapper = customerMapper;
-    }
 
     @PostMapping("/login")
     public ResponseEntity<Map<String, String>> login(@RequestBody AuthRequest request, HttpServletRequest httpRequest){
@@ -120,10 +107,19 @@ public class AuthController {
 
     @PostMapping("/customer")
     public ResponseEntity<Map<String, String>> registerCustomer(@RequestBody RegisterCustomerRequest req) {
-        Customer newCustomer = customerMapper.toEntity(req);
-        Customer registeredcustomer = userService.registerCustomer(newCustomer);
+        boolean isValid = otpService.verifyOtp(req.getEmail(), req.getOtp());
+        if (!isValid) {
+            throw new RuntimeException("Invalid or expired OTP.");
+        }
+        if (userService.findByEmail(req.getEmail()) != null) {
+            throw new RuntimeException("Email is already registered.");
+        }
 
-        String token = tokenProvider.generateToken(registeredcustomer.getEmail(),registeredcustomer.getId() ,registeredcustomer.getRole().toString());
+        Customer newCustomer = customerMapper.toEntity(req);
+        Customer registeredCustomer = userService.registerCustomer(newCustomer);
+
+        emailService.sendRegistrationConfirmation(registeredCustomer.getEmail(), registeredCustomer.getName());
+        String token = tokenProvider.generateToken(registeredCustomer.getEmail(), registeredCustomer.getId(), registeredCustomer.getRole().toString());
 
         Map<String, String> response = new HashMap<>();
         response.put("token", token);
@@ -132,11 +128,11 @@ public class AuthController {
                 .body(response);
     }
 
-    @PostMapping("/barber/{barberShopId}")
-    public ResponseEntity<BarberDTO> registerBarber(@PathVariable Long barberShopId,
+    @PostMapping("/barber/{barbershopId}")
+    public ResponseEntity<BarberDTO> registerBarber(@PathVariable Long barbershopId,
                                     @RequestBody RegisterBarberRequest req) {
         Barber barber = barberMapper.toEntity(req);
-        Barbershop shop = barbershopService.findById(barberShopId);
+        Barbershop shop = barbershopService.findById(barbershopId);
         BarberDTO response = barberMapper.toDTO(userService.registerBarber(barber, shop));
         return ResponseEntity.ok(response);
     }

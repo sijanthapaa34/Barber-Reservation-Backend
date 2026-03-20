@@ -6,6 +6,7 @@ import com.sijan.barberReservation.repository.BarberRepository;
 import com.sijan.barberReservation.repository.CustomerRepository;
 import com.sijan.barberReservation.repository.UserRepository;
 import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -13,6 +14,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 public class UserService {
     private final UserRepository userRepository;
     private final CustomerRepository customerRepository;
@@ -20,16 +22,6 @@ public class UserService {
     private final BarberRepository barberRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public UserService(UserRepository userRepository,
-                       CustomerRepository customerRepository, AdminRepository adminRepository,
-                       BarberRepository barberRepository,
-                       PasswordEncoder passwordEncoder) {
-        this.userRepository = userRepository;
-        this.customerRepository = customerRepository;
-        this.adminRepository = adminRepository;
-        this.barberRepository = barberRepository;
-        this.passwordEncoder = passwordEncoder;
-    }
     public User findByEmail(String email) {
         return userRepository.findByEmail(email);
     }

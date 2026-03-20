@@ -10,6 +10,7 @@ import com.sijan.barberReservation.mapper.user.BarbershopMapper;
 import com.sijan.barberReservation.model.*;
 import com.sijan.barberReservation.repository.*;
 import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -21,6 +22,7 @@ import java.time.YearMonth;
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class AdminService {
 
     private final AdminRepository adminRepository;
@@ -35,22 +37,6 @@ public class AdminService {
     private final ServiceMapper serviceMapper;
     private final AppointmentDetailsMapper appointmentDetailsMapper;
     private final PasswordEncoder passwordEncoder;
-
-
-    public AdminService(AdminRepository adminRepository, BarbershopService barbershopService, BarberService barberService, ReviewService reviewService, ServiceOfferingService serviceService, UserService userService, AppointmentService appointmentService, BarbershopMapper barbershopMapper, BarberMapper barberMapper, ServiceMapper serviceMapper, AppointmentDetailsMapper appointmentDetailsMapper, PasswordEncoder passwordEncoder) {
-        this.adminRepository = adminRepository;
-        this.barbershopService = barbershopService;
-        this.barberService = barberService;
-        this.reviewService = reviewService;
-        this.serviceService = serviceService;
-        this.userService = userService;
-        this.appointmentService = appointmentService;
-        this.barbershopMapper = barbershopMapper;
-        this.barberMapper = barberMapper;
-        this.serviceMapper = serviceMapper;
-        this.appointmentDetailsMapper = appointmentDetailsMapper;
-        this.passwordEncoder = passwordEncoder;
-    }
 
     public Admin findById(Long id) {
         return adminRepository.findById(id)

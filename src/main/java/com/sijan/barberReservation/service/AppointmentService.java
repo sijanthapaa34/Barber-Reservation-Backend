@@ -21,6 +21,7 @@ import java.util.List;
 import jakarta.transaction.Transactional;
 import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotNull;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -30,15 +31,11 @@ import org.springframework.stereotype.Service;
 
 
 @Service
+@RequiredArgsConstructor
 public class AppointmentService {
 
     private final AppointmentRepository appointmentRepository;
     private final AppointmentSlotMapper appointmentSlotMapper;
-
-    public AppointmentService(AppointmentRepository appointmentRepository, AppointmentSlotMapper appointmentSlotMapper) {
-        this.appointmentRepository = appointmentRepository;
-        this.appointmentSlotMapper = appointmentSlotMapper;
-    }
 
     @Transactional
     public Appointment findById(Long id) {

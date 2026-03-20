@@ -2,6 +2,7 @@ package com.sijan.barberReservation.controller;
 
 import com.sijan.barberReservation.service.GoogleDriveService;
 import com.sijan.barberReservation.service.UserService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -11,15 +12,11 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/users")
+@RequiredArgsConstructor
 public class UserController {
 
     private final GoogleDriveService googleDriveService;
     private final UserService userService;
-
-    public UserController(GoogleDriveService googleDriveService, UserService userService) {
-        this.googleDriveService = googleDriveService;
-        this.userService = userService;
-    }
 
     @PostMapping("/{userId}/profile-picture")
     public ResponseEntity<Map<String, String>> uploadProfile(

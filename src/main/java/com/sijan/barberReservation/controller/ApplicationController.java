@@ -7,29 +7,28 @@ import com.sijan.barberReservation.mapper.application.ApplicationMapper;
 import com.sijan.barberReservation.mapper.appointment.PageMapper;
 import com.sijan.barberReservation.model.Application;
 import com.sijan.barberReservation.service.ApplicationService;
+import com.sijan.barberReservation.service.OtpService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api/applications")
+@RequiredArgsConstructor
 public class ApplicationController {
 
     private final ApplicationService applicationService;
+    private final OtpService otpService;
     private final ApplicationMapper applicationMapper;
     private final PageMapper pageMapper;
 
-    public ApplicationController(ApplicationService applicationService, ApplicationMapper applicationMapper, PageMapper pageMapper) {
-        this.applicationService = applicationService;
-        this.applicationMapper = applicationMapper;
-        this.pageMapper = pageMapper;
-    }
-
     @GetMapping("/{applicationId}")
     public ResponseEntity<ApplicationDetailResponse> findById(@PathVariable Long applicationId){
-        System.out.println("Hanyi haui ");
         Application application = applicationService.findById(applicationId);
         return ResponseEntity.ok(applicationMapper.toDTO(application));
     }
@@ -54,8 +53,13 @@ public class ApplicationController {
         return ResponseEntity.ok(pageMapper.toApplicationPageResponse(application));
     }
 
+
     @PostMapping
     public ResponseEntity<ApplicationDetailResponse> submitApplication(@RequestBody ApplicationRequest request) {
+        boolean isValid = otpService.verifyOtp(request.getEmail(), request.getOtp());
+        if (!isValid) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid or expired OTP.");
+        }
         Application application = applicationMapper.toEntity(request);
         Application savedApplication = applicationService.save(application);
         return ResponseEntity.ok(applicationMapper.toDTO(savedApplication));

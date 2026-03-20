@@ -12,16 +12,20 @@ import com.sijan.barberReservation.model.*;
 import com.sijan.barberReservation.service.BarberService;
 import com.sijan.barberReservation.service.AppointmentService;
 import com.sijan.barberReservation.service.BarbershopService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api/barbers")
+@RequiredArgsConstructor
 public class BarberController {
 
     private final BarberService barberService;
@@ -30,15 +34,6 @@ public class BarberController {
     private final BarberMapper barberMapper;
     private final PageMapper pageMapper;
     private final AppointmentDetailsMapper appointmentMapper;
-
-    public BarberController (BarberService barberService, BarbershopService barbershopService, AppointmentService appointmentService, BarberMapper barberMapper, PageMapper pageMapper, AppointmentDetailsMapper appointmentMapper) {
-        this.barberService = barberService;
-        this.barbershopService = barbershopService;
-        this.appointmentService = appointmentService;
-        this.barberMapper = barberMapper;
-        this.pageMapper = pageMapper;
-        this.appointmentMapper = appointmentMapper;
-    }
 
     @GetMapping("/{id}")
     public ResponseEntity<BarberDTO> findById(@PathVariable Long id) {
@@ -74,17 +69,40 @@ public class BarberController {
         return ResponseEntity.ok("Leave request submitted successfully");
     }
 
-    @PutMapping("/{barberId}/update")
+    @PatchMapping("/{barberId}/update")
     public ResponseEntity<BarberDTO> updateProfile(@PathVariable Long barberId, @RequestBody UpdateBarberRequest request) {
         Barber barber = barberService.findById(barberId);
-        Barber updated = barberService.update(barber, request.getName(), request.getPhone(), request.getBio(), request.getSkills(), request.getExperienceYears());
+        Barber updated = barberService.update(barber,request.getBio(), request.getSkills(), request.getExperienceYears(), request.getWorkImages(), request.getCommissionRate());
         return ResponseEntity.ok(barberMapper.toDTO(updated));
     }
 
-
-    @PutMapping("/{barberId}/change-password")
+    @PatchMapping("/{barberId}/change-password")
     public ResponseEntity<Void> changePassword(@PathVariable Long barberId, @RequestBody ChangePasswordRequest request) {
         barberService.changePassword(barberService.findById(barberId), request.getCurrentPassword(), request.getNewPassword());
+        return ResponseEntity.ok().build();
+    }
+
+    @PatchMapping("/{barbershopId}/activate/{barberId}")
+    public ResponseEntity<Void> activate(
+            @PathVariable Long barbershopId,
+            @PathVariable Long barberId) {
+        Barber barber = barberService.findById(barberId);
+        if (!barber.getBarbershop().getId().equals(barbershopId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "This barber does not belong to the specified shop.");
+        }
+        barberService.activateBarber(barber);
+        return ResponseEntity.ok().build();
+    }
+
+    @PatchMapping("/{barbershopId}/deactivate/{barberId}")
+    public ResponseEntity<Void> deactivate(
+            @PathVariable Long barbershopId,
+            @PathVariable Long barberId) {
+        Barber barber = barberService.findById(barberId);
+        if (!barber.getBarbershop().getId().equals(barbershopId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "This barber does not belong to the specified shop.");
+        }
+        barberService.deactivateBarber(barber);
         return ResponseEntity.ok().build();
     }
 
@@ -95,4 +113,6 @@ public class BarberController {
         }
         throw new RuntimeException("User not authenticated");
     }
+
+
 }

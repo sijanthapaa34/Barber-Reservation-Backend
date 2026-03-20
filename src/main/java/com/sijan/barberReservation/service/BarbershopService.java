@@ -7,6 +7,7 @@ import com.sijan.barberReservation.model.Barbershop;
 import com.sijan.barberReservation.model.Roles;
 import com.sijan.barberReservation.repository.BarbershopRepository;
 import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -18,20 +19,13 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
-@Transactional
+@RequiredArgsConstructor
 public class BarbershopService {
 
     private static final double EARTH_RADIUS_KM = 6371.0;
 
     private final BarbershopRepository barbershopRepository;
 //    private final GoogleMapsService googleMapsService;
-
-    public BarbershopService(BarbershopRepository barbershopRepository
-//                             GoogleMapsService googleMapsService
-    ) {
-        this.barbershopRepository = barbershopRepository;
-//        this.googleMapsService = googleMapsService;
-    }
 
     public Barbershop findById(Long id){
         return barbershopRepository.findById(id)

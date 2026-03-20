@@ -21,6 +21,7 @@ public class BarberDTO {
     private String bio;
     private String profilePicture;
     private Double rating;
+    private Double commissionRate;
     private LocalDateTime createdAt;
     private Integer experienceYears;
     private Boolean available;

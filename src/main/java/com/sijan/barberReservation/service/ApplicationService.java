@@ -1,56 +1,55 @@
 package com.sijan.barberReservation.service;
 
-import com.sijan.barberReservation.exception.application.ApplicationNotFoundException;
-import com.sijan.barberReservation.exception.role.AccessDeniedException;
 import com.sijan.barberReservation.mapper.application.ApplicationMapper;
 import com.sijan.barberReservation.model.*;
 import com.sijan.barberReservation.repository.ApplicationRepository;
-import com.sijan.barberReservation.repository.BarbershopRepository;
-import com.sijan.barberReservation.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
 
 @Service
 @RequiredArgsConstructor
 public class ApplicationService {
 
     private final ApplicationRepository applicationRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final ApplicationMapper applicationMapper;
     private final UserService userService;
     private final BarbershopService barbershopService;
-    private final PasswordEncoder passwordEncoder;
-    private final ApplicationMapper applicationMapper; // Injecting the mapper
-
-    public Application findById(Long id) {
-        return applicationRepository.findById(id)
-                .orElseThrow(()-> new ApplicationNotFoundException(id));
-    }
+    private final EmailService emailService; // <--- INJECT EMAIL SERVICE
 
     public Application save(Application application) {
-        // Encode password before saving application
         application.setPassword(passwordEncoder.encode(application.getPassword()));
 
-        // Set initial status
-        if(application.getType() == ApplicationType.BARBER) {
-            application.setStatus(ApplicationStatus.PENDING);
+        // Set status
+        application.setStatus(ApplicationStatus.PENDING);
+
+        // Save first to ensure we have the ID and data is valid
+        Application savedApplication = applicationRepository.save(application);
+
+        // --- SEND SUBMISSION EMAIL ---
+        String entityName;
+        if (application.getType() == ApplicationType.BARBER_SHOP) {
+            entityName = application.getShopName(); // The new shop name
         } else {
-            application.setStatus(ApplicationStatus.PENDING);
+            // For barbers, it's nice to mention the shop they applied to
+            entityName = application.getBarbershopName() != null ? application.getBarbershopName() : "Barber Position";
         }
 
-        return applicationRepository.save(application);
+        emailService.sendApplicationSubmissionEmail(application.getEmail(), entityName);
+
+        return savedApplication;
     }
 
     public Page<Application> getRelevantForMainAdmin(Pageable pageable) {
-        // Custom query: Shops that are PENDING, Barbers that are PENDING_MAIN_APPROVAL
         return applicationRepository.findRelevantForMainAdmin(pageable);
     }
 
     public Page<Application> getPendingForShopAdmin(Long barbershopId, Pageable pageable) {
-        // Find barbers applying to specific shop with status PENDING
         return applicationRepository.findByBarbershopIdAndStatus(barbershopId, ApplicationStatus.PENDING, pageable);
     }
 
@@ -76,6 +75,7 @@ public class ApplicationService {
     @Transactional
     public void approveByMainAdmin(Long applicationId) {
         Application app = findById(applicationId);
+        String entityName = "";
 
         if (app.getType() == ApplicationType.BARBER) {
             if (app.getStatus() != ApplicationStatus.PENDING_MAIN_APPROVAL) {
@@ -84,7 +84,9 @@ public class ApplicationService {
 
             Barber barber = applicationMapper.toBarber(app);
             Barbershop barbershop = barbershopService.findById(app.getBarbershopId());
-             userService.registerBarber(barber, barbershop);
+            userService.registerBarber(barber, barbershop);
+
+            entityName = app.getBarbershopName();
 
         }
         else if (app.getType() == ApplicationType.BARBER_SHOP) {
@@ -97,15 +99,32 @@ public class ApplicationService {
 
             barbershopService.createBarbershop(shop);
             userService.registerAdmin(admin, shop);
+
+            entityName = app.getShopName();
         }
 
         app.setStatus(ApplicationStatus.APPROVED);
         applicationRepository.save(app);
+
+        // Send Approval Email
+        emailService.sendApplicationStatusEmail(app.getEmail(), entityName, "APPROVED");
     }
 
     @Transactional
     public void reject(Application application) {
         application.setStatus(ApplicationStatus.REJECTED);
         applicationRepository.save(application);
+
+        // Send Rejection Email
+        String name = (application.getType() == ApplicationType.BARBER_SHOP)
+                ? application.getShopName()
+                : application.getBarbershopName();
+
+        emailService.sendApplicationStatusEmail(application.getEmail(), name, "REJECTED");
+    }
+
+    public Application findById(Long id) {
+        return applicationRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Application not found"));
     }
 }

@@ -8,18 +8,15 @@ import com.sijan.barberReservation.model.BarberLeave;
 import com.sijan.barberReservation.model.LeaveStatus;
 import com.sijan.barberReservation.repository.BarberLeaveRepository;
 import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 
 @Service
+@RequiredArgsConstructor
 public class BarberLeaveService {
     private final BarberLeaveRepository barberLeaveRepository;
-
-    public BarberLeaveService(BarberLeaveRepository barberLeaveRepository) {
-        this.barberLeaveRepository = barberLeaveRepository;
-
-    }
 
     @Transactional
     public void updateLeaveStatus(

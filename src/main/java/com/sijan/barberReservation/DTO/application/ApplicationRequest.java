@@ -34,4 +34,5 @@ public class ApplicationRequest {
     private String operatingHours;
     private String description;
     private String documentUrl;
+    private String otp;
 }

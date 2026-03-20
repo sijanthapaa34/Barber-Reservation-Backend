@@ -13,6 +13,7 @@ import com.sijan.barberReservation.service.ServiceOfferingService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +28,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/appointment")
+@RequiredArgsConstructor
 public class AppointmentController {
 
     private final AppointmentService appointmentService;
@@ -36,19 +38,6 @@ public class AppointmentController {
     private final ServiceOfferingService serviceOfferingService;
     private final CreateAppointmentMapper createAppointmentMapper;
     private final PageMapper pageMapper;
-
-    public AppointmentController(AppointmentService appointmentService,
-                                 AppointmentDetailsMapper appointmentDetailsMapper, BarberService barberService, CustomerService customerService, ServiceOfferingService serviceOfferingService,
-                                 CreateAppointmentMapper createAppointmentMapper,
-                                 PageMapper pageMapper) {
-        this.appointmentService = appointmentService;
-        this.appointmentDetailsMapper = appointmentDetailsMapper;
-        this.barberService = barberService;
-        this.customerService = customerService;
-        this.serviceOfferingService = serviceOfferingService;
-        this.createAppointmentMapper = createAppointmentMapper;
-        this.pageMapper = pageMapper;
-    }
 
     @GetMapping("/{appointmentId}")
     public ResponseEntity<AppointmentDetailsResponse> findById(@PathVariable Long appointmentId){

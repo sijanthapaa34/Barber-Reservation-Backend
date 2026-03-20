@@ -10,6 +10,7 @@ import com.sijan.barberReservation.mapper.user.AdminMapper;
 import com.sijan.barberReservation.mapper.user.UpdateUserRequestMapper;
 import com.sijan.barberReservation.model.*;
 import com.sijan.barberReservation.service.*;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/admin")
+@RequiredArgsConstructor
 public class AdminController {
 
     private final AdminService adminService;
@@ -31,15 +33,6 @@ public class AdminController {
     private final BarberLeaveService barberLeaveService;
     private final PageMapper pageMapper;
 
-
-    public AdminController(AdminService adminService, AdminMapper adminMapper, AppointmentService appointmentService, BarberService barberService, BarberLeaveService barberLeaveService, PageMapper pageMapper) {
-        this.adminService = adminService;
-        this.adminMapper = adminMapper;
-        this.appointmentService = appointmentService;
-        this.barberService = barberService;
-        this.barberLeaveService = barberLeaveService;
-        this.pageMapper = pageMapper;
-    }
     private Admin getCurrentAdmin(UserPrincipal userPrincipal) {
         return adminService.findById(userPrincipal.getId());
     }
@@ -57,21 +50,6 @@ public class AdminController {
 //        return ResponseEntity.ok(pageMapper.toBarberPageResponse(barbers));
 //    }
 
-    @PutMapping("/barbers/{barberId}/activate")
-    public ResponseEntity<String> activateBarber(
-            @PathVariable Long barberId) {
-        Barber barber = barberService.findById(barberId);
-        barberService.activateBarber(barber);
-        return ResponseEntity.ok("Barber activated successfully");
-    }
-
-    @PutMapping("/barbers/{barberId}/deactivate")
-    public ResponseEntity<String> deactivateBarber(
-            @PathVariable Long barberId) {
-        Barber barber = barberService.findById(barberId);
-        barberService.deactivateBarber(barber);
-        return ResponseEntity.ok("Barber deactivated successfully");
-    }
     @GetMapping("/appointment")
     public ResponseEntity<PageResponse<AppointmentDetailsResponse>> getAllAppointment(
             @RequestParam(defaultValue = "0") int page,

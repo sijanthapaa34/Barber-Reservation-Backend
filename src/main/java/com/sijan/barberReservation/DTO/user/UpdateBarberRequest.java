@@ -10,9 +10,9 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class UpdateBarberRequest {
-    private String name;
-    private String phone;
     private String bio;
     private Integer experienceYears;
     private List<String> skills;
+    private List<String> workImages;
+    private Double commissionRate;
 }

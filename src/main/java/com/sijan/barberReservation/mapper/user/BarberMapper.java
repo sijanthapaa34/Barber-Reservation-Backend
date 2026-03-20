@@ -29,6 +29,7 @@ public class BarberMapper {
         dto.setAvailable(barber.getAvailable() != null ? barber.getAvailable() : true);
 //        dto.setBarberShopId(barber.getBarberShop() != null ? barber.getBarberShop().getId() : null);
         dto.setCreatedAt(barber.getCreatedAt());
+        dto.setCommissionRate(barber.getCommissionRate());
         return dto;
     }
 
@@ -42,6 +43,7 @@ public class BarberMapper {
         barber.setBio(req.getBio());
         barber.setExperienceYears(req.getExperienceYears());
         barber.setCreatedAt(LocalDateTime.now());
+        barber.setCommissionRate(req.getCommissionRate());
         return barber;
     }
 

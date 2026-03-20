@@ -8,6 +8,7 @@ import com.sijan.barberReservation.repository.LoginHistoryRepository;
 import com.sijan.barberReservation.security.JwtTokenProvider;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 
 @Service
+@RequiredArgsConstructor
 public class AuthService {
 
     private final AuthenticationManager authenticationManager;
@@ -24,16 +26,6 @@ public class AuthService {
     private final LoginHistoryRepository loginHistoryRepository;
     private final JwtTokenProvider tokenProvider;
     private final GoogleTokenVerifierService googleTokenVerifierService;
-
-
-
-    public AuthService(AuthenticationManager authenticationManager, UserService userService, LoginHistoryRepository loginHistoryRepository, JwtTokenProvider tokenProvider, GoogleTokenVerifierService googleTokenVerifierService) {
-        this.authenticationManager = authenticationManager;
-        this.userService = userService;
-        this.loginHistoryRepository = loginHistoryRepository;
-        this.tokenProvider = tokenProvider;
-        this.googleTokenVerifierService = googleTokenVerifierService;
-    }
 
     @Transactional
     public String login(AuthRequest request, HttpServletRequest httpRequest) {

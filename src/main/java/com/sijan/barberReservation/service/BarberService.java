@@ -9,6 +9,7 @@ import com.sijan.barberReservation.model.*;
 import com.sijan.barberReservation.repository.BarberLeaveRepository;
 import com.sijan.barberReservation.repository.BarberRepository;
 import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -19,17 +20,12 @@ import java.time.LocalDate;
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class BarberService {
 
     private final BarberRepository barberRepository;
     private final BarberLeaveRepository barberLeaveRepository;
     private final PasswordEncoder passwordEncoder;
-
-    public BarberService(BarberRepository barberRepository, BarberLeaveRepository barberLeaveRepository, PasswordEncoder passwordEncoder) {
-        this.barberRepository = barberRepository;
-        this.barberLeaveRepository = barberLeaveRepository;
-        this.passwordEncoder = passwordEncoder;
-    }
 
     public Barber findById(Long id) {
         return barberRepository.findById(id)
@@ -70,13 +66,13 @@ public class BarberService {
     }
 
     @Transactional
-    public Barber update(Barber barber, String name, String phone, String bio, List<String> skills, Integer experienceYears) {
-        barber.setName(name);
-        barber.setPhone(phone);
+    public Barber update(Barber barber, String bio, List<String> skills, Integer experienceYears, List<String> workImages, Double commissionRate) {
         barber.setBio(bio);
         barber.setSkills(skills);
         barber.setExperienceYears(experienceYears);
-        return barber;
+        barber.setWorkImages(workImages);
+        barber.setCommissionRate(commissionRate);
+        return barberRepository.save(barber);
     }
 
     public Integer countByBarbershop(Barbershop shop) {

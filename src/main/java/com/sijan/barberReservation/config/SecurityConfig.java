@@ -61,6 +61,7 @@ public class SecurityConfig {
                             .requestMatchers("/api/auth/login").permitAll()
                             .requestMatchers("/api/auth/customer").permitAll()
                             .requestMatchers("/api/auth/google").permitAll()
+                            .requestMatchers("/api/email/**").permitAll()
                             .requestMatchers("/api/upload/**").permitAll()
                             .requestMatchers(HttpMethod.GET, "/api/applications/**").permitAll()
                             .requestMatchers(HttpMethod.POST, "/api/applications").permitAll()                            .requestMatchers("/api/users/").permitAll()

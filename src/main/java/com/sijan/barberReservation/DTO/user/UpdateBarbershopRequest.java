@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 import org.hibernate.validator.constraints.URL;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Data
 @AllArgsConstructor
@@ -40,4 +41,7 @@ public class UpdateBarbershopRequest {
     private String website;
 
     private String operatingHours;
+
+    private List<String> shopImages;
+
 }

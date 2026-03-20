@@ -22,6 +22,9 @@ public class ServiceMapper {
         dto.setBarbershop(service.getBarbershop().getName());
         dto.setServiceImages(service.getServiceImages());
         dto.setCreatedAt(service.getCreatedAt());
+        dto.setAvailable(service.getAvailable());
+        dto.setCategory(service.getCategory().name());
+        dto.setTargetGender(service.getTargetGender());
         dto.setUpdatedAt(service.getUpdatedAt());
         return dto;
     }

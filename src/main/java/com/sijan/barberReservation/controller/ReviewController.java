@@ -3,6 +3,7 @@ package com.sijan.barberReservation.controller;
 import com.sijan.barberReservation.DTO.review.ReviewDTO;
 import com.sijan.barberReservation.service.ReviewService;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -11,14 +12,11 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/reviews")
+@RequiredArgsConstructor
 @Validated
 public class ReviewController {
 
     private final ReviewService reviewService;
-
-    public ReviewController(ReviewService reviewService) {
-        this.reviewService = reviewService;
-    }
 
 //    // GET /api/reviews/me - Get all reviews written by customer
 //    @GetMapping("/me")

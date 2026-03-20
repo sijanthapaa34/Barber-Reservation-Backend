@@ -10,6 +10,7 @@ import com.sijan.barberReservation.model.UserPrincipal;
 import com.sijan.barberReservation.service.AdminService;
 import com.sijan.barberReservation.service.BarbershopService;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -21,6 +22,8 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/barbershop")
+@RequiredArgsConstructor
+
 public class BarbershopController {
 
     private final BarbershopService barbershopService;
@@ -28,15 +31,6 @@ public class BarbershopController {
     private final PageMapper pageMapper;
     private final BarbershopMapper barbershopMapper;
     private final UpdateBarbershopRequestMapper updateBarbershopRequestMapper;
-
-
-    public BarbershopController(BarbershopService barbershopService, AdminService adminService, PageMapper pageMapper, BarbershopMapper barbershopMapper, UpdateBarbershopRequestMapper updateBarbershopRequestMapper) {
-        this.barbershopService = barbershopService;
-        this.adminService = adminService;
-        this.pageMapper = pageMapper;
-        this.barbershopMapper = barbershopMapper;
-        this.updateBarbershopRequestMapper = updateBarbershopRequestMapper;
-    }
 
     @GetMapping("/{id}")
     public ResponseEntity<BarbershopDTO> findById(
