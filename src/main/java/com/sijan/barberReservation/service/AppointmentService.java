@@ -1,7 +1,6 @@
 package com.sijan.barberReservation.service;
 
 import com.sijan.barberReservation.DTO.appointment.*;
-import com.sijan.barberReservation.DTO.user.CustomerDTO;
 import com.sijan.barberReservation.exception.appointment.AppointmentAlreadyCancelledException;
 import com.sijan.barberReservation.exception.appointment.AppointmentNotFoundException;
 import com.sijan.barberReservation.exception.appointment.AppointmentSlotUnavailableException;
@@ -11,22 +10,18 @@ import com.sijan.barberReservation.mapper.appointment.AppointmentSlotMapper;
 import com.sijan.barberReservation.model.*;
 import com.sijan.barberReservation.repository.AppointmentRepository;
 
-import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import jakarta.transaction.Transactional;
-import jakarta.validation.constraints.Future;
-import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 
@@ -36,6 +31,7 @@ public class AppointmentService {
 
     private final AppointmentRepository appointmentRepository;
     private final AppointmentSlotMapper appointmentSlotMapper;
+    private final EmailService emailService; // INJECTED
 
     @Transactional
     public Appointment findById(Long id) {
@@ -61,22 +57,49 @@ public class AppointmentService {
         }
 
         List<LocalDateTime> availableSlots =
-                computeAvailableSlots(appointment.getBarber(), appointment.getScheduledTime().toLocalDate(), appointment.getServices(),null);
+                computeAvailableSlots(appointment.getBarber(), appointment.getScheduledTime().toLocalDate(), appointment.getServices(), null);
 
         if (!availableSlots.contains(appointment.getScheduledTime())) {
             throw new AppointmentSlotUnavailableException("Selected slot is not available");
         }
+
         LocalDateTime checkInTime = appointment.getScheduledTime().minusMinutes(10);
         appointment.setCheckInTime(checkInTime);
         appointment.setCustomer(customer);
         appointment.setStatus(AppointmentStatus.SCHEDULED);
         appointment.setPaymentStatus(PaymentStatus.PENDING);
 
-        return appointmentRepository.save(appointment);
+        // Save first to ensure ID is generated and relations are stable
+        Appointment savedAppointment = appointmentRepository.save(appointment);
+
+        // --- SEND EMAILS ---
+        // Extract data needed for email to avoid LazyInitializationException in async thread
+        String customerEmail = customer.getEmail();
+        String customerName = customer.getName();
+        String barberEmail = savedAppointment.getBarber().getEmail();
+        String barberName = savedAppointment.getBarber().getName();
+        String shopName = savedAppointment.getBarber().getBarbershop().getName();
+        String serviceNames = savedAppointment.getServices().stream()
+                .map(ServiceOffering::getName)
+                .collect(Collectors.joining(", "));
+        String date = savedAppointment.getScheduledTime().toLocalDate().toString();
+        String time = savedAppointment.getScheduledTime().toLocalTime().toString();
+
+        // 1. Confirm to Customer
+        emailService.sendAppointmentConfirmationCustomer(
+                customerEmail, customerName, barberName, serviceNames, date, time, shopName
+        );
+
+        // 2. Alert to Barber
+        emailService.sendNewBookingAlert(
+                barberEmail, barberName, customerName, serviceNames, date, time
+        );
+
+        return savedAppointment;
     }
 
     public Page<Appointment> getUpcomingByCustomer(Customer customer, int page, int size) {
-       return appointmentRepository.findUpcomingByCustomer(
+        return appointmentRepository.findUpcomingByCustomer(
                 customer,
                 LocalDateTime.now(),
                 PageRequest.of(page, size)
@@ -107,20 +130,36 @@ public class AppointmentService {
     }
 
     @Transactional
-    public void cancel(Long appointmentId) {
+    public void cancel(Long appointmentId, String cancelledByName) { // Added cancelledByName parameter
         Appointment appointment = findById(appointmentId);
         if (appointment.getStatus().equals(AppointmentStatus.CANCELLED)) {
             throw new AppointmentAlreadyCancelledException(appointmentId);
         }
         appointment.setStatus(AppointmentStatus.CANCELLED);
         appointmentRepository.save(appointment);
+
+        // --- SEND EMAILS ---
+        String customerEmail = appointment.getCustomer().getEmail();
+        String customerName = appointment.getCustomer().getName();
+        String barberEmail = appointment.getBarber().getEmail();
+        String barberName = appointment.getBarber().getName();
+        String serviceNames = appointment.getServices().stream()
+                .map(ServiceOffering::getName)
+                .collect(Collectors.joining(", "));
+        String date = appointment.getScheduledTime().toLocalDate().toString();
+
+        // Notify Customer
+        emailService.sendAppointmentCancellation(customerEmail, customerName, serviceNames, date, cancelledByName);
+
+        // Notify Barber
+        emailService.sendAppointmentCancellation(barberEmail, barberName, serviceNames, date, cancelledByName);
     }
 
     public List<LocalDateTime> computeAvailableSlots(
             Barber barber,
             LocalDate date,
             List<ServiceOffering> services,
-            Long excludeAppointmentId // null when booking, appointmentId when rescheduling
+            Long excludeAppointmentId
     ) {
 
         int totalDurationMinutes = services.stream()
@@ -196,7 +235,7 @@ public class AppointmentService {
         );
     }
 
-    public Page<Appointment> getBarberAppointments(Barber barber, LocalDate startDate, LocalDate endDate,Pageable pageable) {
+    public Page<Appointment> getBarberAppointments(Barber barber, LocalDate startDate, LocalDate endDate, Pageable pageable) {
         LocalDateTime startOfDay;
         LocalDateTime endOfDay;
 
@@ -234,7 +273,7 @@ public class AppointmentService {
         }
     }
 
-    public AvailableSlotsResponseDTO getAvailability(Barber barber, List<ServiceOffering> services, @NotNull LocalDate date) {
+    public AvailableSlotsResponseDTO getAvailability(Barber barber, List<ServiceOffering> services, LocalDate date) {
         List<LocalDateTime> availableSlotTimes = computeAvailableSlots(barber, date, services,null);
 
         List<Appointment> bookedAppointments = getBookedAppointments(barber, date, null);
@@ -280,11 +319,32 @@ public class AppointmentService {
 
         validateSlotAvailability(appointment, newDateTime);
 
+        String oldDate = appointment.getScheduledTime().toLocalDate().toString();
+
         appointment.setScheduledTime(newDateTime);
         appointment.setCheckInTime(newDateTime.minusMinutes(10));
         appointment.setCompletedTime(newDateTime.plusMinutes(appointment.getTotalDurationMinutes()));
 
-        return appointment;
+        Appointment saved = appointmentRepository.save(appointment);
+
+        // --- SEND EMAILS ---
+        String customerEmail = saved.getCustomer().getEmail();
+        String customerName = saved.getCustomer().getName();
+        String barberEmail = saved.getBarber().getEmail();
+        String barberName = saved.getBarber().getName();
+        String newDateStr = newDateTime.toLocalDate().toString();
+        String newTimeStr = newDateTime.toLocalTime().toString();
+        String serviceNames = saved.getServices().stream()
+                .map(ServiceOffering::getName)
+                .collect(Collectors.joining(", "));
+
+        // Notify Customer
+        emailService.sendAppointmentReschedule(customerEmail, customerName, serviceNames, oldDate, newDateStr, newTimeStr);
+
+        // Notify Barber
+        emailService.sendAppointmentReschedule(barberEmail, barberName, serviceNames, oldDate, newDateStr, newTimeStr);
+
+        return saved;
     }
 
     private void validateSlotAvailability(Appointment appointment, LocalDateTime newDateTime) {
@@ -308,29 +368,20 @@ public class AppointmentService {
 
     public Double getEarnings(Barber barber, LocalDate startDate, LocalDate endDate) {
         LocalDate today = LocalDate.now();
-
-        // Get Sunday of current week
         LocalDate sunday = today.with(java.time.DayOfWeek.SUNDAY);
-
-        // Get Friday of current week
         LocalDate friday = today.with(java.time.DayOfWeek.FRIDAY);
 
         LocalDateTime startOfDay;
         LocalDateTime endOfDay;
 
-        // Case 1: both null → Sunday to Friday (current week)
         if (startDate == null && endDate == null) {
             startOfDay = sunday.atStartOfDay();
             endOfDay = friday.atTime(23, 59, 59);
         }
-
-        // Case 2: start provided, end null → startDate to Friday
         else if (startDate != null && endDate == null) {
             startOfDay = startDate.atStartOfDay();
             endOfDay = friday.atTime(23, 59, 59);
         }
-
-        // Case 3: both provided
         else {
             startOfDay = startDate.atStartOfDay();
             endOfDay = endDate.atTime(23, 59, 59);
@@ -362,4 +413,3 @@ public class AppointmentService {
         return appointmentRepository.findUpcomingByBarbershop(shop, now, of);
     }
 }
-

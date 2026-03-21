@@ -133,8 +133,12 @@ public class AuthController {
                                     @RequestBody RegisterBarberRequest req) {
         Barber barber = barberMapper.toEntity(req);
         Barbershop shop = barbershopService.findById(barbershopId);
-        BarberDTO response = barberMapper.toDTO(userService.registerBarber(barber, shop));
-        return ResponseEntity.ok(response);
+        // Register Barber
+        Barber registeredBarber = userService.registerBarber(barber, shop);
+        // Send Email Notification to the Barber
+        emailService.sendRegistrationConfirmation(registeredBarber.getEmail(), registeredBarber.getName());
+
+        return ResponseEntity.ok(barberMapper.toDTO(registeredBarber));
     }
     @PostMapping("/barbershop")
     public ResponseEntity<AdminDTO> registerBarberShop(

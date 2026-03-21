@@ -18,5 +18,6 @@ public class RegisterCustomerRequest {
     @Size(min = 6, message = "Password must be at least 6 characters")
     private String password;
     private String preferences;
+    private String profilePictureUrl;
     private String otp;
 }

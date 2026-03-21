@@ -29,6 +29,7 @@ public class CustomerMapper {
         customer.setPhone(req.getPhone());
         customer.setPassword(req.getPassword());
         customer.setRole(Roles.CUSTOMER);
+        customer.setProfilePicture(req.getProfilePictureUrl());
         customer.setCreatedAt(LocalDateTime.now());
 
         return customer;
