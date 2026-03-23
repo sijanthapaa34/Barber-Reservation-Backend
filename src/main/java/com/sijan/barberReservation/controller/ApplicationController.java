@@ -39,7 +39,6 @@ public class ApplicationController {
             @RequestParam(defaultValue = "10") int size){
         Pageable pageable = PageRequest.of(page, size);
         Page<Application> application = applicationService.getRelevantForMainAdmin(pageable);
-        application.forEach(application1 -> System.out.println(application1.getType() + application1.getBarbershopName()));
         return ResponseEntity.ok(pageMapper.toApplicationPageResponse(application));
     }
 

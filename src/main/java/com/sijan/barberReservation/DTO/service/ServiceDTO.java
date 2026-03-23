@@ -15,7 +15,7 @@ public class ServiceDTO {
     private String category;
     private Integer durationMinutes;
     private String barbershop;
-    private Integer barbershopId;
+    private Long barbershopId;
     private String targetGender;
     private List<String> serviceImages;
     private LocalDateTime createdAt;

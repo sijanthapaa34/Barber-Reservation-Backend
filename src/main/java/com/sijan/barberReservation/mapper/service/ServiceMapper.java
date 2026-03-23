@@ -19,6 +19,7 @@ public class ServiceMapper {
         dto.setDescription(service.getDescription());
         dto.setPrice(service.getPrice());
         dto.setDurationMinutes(service.getDurationMinutes());
+        dto.setBarbershopId(service.getBarbershop().getId());
         dto.setBarbershop(service.getBarbershop().getName());
         dto.setServiceImages(service.getServiceImages());
         dto.setCreatedAt(service.getCreatedAt());

@@ -46,8 +46,8 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<Map<String, String>> login(@RequestBody AuthRequest request, HttpServletRequest httpRequest){
+        System.out.println(request.getPassword());
         String token = authService.login(request, httpRequest);
-
         Map<String, String> response = new HashMap<>();
         response.put("token", token);
         return ResponseEntity.ok()

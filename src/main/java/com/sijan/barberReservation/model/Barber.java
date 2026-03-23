@@ -53,9 +53,6 @@ public class Barber extends User {
     private List<Appointment> appointments;
 
     @OneToMany(mappedBy = "barber")
-    private List<Review> reviews;
-
-    @OneToMany(mappedBy = "barber")
     private List<BarberSchedule> schedules;
 
     @OneToMany(mappedBy = "barber")

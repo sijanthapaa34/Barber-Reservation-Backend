@@ -24,24 +24,16 @@ public class ApplicationService {
 
     public Application save(Application application) {
         application.setPassword(passwordEncoder.encode(application.getPassword()));
-
-        // Set status
         application.setStatus(ApplicationStatus.PENDING);
-
-        // Save first to ensure we have the ID and data is valid
         Application savedApplication = applicationRepository.save(application);
-
-        // --- SEND SUBMISSION EMAIL ---
         String entityName;
         if (application.getType() == ApplicationType.BARBER_SHOP) {
-            entityName = application.getShopName(); // The new shop name
+            entityName = application.getShopName();
         } else {
-            // For barbers, it's nice to mention the shop they applied to
             entityName = application.getBarbershopName() != null ? application.getBarbershopName() : "Barber Position";
         }
 
         emailService.sendApplicationSubmissionEmail(application.getEmail(), entityName);
-
         return savedApplication;
     }
 
@@ -76,6 +68,9 @@ public class ApplicationService {
     public void approveByMainAdmin(Long applicationId) {
         Application app = findById(applicationId);
         String entityName = "";
+        if (userService.existsByEmail(app.getEmail())) {
+            throw new RuntimeException("User with email " + app.getEmail() + " already exists. Please reject this application.");
+        }
 
         if (app.getType() == ApplicationType.BARBER) {
             if (app.getStatus() != ApplicationStatus.PENDING_MAIN_APPROVAL) {
@@ -84,7 +79,7 @@ public class ApplicationService {
 
             Barber barber = applicationMapper.toBarber(app);
             Barbershop barbershop = barbershopService.findById(app.getBarbershopId());
-            userService.registerBarber(barber, barbershop);
+            userService.registerBarberOfApplication(barber, barbershop);
 
             entityName = app.getBarbershopName();
 
@@ -98,7 +93,7 @@ public class ApplicationService {
             Admin admin = applicationMapper.toAdmin(app);
 
             barbershopService.createBarbershop(shop);
-            userService.registerAdmin(admin, shop);
+            userService.registerAdminOfApplication(admin, shop);
 
             entityName = app.getShopName();
         }

@@ -3,22 +3,26 @@ package com.sijan.barberReservation.mapper.appointment;
 import com.sijan.barberReservation.DTO.application.ApplicationDetailResponse;
 import com.sijan.barberReservation.DTO.appointment.AppointmentDetailsResponse;
 import com.sijan.barberReservation.DTO.appointment.PageResponse;
+import com.sijan.barberReservation.DTO.review.ReviewDTO;
 import com.sijan.barberReservation.DTO.service.ServiceDTO;
 import com.sijan.barberReservation.DTO.user.BarberDTO;
 import com.sijan.barberReservation.DTO.user.BarberLeaveDTO;
 import com.sijan.barberReservation.DTO.user.BarbershopDTO;
 import com.sijan.barberReservation.DTO.user.CustomerDTO;
 import com.sijan.barberReservation.mapper.application.ApplicationMapper;
+import com.sijan.barberReservation.mapper.review.ReviewMapper;
 import com.sijan.barberReservation.mapper.service.ServiceMapper;
 import com.sijan.barberReservation.mapper.user.BarberLeaveMapper;
 import com.sijan.barberReservation.mapper.user.BarberMapper;
 import com.sijan.barberReservation.mapper.user.BarbershopMapper;
 import com.sijan.barberReservation.mapper.user.CustomerMapper;
 import com.sijan.barberReservation.model.*;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 
 @Component
+@RequiredArgsConstructor
 public class PageMapper {
 
     private final AppointmentDetailsMapper appointmentDetailsMapper;
@@ -28,17 +32,7 @@ public class PageMapper {
     private final BarberMapper barberMapper;
     private final CustomerMapper customerMapper;
     private final BarbershopMapper barbershopMapper;
-
-
-    public PageMapper(AppointmentDetailsMapper appointmentDetailsMapper, ServiceMapper serviceMapper, BarberLeaveMapper barberLeaveMapper, ApplicationMapper applicationMapper, BarberMapper barberMapper, CustomerMapper customerMapper, BarbershopMapper barbershopMapper) {
-        this.appointmentDetailsMapper = appointmentDetailsMapper;
-        this.serviceMapper = serviceMapper;
-        this.barberLeaveMapper = barberLeaveMapper;
-        this.applicationMapper = applicationMapper;
-        this.barberMapper = barberMapper;
-        this.customerMapper = customerMapper;
-        this.barbershopMapper = barbershopMapper;
-    }
+    private final ReviewMapper reviewMapper;
 
     public PageResponse<AppointmentDetailsResponse> toAppointmentPageResponse(Page<Appointment> page) {
         return new PageResponse<>(
@@ -125,6 +119,20 @@ public class PageMapper {
                 page.getContent()
                         .stream()
                         .map(applicationMapper::toDTO)
+                        .toList(),
+                page.getNumber(),
+                page.getSize(),
+                page.getTotalElements(),
+                page.getTotalPages(),
+                page.isLast()
+        );
+    }
+
+    public PageResponse<ReviewDTO> toReviewPageResponse(Page<Review> page) {
+        return new PageResponse<>(
+                page.getContent()
+                        .stream()
+                        .map(reviewMapper::toDTO)
                         .toList(),
                 page.getNumber(),
                 page.getSize(),

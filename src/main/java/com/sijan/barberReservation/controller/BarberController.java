@@ -30,10 +30,8 @@ public class BarberController {
 
     private final BarberService barberService;
     private final BarbershopService barbershopService;
-    private final AppointmentService appointmentService;
     private final BarberMapper barberMapper;
     private final PageMapper pageMapper;
-    private final AppointmentDetailsMapper appointmentMapper;
 
     @GetMapping("/{id}")
     public ResponseEntity<BarberDTO> findById(@PathVariable Long id) {
@@ -51,22 +49,6 @@ public class BarberController {
         Pageable pageable = PageRequest.of(page, size);
         Page<Barber> barbers = barberService.findByBarberShop(barbershop, pageable);
         return ResponseEntity.ok(pageMapper.toBarberPageResponse(barbers));
-    }
-
-    @PostMapping("/me/leave")
-    public ResponseEntity<String> applyForLeave(
-            @RequestBody LeaveRequestDTO request) {
-        String email = getCurrentUserEmail();
-        // Validate dates
-        if (request.getStartDate() == null || request.getEndDate() == null) {
-            return ResponseEntity.badRequest().body("Start date and end date are required");
-        }
-        if (request.getStartDate().isAfter(request.getEndDate())) {
-            return ResponseEntity.badRequest().body("Start date cannot be after end date");
-        }
-
-        barberService.applyForLeave(email, request.getStartDate(), request.getEndDate(), request.getReason());
-        return ResponseEntity.ok("Leave request submitted successfully");
     }
 
     @PatchMapping("/{barberId}/update")

@@ -48,6 +48,15 @@ public class UserService {
         barber.setBarbershop(shop);
         return barberRepository.save(barber);
     }
+
+    public Barber registerBarberOfApplication(Barber barber, Barbershop shop) {
+        if(userRepository.existsByEmail(barber.getEmail())) {
+            throw new RuntimeException("User with this email already exists");
+        }
+        barber.setRole(Roles.BARBER);
+        barber.setBarbershop(shop);
+        return barberRepository.save(barber);
+    }
     public Admin registerAdmin(Admin admin, Barbershop shop) {
         if(userRepository.existsByEmail(admin.getEmail())) {
             throw new RuntimeException("User with this email already exists");
@@ -59,9 +68,14 @@ public class UserService {
         admin.setBarbershop(shop);
         return adminRepository.save(admin);
     }
-
-
-
+    public Admin registerAdminOfApplication(Admin admin, Barbershop shop) {
+        if(userRepository.existsByEmail(admin.getEmail())) {
+            throw new RuntimeException("User with this email already exists");
+        }
+        admin.setRole(Roles.SHOP_ADMIN);
+        admin.setBarbershop(shop);
+        return adminRepository.save(admin);
+    }
 
     public User findById(Long id) {
         return userRepository.findById(id)
@@ -90,5 +104,9 @@ public class UserService {
 
     public int countByLastLoginAfter(LocalDateTime localDateTime) {
         return userRepository.countByLastLoginAfter(localDateTime);
+    }
+
+    public boolean existsByEmail(String email) {
+        return userRepository.existsByEmail(email);
     }
 }

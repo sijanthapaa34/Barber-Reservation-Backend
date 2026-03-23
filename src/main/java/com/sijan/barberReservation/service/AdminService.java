@@ -98,7 +98,7 @@ public class AdminService {
 
         // 3. Fetch Basic Stats
         Integer totalBarbers = barberService.countByBarbershop(shop);
-        Integer totalReviews = reviewService.countByBarbershop(shop); // Assuming ReviewRepository exists
+        Integer totalReviews = reviewService.countByBarbershop(shop).intValue();
 
         // 4. Fetch Today's Stats
         Integer todayAppointments = appointmentService.countByShopAndScheduledTimeBetween(shop, startOfDay, endOfDay);

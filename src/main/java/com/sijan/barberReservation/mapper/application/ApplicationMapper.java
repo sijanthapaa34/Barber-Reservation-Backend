@@ -138,6 +138,7 @@ public class ApplicationMapper {
         Admin admin = new Admin();
         admin.setName(application.getName());
         admin.setEmail(application.getEmail());
+        System.out.println(application.getPassword() + " in mapper");
         admin.setPassword(application.getPassword());
         admin.setProfilePicture(application.getProfilePictureUrl());
         admin.setPhone(application.getPhone());

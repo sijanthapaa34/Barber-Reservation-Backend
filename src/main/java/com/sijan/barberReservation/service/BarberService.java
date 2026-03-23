@@ -86,4 +86,8 @@ public class BarberService {
     public List<Barber> findTopBarbersByShops(Barbershop shop, PageRequest of) {
         return barberRepository.findTopBarbersByBarbershop(shop, of);
     }
+
+    public void saveRating(Barber barber) {
+        barberRepository.save(barber);
+    }
 }

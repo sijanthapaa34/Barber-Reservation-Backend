@@ -141,4 +141,8 @@ public class BarbershopService {
     public List<Barbershop> findTop4ByActiveTrueOrderByRatingDesc() {
         return barbershopRepository.findTop4ByActiveTrueOrderByRatingDesc();
     }
+
+    public void saveRating(Barbershop shop) {
+        barbershopRepository.save(shop);
+    }
 }
