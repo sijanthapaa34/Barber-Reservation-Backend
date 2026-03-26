@@ -9,10 +9,10 @@ import com.sijan.barberReservation.DTO.user.BarberDTO;
 import com.sijan.barberReservation.DTO.user.BarberLeaveDTO;
 import com.sijan.barberReservation.DTO.user.BarbershopDTO;
 import com.sijan.barberReservation.DTO.user.CustomerDTO;
+import com.sijan.barberReservation.mapper.Leave.LeaveMapper;
 import com.sijan.barberReservation.mapper.application.ApplicationMapper;
 import com.sijan.barberReservation.mapper.review.ReviewMapper;
 import com.sijan.barberReservation.mapper.service.ServiceMapper;
-import com.sijan.barberReservation.mapper.user.BarberLeaveMapper;
 import com.sijan.barberReservation.mapper.user.BarberMapper;
 import com.sijan.barberReservation.mapper.user.BarbershopMapper;
 import com.sijan.barberReservation.mapper.user.CustomerMapper;
@@ -27,12 +27,12 @@ public class PageMapper {
 
     private final AppointmentDetailsMapper appointmentDetailsMapper;
     private final ServiceMapper serviceMapper;
-    private final BarberLeaveMapper barberLeaveMapper;
     private final ApplicationMapper applicationMapper;
     private final BarberMapper barberMapper;
     private final CustomerMapper customerMapper;
     private final BarbershopMapper barbershopMapper;
     private final ReviewMapper reviewMapper;
+    private final LeaveMapper leaveMapper;
 
     public PageResponse<AppointmentDetailsResponse> toAppointmentPageResponse(Page<Appointment> page) {
         return new PageResponse<>(
@@ -87,19 +87,6 @@ public class PageMapper {
         );
     }
 
-    public PageResponse<BarberLeaveDTO> toBarberLeavePageResponse(Page<BarberLeave> page) {
-        return new PageResponse<>(
-                page.getContent()
-                        .stream()
-                        .map(barberLeaveMapper::toDTO)
-                        .toList(),
-                page.getNumber(),
-                page.getSize(),
-                page.getTotalElements(),
-                page.getTotalPages(),
-                page.isLast()
-        );
-    }
     public PageResponse<CustomerDTO> toCustomerPageResponse(Page<Customer> page) {
         return new PageResponse<>(
                 page.getContent()
@@ -133,6 +120,19 @@ public class PageMapper {
                 page.getContent()
                         .stream()
                         .map(reviewMapper::toDTO)
+                        .toList(),
+                page.getNumber(),
+                page.getSize(),
+                page.getTotalElements(),
+                page.getTotalPages(),
+                page.isLast()
+        );
+    }
+    public PageResponse<BarberLeaveDTO> toLeavePageResponse(Page<BarberLeave> page) {
+        return new PageResponse<>(
+                page.getContent()
+                        .stream()
+                        .map(leaveMapper::toDTO)
                         .toList(),
                 page.getNumber(),
                 page.getSize(),

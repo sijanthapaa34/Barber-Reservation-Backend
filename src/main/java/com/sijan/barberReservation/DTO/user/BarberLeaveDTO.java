@@ -1,6 +1,5 @@
 package com.sijan.barberReservation.DTO.user;
 
-import com.sijan.barberReservation.model.LeaveStatus;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -17,7 +16,7 @@ public class BarberLeaveDTO {
     private LocalDate startDate;
     private LocalDate endDate;
     private String reason;
-    private LeaveStatus status;
+    private String status;
     private LocalDateTime requestedAt;
     private LocalDateTime approvedAt;
     private LocalDateTime rejectedAt;

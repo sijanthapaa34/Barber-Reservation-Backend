@@ -89,35 +89,4 @@ public class AdminController {
         adminService.changePassword(adminService.findById(adminId), request.getCurrentPassword(), request.getNewPassword());
         return ResponseEntity.ok().build();
     }
-
-    @GetMapping("/admin/leaves")
-    public ResponseEntity<PageResponse<BarberLeaveDTO>> getAllBarberLeaves(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @AuthenticationPrincipal UserPrincipal userPrincipal
-    ) {
-        Admin admin = getCurrentAdmin(userPrincipal);
-        Sort sort = Sort.by(Sort.Direction.DESC, "scheduledTime");
-        Pageable pageable = PageRequest.of(page, size, sort);
-        Page<BarberLeave> leaves = barberService.getAllLeaves(admin, pageable);
-        return ResponseEntity.ok(pageMapper.toBarberLeavePageResponse(leaves));
-    }
-
-    @PutMapping("/barbers/{barberId}/leaves/{leaveId}/status")
-    public ResponseEntity<Void> updateLeaveStatus(
-            @PathVariable Long barberId,
-            @PathVariable Long leaveId,
-            @RequestBody UpdateLeaveStatusRequest request,
-            @AuthenticationPrincipal UserPrincipal userPrincipal
-    ) {
-        Admin admin = getCurrentAdmin(userPrincipal);
-        BarberLeave leave = barberLeaveService.findById(leaveId);
-        Barber barber = barberService.findById(barberId);
-        barberLeaveService.updateLeaveStatus(
-                leave,
-                barber,
-                request.getStatus(),
-                admin);
-        return ResponseEntity.noContent().build();
-    }
 }

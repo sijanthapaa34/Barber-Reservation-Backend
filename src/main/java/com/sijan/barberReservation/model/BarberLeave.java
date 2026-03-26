@@ -17,20 +17,29 @@ public class BarberLeave {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @ManyToOne
-    @JoinColumn(name = "barber_id")
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "barber_id", nullable = false)
     private Barber barber;
-    @ManyToOne
-    @JoinColumn(name = "barbershop_id")
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "barbershop_id", nullable = false)
     private Barbershop barbershop;
+
+    @Column(nullable = false)
     private LocalDate startDate;
+
+    @Column(nullable = false)
     private LocalDate endDate;
+
     private String reason;
+
+    @Enumerated(EnumType.STRING)
+    private LeaveStatus status = LeaveStatus.PENDING; // Default status
+
     @CreationTimestamp
     private LocalDateTime requestedAt;
-    private LocalDateTime approvedAt;
-    private LocalDateTime rejectedAt;
-    @Enumerated(EnumType.STRING)
-    private LeaveStatus status;
+
+    private LocalDateTime processedAt;
 }
 

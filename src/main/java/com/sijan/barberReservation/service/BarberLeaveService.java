@@ -2,15 +2,16 @@ package com.sijan.barberReservation.service;
 
 import com.sijan.barberReservation.exception.role.AccessDeniedException;
 import com.sijan.barberReservation.exception.role.ResourceNotFoundException;
-import com.sijan.barberReservation.model.Admin;
-import com.sijan.barberReservation.model.Barber;
-import com.sijan.barberReservation.model.BarberLeave;
-import com.sijan.barberReservation.model.LeaveStatus;
+import com.sijan.barberReservation.model.*;
 import com.sijan.barberReservation.repository.BarberLeaveRepository;
 import jakarta.transaction.Transactional;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Service
@@ -18,36 +19,46 @@ import java.time.LocalDateTime;
 public class BarberLeaveService {
     private final BarberLeaveRepository barberLeaveRepository;
 
-    @Transactional
-    public void updateLeaveStatus(
-            BarberLeave leave,
-            Barber barber,
-            LeaveStatus newStatus,
-            Admin admin
-    ) {
-        if (!leave.getBarber().equals(barber)) {
-            throw new IllegalArgumentException("Leave does not belong to this barber");
-        }
-
-        if (!leave.getBarbershop().equals(admin.getBarbershop())) {
-            throw new AccessDeniedException("Not authorized for this shop");
-        }
-
-        if (leave.getStatus() != LeaveStatus.PENDING) {
-            throw new IllegalStateException("Leave already processed");
-        }
-
-        leave.setStatus(newStatus);
-
-        if (newStatus == LeaveStatus.APPROVED) {
-            leave.setApprovedAt(LocalDateTime.now());
-        } else if (newStatus == LeaveStatus.REJECTED) {
-            leave.setRejectedAt(LocalDateTime.now());
-        }
-    }
-
     public BarberLeave findById(Long leaveId) {
         return barberLeaveRepository.findById(leaveId)
-                .orElseThrow(()-> new RuntimeException("Leave id not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Leave request not found with id: " + leaveId));
+    }
+
+    @Transactional
+    public void applyForLeave(Barber barber, BarberLeave leave) {
+        leave.setBarber(barber);
+        leave.setBarbershop(barber.getBarbershop());
+        leave.setStatus(LeaveStatus.PENDING);
+        leave.setRequestedAt(LocalDateTime.now());
+        barberLeaveRepository.save(leave);
+    }
+
+    @Transactional
+    public BarberLeave approveLeave(BarberLeave leave) {
+        if (leave.getStatus() != LeaveStatus.PENDING) {
+            throw new IllegalStateException("Leave request is already processed.");
+        }
+        leave.setStatus(LeaveStatus.APPROVED);
+        leave.setProcessedAt(LocalDateTime.now());
+
+        return barberLeaveRepository.save(leave);
+    }
+
+    @Transactional
+    public BarberLeave rejectLeave(BarberLeave leave) {
+        if (leave.getStatus() != LeaveStatus.PENDING) {
+            throw new IllegalStateException("Leave request is already processed.");
+        }
+        leave.setStatus(LeaveStatus.REJECTED);
+        leave.setProcessedAt(LocalDateTime.now());
+        return barberLeaveRepository.save(leave);
+    }
+
+    public Page<BarberLeave> getLeavesByShop(Barbershop barbershop, Pageable pageable) {
+        return barberLeaveRepository.findByBarbershopOrderByRequestedAtDesc(barbershop,pageable);
+    }
+
+    public Page<BarberLeave> getLeavesByBarber(Barber barber, Pageable pageable) {
+        return barberLeaveRepository.findByBarberOrderByRequestedAtDesc(barber, pageable);
     }
 }

@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.sijan.barberReservation.repository.BarberLeaveRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -31,7 +32,8 @@ public class AppointmentService {
 
     private final AppointmentRepository appointmentRepository;
     private final AppointmentSlotMapper appointmentSlotMapper;
-    private final EmailService emailService; // INJECTED
+    private final EmailService emailService;
+    private final BarberLeaveRepository barberLeaveRepository;
 
     @Transactional
     public Appointment findById(Long id) {
@@ -161,6 +163,22 @@ public class AppointmentService {
             List<ServiceOffering> services,
             Long excludeAppointmentId
     ) {
+
+        // --- NEW LEAVE CHECK ---
+        // If barber has approved leave overlapping this date, return empty list.
+        // Logic: StartDate <= date AND EndDate >= date
+        boolean isOnLeave = barberLeaveRepository
+                .existsByBarberAndStatusAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
+                        barber,
+                        LeaveStatus.APPROVED,
+                        date,
+                        date
+                );
+
+        if (isOnLeave) {
+            return new ArrayList<>(); // No slots available
+        }
+        // -----------------------
 
         int totalDurationMinutes = services.stream()
                 .mapToInt(ServiceOffering::getDurationMinutes)

@@ -1,9 +1,8 @@
 package com.sijan.barberReservation.service;
 
-import com.sijan.barberReservation.DTO.Auth.ChangePasswordRequest;
-import com.sijan.barberReservation.DTO.user.BarberDTO;
 import com.sijan.barberReservation.exception.auth.InvalidPasswordException;
 import com.sijan.barberReservation.exception.barber.BarberNotFoundException;
+import com.sijan.barberReservation.exception.barber.InvalidDateException;
 import com.sijan.barberReservation.exception.role.ResourceNotFoundException;
 import com.sijan.barberReservation.model.*;
 import com.sijan.barberReservation.repository.BarberLeaveRepository;
@@ -44,7 +43,10 @@ public class BarberService {
         }
         barber.setPassword(passwordEncoder.encode(newPassword));
     }
-    public void applyForLeave(String mail, LocalDate startDate, LocalDate endDate, String reason) {
+    public void applyForLeave(Barber barber, LocalDate startDate, LocalDate endDate, String reason) {
+        if (startDate.isAfter(endDate)){
+            throw new InvalidDateException("Start date cannot be after end date");
+        }
 
     }
 
