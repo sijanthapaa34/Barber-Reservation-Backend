@@ -7,6 +7,8 @@ import com.sijan.barberReservation.model.Barbershop;
 import com.sijan.barberReservation.model.ServiceOffering;
 import com.sijan.barberReservation.repository.ServiceRepository;
 import jakarta.transaction.Transactional;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -67,6 +69,4 @@ public class ServiceOfferingService {
     public List<ServiceOffering> findPopularServices(Barbershop shop, PageRequest of) {
         return serviceRepository.findPopularServices(shop,of);
     }
-
-
 }

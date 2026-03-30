@@ -341,4 +341,61 @@ public class EmailService {
             """;
         sendHtmlEmail(to, subject, buildBaseTemplate("Payout Confirmation", content));
     }
+    // --- 6. LEAVE MANAGEMENT ---
+
+    @Async
+    public void sendLeaveRequestNotificationAdmin(String adminEmail, String barberName, String startDate, String endDate, String reason) {
+        String subject = "📅 New Leave Request: " + barberName;
+        String content = """
+            <p>Hello Admin,</p>
+            <p>A new leave request has been submitted by <b>""" + barberName + """
+            </b>.</p>
+            <div class="info-card">
+                <div class="info-row"><span class="info-label">From:</span> <span class="info-value">""" + startDate + """
+        </span></div>
+                <div class="info-row"><span class="info-label">To:</span> <span class="info-value">""" + endDate + """
+        </span></div>
+                <div class="info-row"><span class="info-label">Reason:</span> <span class="info-value">""" + reason + """
+        </span></div>
+            </div>
+            <p>Please review and take action in your dashboard.</p>
+            """;
+        sendHtmlEmail(adminEmail, subject, buildBaseTemplate("Leave Request Pending", content));
+    }
+
+    @Async
+    public void sendLeaveApprovalNotification(String barberEmail, String barberName, String startDate, String endDate) {
+        String subject = "✅ Leave Request Approved";
+        String content = """
+            <p>Hello <b>""" + barberName + """
+            </b>,</p>
+            <p>Good news! Your leave request has been <b style="color: #10b981;">APPROVED</b>.</p>
+            <div class="info-card" style="border-left-color: #10b981;">
+                <div class="info-row"><span class="info-label">Start Date:</span> <span class="info-value">""" + startDate + """
+        </span></div>
+                <div class="info-row"><span class="info-label">End Date:</span> <span class="info-value">""" + endDate + """
+        </span></div>
+            </div>
+            <p>Enjoy your time off!</p>
+            """;
+        sendHtmlEmail(barberEmail, subject, buildBaseTemplate("Leave Approved", content));
+    }
+
+    @Async
+    public void sendLeaveRejectionNotification(String barberEmail, String barberName, String startDate, String endDate) {
+        String subject = "❌ Leave Request Rejected";
+        String content = """
+            <p>Hello <b>""" + barberName + """
+            </b>,</p>
+            <p>We regret to inform you that your leave request has been <b style="color: #ef4444;">REJECTED</b>.</p>
+            <div class="info-card" style="border-left-color: #ef4444;">
+                <div class="info-row"><span class="info-label">Start Date:</span> <span class="info-value">""" + startDate + """
+        </span></div>
+                <div class="info-row"><span class="info-label">End Date:</span> <span class="info-value">""" + endDate + """
+        </span></div>
+            </div>
+            <p>Please contact your shop administrator for more details.</p>
+            """;
+        sendHtmlEmail(barberEmail, subject, buildBaseTemplate("Leave Rejected", content));
+    }
 }

@@ -100,5 +100,6 @@ public class Barbershop {
             joinColumns = @JoinColumn(name = "barbershop_id")
     )
     @Column(name = "shop_images")
-    private List<String> shopImages = new ArrayList<>();;
+    private List<String> shopImages = new ArrayList<>();
+    private BigDecimal balance = BigDecimal.ZERO;
 }

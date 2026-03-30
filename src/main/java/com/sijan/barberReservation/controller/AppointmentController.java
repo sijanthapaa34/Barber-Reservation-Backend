@@ -55,16 +55,16 @@ public class AppointmentController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping
-    @PreAuthorize("hasRole('CUSTOMER')")
-    public ResponseEntity<AppointmentDetailsResponse> book(@RequestBody CreateAppointmentRequest request,
-                                                           @AuthenticationPrincipal UserPrincipal userPrincipal) {
-        Customer customer = customerService.findById(userPrincipal.getId());
-        Appointment appointment = createAppointmentMapper.toAppointment(request);
-        AppointmentDetailsResponse booked = appointmentDetailsMapper.toDTO(appointmentService.book(appointment, customer));
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(booked);
-    }
+//    @PostMapping
+//    @PreAuthorize("hasRole('CUSTOMER')")
+//    public ResponseEntity<AppointmentDetailsResponse> book(@RequestBody CreateAppointmentRequest request,
+//                                                           @AuthenticationPrincipal UserPrincipal userPrincipal) {
+//        Customer customer = customerService.findById(userPrincipal.getId());
+//        Appointment appointment = createAppointmentMapper.toAppointment(request);
+//        AppointmentDetailsResponse booked = appointmentDetailsMapper.toDTO(appointmentService.book(appointment, customer));
+//        return ResponseEntity.status(HttpStatus.CREATED)
+//                .body(booked);
+//    }
 
     @GetMapping("/upcoming")
     public ResponseEntity<PageResponse<AppointmentDetailsResponse>> upcomingByCustomer(@RequestParam(defaultValue = "0") int page,

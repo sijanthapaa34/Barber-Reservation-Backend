@@ -1,6 +1,7 @@
 package com.sijan.barberReservation.mapper.appointment;
 
 import com.sijan.barberReservation.DTO.appointment.CreateAppointmentRequest;
+import com.sijan.barberReservation.DTO.appointment.PaymentRequestDTO;
 import com.sijan.barberReservation.model.Appointment;
 import com.sijan.barberReservation.model.AppointmentStatus;
 import com.sijan.barberReservation.model.Barber;
@@ -29,7 +30,7 @@ public class CreateAppointmentMapper {
     }
 
 
-    public Appointment toAppointment(CreateAppointmentRequest request){
+    public Appointment toAppointment(PaymentRequestDTO request){
         Barber barber = barberService.findById(request.getBarberId());
         List<ServiceOffering> service = servicesService.findByIds(request.getServiceIds());
         Barbershop barbershop = barbershopService.findById(request.getBarbershopId());
@@ -40,8 +41,7 @@ public class CreateAppointmentMapper {
         appointment.setServices(service);
         appointment.setStatus(AppointmentStatus.SCHEDULED);
         appointment.setScheduledTime(request.getScheduledTime());
-        appointment.setCreatedAt(LocalDateTime.now());
-
+        appointment.setPaymentMethod(request.getPaymentMethod());
         return appointment;
     }
 }

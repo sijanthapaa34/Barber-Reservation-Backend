@@ -1,6 +1,7 @@
 package com.sijan.barberReservation.DTO.appointment;
 
 import com.sijan.barberReservation.model.AppointmentStatus;
+import com.sijan.barberReservation.model.PaymentMethod;
 import com.sijan.barberReservation.model.PaymentStatus;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -38,7 +39,7 @@ public class AppointmentDetailsResponse {
 
     private PaymentStatus paymentStatus;
     private Double paidAmount;
-    private String paymentMethod;
+    private PaymentMethod paymentMethod;
 
     private String customerNotes;
     private String barberNotes;

@@ -1,38 +1,26 @@
-//package com.sijan.barberReservation.controller;
-//
-//import com.sijan.barberReservation.DTO.notification.NotificationDTO;
-//import com.sijan.barberReservation.service.NotificationService;
-//import org.springframework.http.ResponseEntity;
-//import org.springframework.web.bind.annotation.*;
-//
-//import java.util.List;
-//
-//@RestController
-//@RequestMapping("/api/notifications")
-//public class NotificationController {
-//
-//    private final NotificationService notificationService;
-//
-//    public NotificationController(NotificationService notificationService) {
-//        this.notificationService = notificationService;
-//    }
-//
-//    // GET /api/notifications/me - Get all notifications for current user
-//    @GetMapping("/me")
-//    public ResponseEntity<List<NotificationDTO>> getMyNotifications(
-//            @RequestHeader("X-User-ID") Long userId) {
-//
-//        List<NotificationDTO> notifications = notificationService.getUserNotifications(userId);
-//        return ResponseEntity.ok(notifications);
-//    }
-//
-//    // PUT /api/notifications/{id}/read - Mark notification as read
-//    @PutMapping("/{id}/read")
-//    public ResponseEntity<Void> markAsRead(
-//            @PathVariable Long id,
-//            @RequestHeader("X-User-ID") Long userId) {
-//
-//        notificationService.markAsRead(id, userId);
-//        return ResponseEntity.ok().build();
-//    }
-//}
+package com.sijan.barberReservation.controller;
+
+import com.sijan.barberReservation.model.UserPrincipal;
+import com.sijan.barberReservation.service.NotificationService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/notifications")
+@RequiredArgsConstructor
+public class NotificationController {
+
+    private final NotificationService notificationService;
+
+    @PostMapping("/token")
+    public ResponseEntity<Void> saveToken(
+            @RequestBody String token,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        String userType = userPrincipal.getAuthorities().iterator().next().getAuthority(); // e.g. "ROLE_CUSTOMER"
+        notificationService.saveToken(userPrincipal.getId(), token, userType.replace("ROLE_", ""));
+        return ResponseEntity.ok().build();
+    }
+}

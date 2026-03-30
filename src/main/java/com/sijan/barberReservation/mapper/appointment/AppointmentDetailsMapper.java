@@ -3,6 +3,7 @@ package com.sijan.barberReservation.mapper.appointment;
 import com.sijan.barberReservation.DTO.appointment.AppointmentDetailsResponse;
 import com.sijan.barberReservation.DTO.appointment.ServiceItemDTO;
 import com.sijan.barberReservation.model.Appointment;
+import com.sijan.barberReservation.model.PaymentTransaction;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -46,16 +47,10 @@ public class AppointmentDetailsMapper {
         response.setScheduledTime(appointment.getScheduledTime());
         response.setCheckInTime(appointment.getCheckInTime());
         response.setCompletedTime(appointment.getCompletedTime());
-
         // Payment
         response.setPaymentStatus(appointment.getPaymentStatus());
-        response.setPaidAmount(appointment.getPaidAmount());
+        response.setPaidAmount(appointment.getTotalPrice());
         response.setPaymentMethod(appointment.getPaymentMethod());
-
-        // Notes
-        response.setCustomerNotes(appointment.getCustomerNotes());
-        response.setBarberNotes(appointment.getBarberNotes());
-
         // Audit
         response.setCreatedAt(appointment.getCreatedAt());
 

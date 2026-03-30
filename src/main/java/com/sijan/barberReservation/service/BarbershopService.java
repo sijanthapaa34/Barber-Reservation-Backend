@@ -2,9 +2,7 @@ package com.sijan.barberReservation.service;
 
 import com.sijan.barberReservation.exception.barbershop.BarbershopNotFoundException;
 import com.sijan.barberReservation.exception.role.AccessDeniedException;
-import com.sijan.barberReservation.model.Admin;
-import com.sijan.barberReservation.model.Barbershop;
-import com.sijan.barberReservation.model.Roles;
+import com.sijan.barberReservation.model.*;
 import com.sijan.barberReservation.repository.BarbershopRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +12,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -23,6 +22,8 @@ import java.util.stream.Collectors;
 public class BarbershopService {
 
     private static final double EARTH_RADIUS_KM = 6371.0;
+    private static final BigDecimal PLATFORM_FEE_PERCENT = new BigDecimal("0.05");
+
 
     private final BarbershopRepository barbershopRepository;
 //    private final GoogleMapsService googleMapsService;
@@ -128,6 +129,19 @@ public class BarbershopService {
         double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
         return EARTH_RADIUS_KM * c;
+    }
+
+    public void distributeEarnings(PaymentTransaction tx, Appointment appointment) {
+        BigDecimal total = tx.getAmount();
+        BigDecimal platformFee = total.multiply(PLATFORM_FEE_PERCENT).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal netRevenue = total.subtract(platformFee);
+
+        tx.setPlatformFee(platformFee);
+        tx.setShopEarnings(netRevenue);
+
+        Barbershop shop = appointment.getBarbershop();
+        shop.setBalance(shop.getBalance().add(netRevenue));
+        barbershopRepository.save(shop);
     }
 
     public Page<Barbershop> getAll(Pageable pageable) {

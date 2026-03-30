@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -64,11 +65,13 @@ public class Barber extends User {
             joinColumns = @JoinColumn(name = "barber_id")
     )
     @Column(name = "work_images")
-    private List<String> workImages = new ArrayList<>();;
+    private List<String> workImages = new ArrayList<>();
+    private BigDecimal balance = BigDecimal.ZERO;
 
     // Helper method to check if barber is top rated
     @Transient
     public boolean isTopRated() {
         return rating >= 4.5 && reviewCount >= 20;
     }
+
 }
