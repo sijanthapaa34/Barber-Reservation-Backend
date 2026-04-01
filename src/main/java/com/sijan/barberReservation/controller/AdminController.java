@@ -7,9 +7,11 @@ import com.sijan.barberReservation.DTO.appointment.PageResponse;
 import com.sijan.barberReservation.DTO.user.*;
 import com.sijan.barberReservation.mapper.appointment.PageMapper;
 import com.sijan.barberReservation.mapper.user.AdminMapper;
+import com.sijan.barberReservation.mapper.user.BarbershopMapper;
 import com.sijan.barberReservation.mapper.user.UpdateUserRequestMapper;
 import com.sijan.barberReservation.model.*;
 import com.sijan.barberReservation.service.*;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -32,6 +34,7 @@ public class AdminController {
     private final BarberService barberService;
     private final BarberLeaveService barberLeaveService;
     private final PageMapper pageMapper;
+    private final BarbershopMapper barbershopMapper;
 
     private Admin getCurrentAdmin(UserPrincipal userPrincipal) {
         return adminService.findById(userPrincipal.getId());
@@ -75,6 +78,17 @@ public class AdminController {
     public ResponseEntity<ShopAdminDashboardResponse> getShopAdminDashboardDetails(@PathVariable Long adminId
     ) {
         return ResponseEntity.ok(adminService.getShopAdminDashboardData(adminService.findById(adminId)));
+    }
+
+    @GetMapping("/{adminId}/shop")
+    @PreAuthorize("hasRole('SHOP_ADMIN')")
+    @Transactional
+    public ResponseEntity<BarbershopDTO> getShopByAdmin(@PathVariable Long adminId) {
+        Admin admin = adminService.findById(adminId);
+        if (admin.getBarbershop() == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(barbershopMapper.toDTO(admin.getBarbershop()));
     }
     @PutMapping("/{adminId}/update")
     public ResponseEntity<AdminDTO> updateProfile(@PathVariable Long adminId, @RequestBody UpdateUserRequest request) {

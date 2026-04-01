@@ -1,6 +1,9 @@
 package com.sijan.barberReservation.exception.auth;
 
 
+import com.sijan.barberReservation.exception.appointment.AppointmentAlreadyCancelledException;
+import com.sijan.barberReservation.exception.appointment.AppointmentNotFoundException;
+import com.sijan.barberReservation.exception.appointment.AppointmentSlotUnavailableException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -18,40 +21,52 @@ import java.util.Map;
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
-    // Handle incorrect password/username specifically
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<Object> handleBadCredentialsException(BadCredentialsException ex, WebRequest request) {
-        Map<String, Object> body = new HashMap<>();
-        body.put("timestamp", LocalDateTime.now());
-        body.put("status", HttpStatus.UNAUTHORIZED.value());
-        body.put("error", "Unauthorized");
-        body.put("message", "Invalid email or password."); // User-friendly message
-        body.put("path", request.getDescription(false).replace("uri=", ""));
-
-        return new ResponseEntity<>(body, HttpStatus.UNAUTHORIZED);
+        return error(HttpStatus.UNAUTHORIZED, "Invalid email or password.", request);
     }
 
-    // Handle user not found (often wrapped in BadCredentials, but good to have)
     @ExceptionHandler(UsernameNotFoundException.class)
     public ResponseEntity<Object> handleUsernameNotFoundException(UsernameNotFoundException ex, WebRequest request) {
-        Map<String, Object> body = new HashMap<>();
-        body.put("timestamp", LocalDateTime.now());
-        body.put("status", HttpStatus.UNAUTHORIZED.value());
-        body.put("error", "Unauthorized");
-        body.put("message", "Invalid email or password.");
-
-        return new ResponseEntity<>(body, HttpStatus.UNAUTHORIZED);
+        return error(HttpStatus.UNAUTHORIZED, "Invalid email or password.", request);
     }
 
-    // Handle disabled accounts
     @ExceptionHandler(DisabledException.class)
     public ResponseEntity<Object> handleDisabledException(DisabledException ex, WebRequest request) {
+        return error(HttpStatus.FORBIDDEN, "Your account is disabled.", request);
+    }
+
+    @ExceptionHandler(AppointmentAlreadyCancelledException.class)
+    public ResponseEntity<Object> handleAlreadyCancelled(AppointmentAlreadyCancelledException ex, WebRequest request) {
+        return error(HttpStatus.CONFLICT, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(AppointmentNotFoundException.class)
+    public ResponseEntity<Object> handleNotFound(AppointmentNotFoundException ex, WebRequest request) {
+        return error(HttpStatus.NOT_FOUND, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(AppointmentSlotUnavailableException.class)
+    public ResponseEntity<Object> handleSlotUnavailable(AppointmentSlotUnavailableException ex, WebRequest request) {
+        return error(HttpStatus.CONFLICT, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<Object> handleIllegalState(IllegalStateException ex, WebRequest request) {
+        return error(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<Object> handleRuntimeException(RuntimeException ex, WebRequest request) {
+        return error(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage(), request);
+    }
+
+    private ResponseEntity<Object> error(HttpStatus status, String message, WebRequest request) {
         Map<String, Object> body = new HashMap<>();
         body.put("timestamp", LocalDateTime.now());
-        body.put("status", HttpStatus.FORBIDDEN.value());
-        body.put("error", "Forbidden");
-        body.put("message", "Your account is disabled.");
-
-        return new ResponseEntity<>(body, HttpStatus.FORBIDDEN);
+        body.put("status", status.value());
+        body.put("message", message);
+        body.put("path", request.getDescription(false).replace("uri=", ""));
+        return new ResponseEntity<>(body, status);
     }
 }

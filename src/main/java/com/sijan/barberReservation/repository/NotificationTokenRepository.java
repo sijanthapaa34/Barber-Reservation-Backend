@@ -1,3 +1,4 @@
+// src/main/java/com/sijan/barberReservation/repository/NotificationTokenRepository.java
 package com.sijan.barberReservation.repository;
 
 import com.sijan.barberReservation.model.NotificationToken;
@@ -7,6 +8,10 @@ import java.util.List;
 import java.util.Optional;
 
 public interface NotificationTokenRepository extends JpaRepository<NotificationToken, Long> {
+
     Optional<NotificationToken> findByToken(String token);
+
     List<NotificationToken> findByUserIdAndUserType(Long userId, String userType);
+
+    void deleteByToken(String token);
 }

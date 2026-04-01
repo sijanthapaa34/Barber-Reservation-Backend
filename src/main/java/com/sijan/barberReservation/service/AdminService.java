@@ -20,6 +20,8 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.YearMonth;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -43,6 +45,7 @@ public class AdminService {
                 .orElseThrow(()-> new AdminNotFoundException(id));
     }
 
+    @Transactional
     public AdminDashboardResponse getDashboardData() {
         // 1. Stats
         long users = userService.count();
@@ -72,7 +75,6 @@ public class AdminService {
         AdminDashboardResponse.CommissionConfig config = new AdminDashboardResponse.CommissionConfig();
         config.setPlatformFee(10.0);
         config.setDefaultBarberCut(60.0);
-        // ...
 
         // 5. Top Shops
         List<Barbershop> topShops = barbershopService.findTop4ByActiveTrueOrderByRatingDesc();
@@ -81,7 +83,7 @@ public class AdminService {
         // Map to DTO...
         return new AdminDashboardResponse(users, shops, 0.0, bookings, 0.0,0.0,0.0, health, config, barbershopMapper.toDTOs(topShops));
     }
-
+    @Transactional
     public ShopAdminDashboardResponse getShopAdminDashboardData(Admin admin) {
         Barbershop shop = admin.getBarbershop();
         LocalDate todayDate = LocalDate.now();
@@ -138,7 +140,15 @@ public class AdminService {
         List<ServiceOffering> popularServices = serviceService.findPopularServices(shop, PageRequest.of(0, 5));
         List<Appointment> upcomingAppointments = appointmentService.findUpcomingByShop(shop, LocalDateTime.now(), PageRequest.of(0, 5));
 
-        // 8. Build Response
+        Map<Long, String> topBarbersMap = topBarbers.stream()
+                .collect(Collectors.toMap(Barber::getId, User::getName));
+
+        // In AdminService.java
+        Map<Long, String> popularServicesMap = popularServices.stream()
+                .collect(Collectors.toMap(
+                        ServiceOffering::getId,
+                        s -> s.getName() + " - Rs. " + s.getPrice() // Appends price to the string
+                ));// 8. Build Response
         return new ShopAdminDashboardResponse(
                 totalReviews,
                 totalBarbers,
@@ -152,8 +162,8 @@ public class AdminService {
                 shopEarnings,
                 barbersEarnings,
                 platformFees,
-                barberMapper.toDTOs(topBarbers),
-                serviceMapper.toDTOs(popularServices),
+                topBarbersMap,
+                popularServicesMap,
                 appointmentDetailsMapper.toDTOs(upcomingAppointments)
         );
     }

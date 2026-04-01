@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -19,12 +20,19 @@ public class KhaltiService {
     private String secretKey;
 
     @Value("${khalti.base-url}")
-    private String baseUrl; // Should be: https://a.khalti.com/api/v2/epayment/
+    private String baseUrl;
 
     @Value("${khalti.website-url}")
     private String websiteUrl;
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
+
+    public KhaltiService() {
+        // ✅ This tells Java's HTTP client to KEEP the POST method on 302 redirects
+        // (By default, Java changes POST to GET, which causes Khalti's 404 error)
+        System.setProperty("http.strictPostRedirect", "true");
+        this.restTemplate = new RestTemplate();
+    }
 
     public Map<String, Object> initiatePayment(Long transactionId, BigDecimal amount, String productName) {
         String url = baseUrl + "initiate/";
@@ -107,5 +115,55 @@ public class KhaltiService {
             log.error("Khalti lookup error: {}", e.getMessage(), e);
         }
         return false;
+    }
+    /**
+     * Refund payment to Khalti (Partial or Full)
+     * Amount should be in Rupees (e.g., 250.00), method converts to Paisa
+     * @return true if refund successful, false otherwise
+     */
+    public boolean refundPayment(String pidx, BigDecimal refundAmountInRupees) {
+        long amountInPaisa = refundAmountInRupees.multiply(new BigDecimal("100")).longValue();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("Authorization", "Key " + secretKey);
+
+        Map<String, Object> body = new HashMap<>();
+        body.put("pidx", pidx);
+        body.put("amount", amountInPaisa);
+
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
+
+        String refundUrl = baseUrl + "refund/";
+
+        log.info("Initiating Khalti Refund: pidx={}, amount={} paisa", pidx, amountInPaisa);
+
+        try {
+            ResponseEntity<Map> response = restTemplate.exchange(
+                    refundUrl,
+                    HttpMethod.POST,
+                    entity,
+                    Map.class
+            );
+
+            Map<String, Object> responseBody = response.getBody();
+            log.info("Khalti Refund Response: {}", responseBody);
+
+            if (response.getStatusCode() == HttpStatus.OK && responseBody != null) {
+                // Check Khalti's refund response for success indicator
+                // Khalti typically returns the refund transaction details on success
+                String status = (String) responseBody.get("status");
+                // You might also check for "Refunded" or other indicators based on Khalti docs
+                return response.getStatusCode().is2xxSuccessful();
+            }
+            return false;
+
+        } catch (org.springframework.web.client.HttpClientErrorException e) {
+            log.error("Khalti refund error ({}): {}", e.getStatusCode(), e.getResponseBodyAsString());
+            return false;
+        } catch (Exception e) {
+            log.error("Khalti refund exception for pidx={}: {}", pidx, e.getMessage(), e);
+            return false;
+        }
     }
 }

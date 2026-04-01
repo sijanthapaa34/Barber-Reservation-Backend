@@ -14,4 +14,9 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
     Page<Application> findRelevantForMainAdmin(Pageable pageable);
 
     Page<Application> findByBarbershopIdAndStatus(Long barbershopId, ApplicationStatus applicationStatus, Pageable pageable);
+
+    Page<Application> findByBarbershopId(Long barbershopId, Pageable pageable);
+
+    @Query("SELECT a FROM Application a WHERE a.barbershopId = :barbershopId AND a.type = 'BARBER'")
+    Page<Application> findAllBarberApplicationsByShop(Long barbershopId, Pageable pageable);
 }

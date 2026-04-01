@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -16,6 +17,7 @@ import java.util.List;
 
 @Entity
 @Data
+@EqualsAndHashCode(exclude = {"admin", "barbers", "services", "appointments"})
 @AllArgsConstructor
 @NoArgsConstructor
 public class Barbershop {

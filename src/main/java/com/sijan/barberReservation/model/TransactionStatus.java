@@ -5,5 +5,5 @@ public enum TransactionStatus {
     COMPLETED,
     FAILED,
     REFUNDED,
-    PARTIALLY_REFUNDED
+    REFUND_PENDING
 }

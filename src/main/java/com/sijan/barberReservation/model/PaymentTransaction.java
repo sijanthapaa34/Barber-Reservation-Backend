@@ -80,9 +80,7 @@ public class PaymentTransaction {
     )
     private List<ServiceOffering> services;
 
-    // ✅ FIXED: Allow null because appointment is created later in verifyAndConfirmPayment()
-    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-    @JoinColumn(name = "appointment_id", nullable = true)
+    @OneToOne(mappedBy = "paymentTransaction")
     private Appointment appointment;
 
     @PrePersist
@@ -90,7 +88,27 @@ public class PaymentTransaction {
         if (createdAt == null) {
             createdAt = LocalDateTime.now();
         }
+        if (refundStatus == null) {
+            refundStatus = RefundStatus.NOT_APPLICABLE;
+        }
+        if (status == null) {
+            status = TransactionStatus.PENDING;
+        }
     }
+
+    // In PaymentTransaction entity
+    @Column(name = "refund_amount")
+    private BigDecimal refundAmount;
+
+    @Column(name = "refund_percentage")
+    private Double refundPercentage;
+
+    @Column(name = "penalty_amount")
+    private BigDecimal penaltyAmount;
+
+    @Column(name = "refund_status")
+    @Enumerated(EnumType.STRING)
+    private RefundStatus refundStatus;  // NEW enum
 
     public boolean isPending() {
         return status == TransactionStatus.PENDING;

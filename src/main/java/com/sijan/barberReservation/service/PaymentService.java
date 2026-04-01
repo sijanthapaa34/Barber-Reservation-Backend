@@ -10,13 +10,11 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Map;
 
 @Service
@@ -25,338 +23,276 @@ import java.util.Map;
 public class PaymentService {
 
     private final PaymentTransactionRepository transactionRepository;
-    private final AppointmentRepository appointmentRepository;
-    private final BarberService barberService;
-    private final BarbershopService barbershopService;
-    private final CustomerService customerService;
-    private final ServiceOfferingService serviceService;
-    private final AppointmentService appointmentService;
-    private final EmailService emailService;
+    private final AppointmentBookingService appointmentService;
     private final KhaltiService khaltiService;
     private final EsewaService esewaService;
     private final SlotReservationService slotReservationService;
 
-    private static final BigDecimal PLATFORM_FEE_PERCENT = new BigDecimal("0.05");
 
     // ==================================================================================
-    // STEP 1: INITIATE PAYMENT
+    // STEP 1: INITIATE PAYMENT (Unchanged)
     // ==================================================================================
     @Transactional
-    public PaymentInitiationResponse initiatePayment(Appointment tempAppointment, Customer customer) {
-        if (tempAppointment.getServices().isEmpty()) {
+    public PaymentInitiationResponse initiatePayment(PaymentTransaction transaction, Customer customer) {
+        if (transaction.getServices().isEmpty()) {
             throw new ResourceNotFoundException("Services not found");
         }
 
-        // Calculate Price
-        BigDecimal totalAmount = tempAppointment.getServices().stream()
+        BigDecimal totalAmount = transaction.getServices().stream()
                 .map(s -> BigDecimal.valueOf(s.getPrice()))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        // Create Payment Transaction
-        PaymentTransaction tx = new PaymentTransaction();
-        tx.setStatus(TransactionStatus.PENDING);
-        tx.setPaymentMethod(tempAppointment.getPaymentMethod());
-        tx.setAmount(totalAmount);
-        tx.setCustomer(customer);
-        tx.setBarber(tempAppointment.getBarber());
-        tx.setBarbershop(tempAppointment.getBarbershop());
-        tx.setScheduledTime(tempAppointment.getScheduledTime());
-        tx.setServices(tempAppointment.getServices());
+        transaction.setAmount(totalAmount);
+        transaction.setCustomer(customer);
 
-        tx = transactionRepository.save(tx);
-        log.info("Payment transaction created: id={}, amount={}, method={}",
-                tx.getId(), totalAmount, tempAppointment.getPaymentMethod());
+        PaymentTransaction savedTransaction = transactionRepository.save(transaction);
 
-        // ✅ RESERVE THE SLOT (prevents race condition)
         try {
             slotReservationService.reserveSlot(
-                    tempAppointment.getBarber().getId(),
+                    savedTransaction.getBarber().getId(),
                     customer.getId(),
-                    tempAppointment.getScheduledTime(),
-                    tx.getId()
+                    savedTransaction.getScheduledTime(),
+                    savedTransaction.getId()
             );
         } catch (AppointmentSlotUnavailableException e) {
-            // Slot reservation failed - mark transaction as failed
-            tx.setStatus(TransactionStatus.FAILED);
-            transactionRepository.save(tx);
+            savedTransaction.setStatus(TransactionStatus.FAILED);
+            transactionRepository.save(savedTransaction);
             throw e;
         }
 
-        // Initiate with Payment Gateway
-        String productName = "Barber Appointment: " + tempAppointment.getBarbershop().getName();
+        String productName = "Barber Appointment: " + savedTransaction.getBarbershop().getName();
 
         try {
-            if (tempAppointment.getPaymentMethod() == PaymentMethod.KHALTI) {
-                Map<String, Object> khaltiRes = khaltiService.initiatePayment(
-                        tx.getId(), totalAmount, productName
-                );
+            if (savedTransaction.getPaymentMethod() == PaymentMethod.KHALTI) {
+                Map<String, Object> khaltiRes = khaltiService.initiatePayment(savedTransaction.getId(), totalAmount, productName);
                 String paymentUrl = (String) khaltiRes.get("payment_url");
                 String pidx = (String) khaltiRes.get("pidx");
 
-                tx.setPidx(pidx);
-                transactionRepository.save(tx);
+                savedTransaction.setPidx(pidx);
+                transactionRepository.save(savedTransaction);
 
-                log.info("Khalti payment initiated: txId={}, pidx={}", tx.getId(), pidx);
-                return new PaymentInitiationResponse(tx.getId(), paymentUrl, "KHALTI", null);
+                return new PaymentInitiationResponse(savedTransaction.getId(), paymentUrl, "KHALTI", pidx, null);
 
-            } else if (tempAppointment.getPaymentMethod() == PaymentMethod.ESEWA) {
-                Map<String, String> esewaData = esewaService.preparePaymentData(tx.getId(), totalAmount);
+            } else if (savedTransaction.getPaymentMethod() == PaymentMethod.ESEWA) {
+                Map<String, String> esewaData = esewaService.preparePaymentData(savedTransaction.getId(), totalAmount);
                 String paymentUrl = esewaData.get("payment_url");
-
-                log.info("eSewa payment initiated: txId={}", tx.getId());
-                return new PaymentInitiationResponse(tx.getId(), paymentUrl, "ESEWA", esewaData);
+                return new PaymentInitiationResponse(savedTransaction.getId(), paymentUrl, "ESEWA", null, esewaData);
 
             } else {
                 throw new RuntimeException("Unsupported Payment Method");
             }
         } catch (Exception e) {
-            // Gateway initiation failed - cancel reservation and mark transaction failed
-            log.error("Payment gateway initiation failed: txId={}, error={}", tx.getId(), e.getMessage());
-
-            slotReservationService.cancelReservation(tx.getId());
-
-            tx.setStatus(TransactionStatus.FAILED);
-            transactionRepository.save(tx);
-
+            slotReservationService.cancelReservation(savedTransaction.getId());
+            savedTransaction.setStatus(TransactionStatus.FAILED);
+            transactionRepository.save(savedTransaction);
             throw new RuntimeException("Payment Gateway Error: " + e.getMessage());
         }
     }
 
     // ==================================================================================
-    // STEP 2: VERIFY PAYMENT (IDEMPOTENT + RACE CONDITION SAFE)
+    // STEP 2: VERIFY PAYMENT (Delegates Appointment Creation)
     // ==================================================================================
     @Transactional
     public Appointment verifyAndConfirmPayment(PaymentVerificationRequest request) {
         Long transactionId = request.getTransactionId();
 
-        log.info("Payment verification requested: txId={}, pidx={}, refId={}",
-                transactionId, request.getPidx(), request.getRefId());
-
-        // ✅ PESSIMISTIC LOCK: Lock the transaction row to prevent concurrent verification
         PaymentTransaction tx = transactionRepository.findByIdWithLock(transactionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Transaction not found: " + transactionId));
 
-        // ✅ IDEMPOTENCY CHECK: If already completed, return existing appointment
         if (tx.isCompleted() && tx.getAppointment() != null) {
-            log.info("Transaction already verified, returning existing appointment: txId={}, appointmentId={}",
-                    transactionId, tx.getAppointment().getId());
             return tx.getAppointment();
         }
-
-        // ✅ STATUS CHECK: Only process PENDING transactions
         if (!tx.isPending()) {
-            log.warn("Transaction not in PENDING state: txId={}, status={}", transactionId, tx.getStatus());
-            throw new IllegalStateException(
-                    "Transaction already processed with status: " + tx.getStatus()
-            );
+            throw new IllegalStateException("Transaction already processed with status: " + tx.getStatus());
         }
 
-        // ✅ RESERVATION CHECK: Verify slot reservation is still valid
         boolean reservationValid = slotReservationService.isReservationActive(transactionId);
         if (!reservationValid) {
-            log.warn("Slot reservation expired or not found: txId={}", transactionId);
             tx.setStatus(TransactionStatus.FAILED);
             transactionRepository.save(tx);
-            throw new RuntimeException(
-                    "Payment verification timeout: Your reserved slot has expired. Please try booking again."
-            );
+            throw new RuntimeException("Payment verification timeout: Your reserved slot has expired.");
         }
 
-        // Verify with Payment Gateway
         boolean isVerified = verifyWithGateway(tx, request);
 
         if (!isVerified) {
-            log.warn("Payment verification failed with gateway: txId={}", transactionId);
-
-            // Cancel reservation
             slotReservationService.cancelReservation(transactionId);
-
-            // Mark transaction as failed
             tx.setStatus(TransactionStatus.FAILED);
             transactionRepository.save(tx);
-
             throw new RuntimeException("Payment verification failed with gateway.");
         }
 
-        // ✅ CREATE APPOINTMENT with unique constraint protection
-        Appointment appointment;
-        try {
-            appointment = createAppointmentFromTransaction(tx);
-            log.info("Appointment created: appointmentId={} for txId={}", appointment.getId(), transactionId);
-        } catch (DataIntegrityViolationException e) {
-            // Unique constraint violation - slot was taken by another transaction
-            log.error("Unique constraint violation when creating appointment: txId={}", transactionId);
-
-            // Cancel reservation
-            slotReservationService.cancelReservation(transactionId);
-
-            // Mark transaction as failed
-            tx.setStatus(TransactionStatus.FAILED);
-            transactionRepository.save(tx);
-
-            throw new AppointmentSlotUnavailableException(
-                    "This slot was taken by another customer during payment. Your payment will be refunded."
-            );
-        }
-
-        // ✅ UPDATE TRANSACTION
+        // 1. Update Payment Transaction status
         tx.setStatus(TransactionStatus.COMPLETED);
         tx.setPaidAt(LocalDateTime.now());
         tx.setVerifiedAt(LocalDateTime.now());
-        tx.setAppointment(appointment);
-        tx.setTransactionId(request.getGatewayTransactionId() != null
-                ? request.getGatewayTransactionId()
-                : request.getRefId());
+        tx.setTransactionId(request.getGatewayTransactionId() != null ? request.getGatewayTransactionId() : request.getRefId());
         tx.setRefId(request.getRefId());
+        if (request.getPidx() != null) tx.setPidx(request.getPidx());
 
-        if (request.getPidx() != null) {
-            tx.setPidx(request.getPidx());
-        }
-
-        // ✅ CONSUME RESERVATION
         slotReservationService.consumeReservation(transactionId);
 
-        // ✅ DISTRIBUTE EARNINGS
-        distributeEarnings(tx, appointment);
-
-        transactionRepository.save(tx);
-        log.info("Payment completed successfully: txId={}, appointmentId={}", transactionId, appointment.getId());
-
-        // Send confirmation emails (async, don't fail transaction if email fails)
-        sendConfirmationEmailsAsync(appointment);
-
-        return appointment;
+        return appointmentService.bookPaidAppointment(tx);
     }
 
-    /**
-     * Verify payment with the appropriate gateway
-     */
     private boolean verifyWithGateway(PaymentTransaction tx, PaymentVerificationRequest request) {
         try {
             if (tx.getPaymentMethod() == PaymentMethod.KHALTI) {
-                if (request.getPidx() == null || request.getPidx().isEmpty()) {
-                    log.error("Missing pidx for Khalti verification: txId={}", tx.getId());
-                    return false;
+                if (request.getPidx() == null || request.getPidx().isEmpty()) return false;
+
+                // ✅ RETRY LOGIC FOR KHALTI PENDING STATUS
+                int maxRetries = 3;
+                for (int i = 0; i < maxRetries; i++) {
+                    try {
+                        boolean isVerified = khaltiService.verifyPayment(request.getPidx());
+                        if (isVerified) {
+                            return true; // Payment is "Completed", exit successfully
+                        }
+                    } catch (Exception e) {
+                        log.warn("Khalti lookup attempt {} failed for pidx={}. Reason: {}", i + 1, request.getPidx(), e.getMessage());
+                    }
+
+                    // If we reach here, it's either Pending or failed. Wait before retrying.
+                    if (i < maxRetries - 1) {
+                        try {
+                            log.info("Khalti status likely PENDING. Waiting 2 seconds before retry...");
+                            Thread.sleep(2000); // Wait 2 seconds
+                        } catch (InterruptedException ie) {
+                            Thread.currentThread().interrupt();
+                            return false;
+                        }
+                    }
                 }
-                return khaltiService.verifyPayment(request.getPidx());
+                return false; // Exhausted all retries
 
             } else if (tx.getPaymentMethod() == PaymentMethod.ESEWA) {
-                if (request.getRefId() == null || request.getRefId().isEmpty()) {
-                    log.error("Missing refId for eSewa verification: txId={}", tx.getId());
-                    return false;
-                }
+                if (request.getRefId() == null || request.getRefId().isEmpty()) return false;
                 return esewaService.verifyPayment(request.getRefId(), tx.getId(), tx.getAmount());
-
-            } else {
-                log.error("Unknown payment method: txId={}, method={}", tx.getId(), tx.getPaymentMethod());
-                return false;
             }
+            return false;
         } catch (Exception e) {
-            log.error("Gateway verification error: txId={}, error={}", tx.getId(), e.getMessage(), e);
+            log.error("Gateway verification error: txId={}", tx.getId(), e);
             return false;
         }
     }
 
-    /**
-     * Create appointment from transaction
-     */
-    private Appointment createAppointmentFromTransaction(PaymentTransaction tx) {
-        Appointment appointment = new Appointment();
-        appointment.setCustomer(tx.getCustomer());
-        appointment.setBarber(tx.getBarber());
-        appointment.setBarbershop(tx.getBarbershop());
-        appointment.setServices(tx.getServices());
-
-        try {
-            int duration = tx.getServices().stream()
-                    .mapToInt(ServiceOffering::getDurationMinutes)
-                    .sum();
-            double price = tx.getServices().stream()
-                    .mapToDouble(s -> s.getPrice().doubleValue())
-                    .sum();
-            appointment.setTotalDurationMinutes(duration);
-            appointment.setTotalPrice(price);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to parse services during appointment creation");
-        }
-
-        appointment.setScheduledTime(tx.getScheduledTime());
-        appointment.setStatus(AppointmentStatus.SCHEDULED);
-        appointment.setPaymentStatus(PaymentStatus.PAID);
-        appointment.setPaymentMethod(tx.getPaymentMethod());
-
-        return appointmentRepository.save(appointment);
-    }
-
-    /**
-     * Distribute earnings between platform and shop
-     */
-    private void distributeEarnings(PaymentTransaction tx, Appointment appointment) {
-        BigDecimal totalAmount = tx.getAmount();
-        BigDecimal platformFee = totalAmount.multiply(PLATFORM_FEE_PERCENT)
-                .setScale(2, RoundingMode.HALF_UP);
-        BigDecimal shopEarnings = totalAmount.subtract(platformFee);
-
-        Barbershop shop = appointment.getBarbershop();
-        shop.setBalance(shop.getBalance().add(shopEarnings));
-
-        Barber barber = appointment.getBarber();
-        barber.setBalance(barber.getBalance().add(shopEarnings));
-
-        tx.setPlatformFee(platformFee);
-        tx.setShopEarnings(shopEarnings);
-
-        log.info("Earnings distributed: txId={}, total={}, platform={}, shop={}",
-                tx.getId(), totalAmount, platformFee, shopEarnings);
-    }
-
-    /**
-     * Send confirmation emails asynchronously
-     */
-    private void sendConfirmationEmailsAsync(Appointment appointment) {
-        try {
-            // Run in separate thread to not block transaction
-            Thread.startVirtualThread(() -> {
-                try {
-                    String customerEmail = appointment.getCustomer().getEmail();
-                    String customerName = appointment.getCustomer().getName();
-                    String barberName = appointment.getBarber().getName();
-                    String shopName = appointment.getBarbershop().getName();
-                    String serviceNames = appointment.getServices().stream()
-                            .map(ServiceOffering::getName)
-                            .collect(java.util.stream.Collectors.joining(", "));
-                    String date = appointment.getScheduledTime().toLocalDate().toString();
-                    String time = appointment.getScheduledTime().toLocalTime().toString();
-
-                    emailService.sendAppointmentConfirmationCustomer(
-                            customerEmail, customerName, barberName, serviceNames, date, time, shopName
-                    );
-                } catch (Exception e) {
-                    log.error("Failed to send confirmation email: appointmentId={}, error={}",
-                            appointment.getId(), e.getMessage());
-                }
-            });
-        } catch (Exception e) {
-            log.error("Failed to start email thread: {}", e.getMessage());
-        }
-    }
-
-    /**
-     * Handle payment timeout (called by scheduled job)
-     */
+    // ==================================================================================
+    // STEP 3: REFUND (Called by AppointmentService)
+    // ==================================================================================
     @Transactional
-    public void handleExpiredPayment(Long transactionId) {
+    public void processRefundForAppointment(PaymentTransaction tx, double refundPercentage) {
+        // ============ IDEMPOTENCY CHECK ============
+        if (tx.getRefundStatus() == RefundStatus.COMPLETED
+                || tx.getRefundStatus() == RefundStatus.FAILED_PENDING_REVIEW
+                || tx.getRefundStatus() == RefundStatus.NOT_REQUIRED) {
+            log.warn("Refund already processed for txId={}, status={}", tx.getId(), tx.getRefundStatus());
+            return;
+        }
+
+        // ============ VALIDATE TRANSACTION STATE ============
+        if (!tx.isCompleted()) {
+            throw new IllegalStateException("Cannot refund transaction with status: " + tx.getStatus());
+        }
+
+        // ============ CALCULATE AMOUNTS ============
+        BigDecimal totalPaid = tx.getAmount();
+        BigDecimal refundAmount = totalPaid.multiply(BigDecimal.valueOf(refundPercentage))
+                .setScale(2, RoundingMode.HALF_UP);
+        BigDecimal penaltyAmount = totalPaid.subtract(refundAmount);
+
+        log.info("Processing refund for txId={}. Total={}, Refund={}%, RefundAmount={}, Penalty={}",
+                tx.getId(), totalPaid, refundPercentage * 100, refundAmount, penaltyAmount);
+
+        // ============ STORE CALCULATED VALUES (regardless of gateway result) ============
+        tx.setRefundAmount(refundAmount);
+        tx.setRefundPercentage(refundPercentage);
+        tx.setPenaltyAmount(penaltyAmount);
+
+        // ============ DETERMINE IF GATEWAY REFUND NEEDED ============
+        boolean needsGatewayRefund = refundAmount.compareTo(BigDecimal.ZERO) > 0;
+        boolean hasGatewayReference = hasGatewayReferenceForRefund(tx);
+
+        if (needsGatewayRefund && hasGatewayReference) {
+            // ============ ATTEMPT GATEWAY REFUND ============
+            try {
+                boolean gatewaySuccess = callGatewayRefund(tx, refundAmount);
+
+                if (gatewaySuccess) {
+                    tx.setRefundStatus(RefundStatus.COMPLETED);
+                    tx.setStatus(TransactionStatus.REFUNDED);
+                    log.info("Gateway refund successful for txId={}", tx.getId());
+                } else {
+                    tx.setRefundStatus(RefundStatus.FAILED_PENDING_REVIEW);
+                    tx.setStatus(TransactionStatus.REFUNDED); // Keep as refunded for appointment cancellation
+                    log.error("Gateway refund returned false for txId={}. Needs manual review.", tx.getId());
+                }
+            } catch (Exception e) {
+                tx.setRefundStatus(RefundStatus.FAILED_PENDING_REVIEW);
+                tx.setStatus(TransactionStatus.REFUNDED); // Still mark appointment as cancelled
+                log.error("Gateway refund exception for txId={}. Needs manual review.", tx.getId(), e);
+            }
+        } else if (needsGatewayRefund && !hasGatewayReference) {
+            // Refund needed but no gateway reference (shouldn't happen normally)
+            tx.setRefundStatus(RefundStatus.FAILED_PENDING_REVIEW);
+            tx.setStatus(TransactionStatus.REFUNDED);
+            log.error("Refund needed but no gateway reference for txId={}. Needs manual review.", tx.getId());
+        } else {
+            // No refund needed (full penalty) or zero amount transaction
+            tx.setRefundStatus(RefundStatus.NOT_REQUIRED);
+            tx.setStatus(TransactionStatus.REFUNDED);
+            log.info("No gateway refund required for txId={}, penalty={}", tx.getId(), penaltyAmount);
+        }
+
+        transactionRepository.save(tx);
+    }
+
+    /**
+     * Check if transaction has required reference for gateway refund
+     */
+    private boolean hasGatewayReferenceForRefund(PaymentTransaction tx) {
+        if (tx.getPaymentMethod() == PaymentMethod.KHALTI) {
+            return tx.getPidx() != null && !tx.getPidx().isEmpty();
+        } else if (tx.getPaymentMethod() == PaymentMethod.ESEWA) {
+            return tx.getRefId() != null && !tx.getRefId().isEmpty();
+        }
+        return false;
+    }
+
+    /**
+     * Call appropriate gateway for refund
+     */
+    private boolean callGatewayRefund(PaymentTransaction tx, BigDecimal refundAmount) {
+        if (tx.getPaymentMethod() == PaymentMethod.KHALTI) {
+            return khaltiService.refundPayment(tx.getPidx(), refundAmount);
+        } else if (tx.getPaymentMethod() == PaymentMethod.ESEWA) {
+            // eSewa V2 does not provide a programmatic refund API in sandbox/production
+            // Refunds must be initiated manually from the eSewa merchant dashboard
+            log.warn("eSewa refund for txId={} refId={} amount={} must be processed manually via eSewa merchant dashboard",
+                    tx.getId(), tx.getRefId(), refundAmount);
+            return false; // Will be marked FAILED_PENDING_REVIEW for manual processing
+        }
+        return false;
+    }
+
+    public void failTransaction(Long transactionId) {
         transactionRepository.findById(transactionId).ifPresent(tx -> {
             if (tx.isPending()) {
-                log.info("Expiring pending payment: txId={}", transactionId);
-                slotReservationService.cancelReservation(transactionId);
                 tx.setStatus(TransactionStatus.FAILED);
                 transactionRepository.save(tx);
             }
         });
     }
 
-    public BigDecimal getMyBalance(User user) {
-        return BigDecimal.valueOf(2);
+    @Transactional
+    public void cancelPayment(Long transactionId) {
+        slotReservationService.cancelReservation(transactionId);
+        failTransaction(transactionId);
     }
+
+    @Transactional
+    public void handleExpiredPayment(Long transactionId) {
+        failTransaction(transactionId);
+        slotReservationService.cancelReservation(transactionId);
+    }
+
 }

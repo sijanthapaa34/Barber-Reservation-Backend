@@ -181,9 +181,13 @@ public class Appointment {
     @JoinTable(
             name = "appointment_services",
             joinColumns = @JoinColumn(name = "appointment_id"),
-            inverseJoinColumns = @JoinColumn(name = "service_offering_id")
+            inverseJoinColumns = @JoinColumn(name = "service_id")
     )
     private List<ServiceOffering> services;
+
+    @OneToOne
+    @JoinColumn(name = "payment_transaction_id", nullable = false)
+    private PaymentTransaction paymentTransaction;
 
     @PrePersist
     protected void onCreate() {

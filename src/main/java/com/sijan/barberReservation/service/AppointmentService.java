@@ -442,32 +442,37 @@ import com.sijan.barberReservation.exception.role.AccessDeniedException;
 import com.sijan.barberReservation.mapper.appointment.AppointmentSlotMapper;
 import com.sijan.barberReservation.model.*;
 import com.sijan.barberReservation.repository.AppointmentRepository;
-import com.sijan.barberReservation.repository.BarberLeaveRepository;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import com.sijan.barberReservation.repository.SlotReservationRepository;
+import com.sijan.barberReservation.repository.PaymentTransactionRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
-public class AppointmentService {
+public class AppointmentService{
 
     private final AppointmentRepository appointmentRepository;
+    private final PaymentTransactionRepository transactionRepository;
     private final AppointmentSlotMapper appointmentSlotMapper;
     private final EmailService emailService;
-    private final BarberLeaveRepository barberLeaveRepository;
-    private final SlotReservationRepository slotReservationRepository;
+    private final BarberLeaveService barberLeaveService;
+    private final PaymentService paymentService;
+    private final SlotReservationService slotReservationService;
+    private final NotificationService notificationService;
 
     @Transactional
     public Appointment findById(Long id) {
@@ -475,48 +480,107 @@ public class AppointmentService {
                 .orElseThrow(() -> new AppointmentNotFoundException(id));
     }
 
+    // ==================================================================================
+    // CANCELLATION FLOW (Called by AppointmentController)
+    // ==================================================================================
     @Transactional
-    public Appointment book(Appointment appointment, Customer customer) {
-        int totalDurationMinutes = appointment.getServices().stream()
-                .mapToInt(ServiceOffering::getDurationMinutes)
-                .sum();
+    public void cancel(Long appointmentId, User cancelledByUser) {
+        Appointment appointment = findById(appointmentId);
 
-        double totalPrice = appointment.getServices().stream()
-                .mapToDouble(ServiceOffering::getPrice)
-                .sum();
-
-        appointment.setTotalDurationMinutes(totalDurationMinutes);
-        appointment.setTotalPrice(totalPrice);
-
-        if (appointment.getScheduledTime().getMinute() % 30 != 0) {
-            throw new InvalidAppointmentTimeException("Appointments must start at 30-min intervals");
+        if (appointment.getStatus().equals(AppointmentStatus.CANCELLED)) {
+            throw new AppointmentAlreadyCancelledException(appointmentId);
+        }
+        if (appointment.getStatus().equals(AppointmentStatus.COMPLETED)) {
+            throw new IllegalStateException("Cannot cancel a completed appointment");
         }
 
-        List<LocalDateTime> availableSlots =
-                computeAvailableSlots(appointment.getBarber(), appointment.getScheduledTime().toLocalDate(), appointment.getServices(), null);
+        // 1. Handle Payment Refund if transaction exists
+        transactionRepository.findByAppointmentId(appointmentId).ifPresent(tx -> {
+            if (tx.getStatus() == TransactionStatus.COMPLETED) {
+                // If BARBER or ADMIN cancels, customer gets 100% refund
+                boolean isBarberCancelled = cancelledByUser.getRole() == Roles.BARBER || cancelledByUser.getRole() == Roles.SHOP_ADMIN;
+                double refundPercentage = isBarberCancelled ? 1.0 : calculateRefundPercentage(appointment.getScheduledTime());
 
-        if (!availableSlots.contains(appointment.getScheduledTime())) {
-            throw new AppointmentSlotUnavailableException("Selected slot is not available");
-        }
-
-        LocalDateTime checkInTime = appointment.getScheduledTime().minusMinutes(10);
-        appointment.setCheckInTime(checkInTime);
-        appointment.setCustomer(customer);
-        appointment.setStatus(AppointmentStatus.SCHEDULED);
-
-        // ✅ Safety net: DB Unique Constraint will catch race conditions if called from PaymentService
-        try {
-            Appointment savedAppointment = appointmentRepository.save(appointment);
-            sendBookingEmails(savedAppointment, customer);
-            return savedAppointment;
-        } catch (org.springframework.dao.DataIntegrityViolationException e) {
-            if (e.getMessage() != null && e.getMessage().contains("uk_barber_scheduled_time")) {
-                throw new AppointmentSlotUnavailableException(
-                        "This slot was just booked by another customer. Please select a different time."
-                );
+                // ✅ Delegate to PaymentService
+                paymentService.processRefundForAppointment(tx, refundPercentage);
+            } else if (tx.getStatus() == TransactionStatus.PENDING) {
+                paymentService.failTransaction(tx.getId());
+                slotReservationService.cancelReservation(tx.getId());
             }
-            throw e;
+        });
+
+        // 2. Update Appointment Status
+        appointment.setStatus(AppointmentStatus.CANCELLED);
+        appointmentRepository.save(appointment);
+
+        // 3. Send Emails
+        try {
+            sendCancellationEmails(appointment, cancelledByUser.getName());
+        } catch (Exception e) {
+            log.warn("Failed to send cancellation emails: {}", e.getMessage());
         }
+
+        // 4. Send push notifications
+        try {
+            String shopName = appointment.getBarbershop().getName();
+            Long customerId = appointment.getCustomer().getId();
+            Long barberId = appointment.getBarber().getId();
+            String cancelledByName = cancelledByUser.getName();
+            notificationService.sendAppointmentCancelled(customerId, "CUSTOMER", cancelledByName, shopName);
+            notificationService.sendAppointmentCancelled(barberId, "BARBER", cancelledByName, shopName);
+        } catch (Exception e) {
+            log.warn("Failed to send cancellation notifications: {}", e.getMessage());
+        }
+    }
+
+    private double calculateRefundPercentage(LocalDateTime scheduledTime) {
+        long hoursUntilAppointment = ChronoUnit.HOURS.between(LocalDateTime.now(), scheduledTime);
+        if (hoursUntilAppointment < 0) return 0.0;      // No-show
+        if (hoursUntilAppointment < 12) return 0.50;     // < 12 hours
+        if (hoursUntilAppointment < 24) return 0.75;     // 12-24 hours
+        return 1.0;                                      // 24+ hours
+    }
+
+    public java.util.Map<String, Object> getRefundPreview(Long appointmentId, Long userId) {
+        Appointment appointment = findById(appointmentId);
+        double refundPct = calculateRefundPercentage(appointment.getScheduledTime());
+
+        java.util.Map<String, Object> result = new java.util.HashMap<>();
+        result.put("refundPercentage", refundPct);
+        result.put("refundPercent", (int)(refundPct * 100));
+
+        transactionRepository.findByAppointmentId(appointmentId).ifPresent(tx -> {
+            if (tx.getStatus() == TransactionStatus.COMPLETED) {
+                java.math.BigDecimal refundAmount = tx.getAmount()
+                        .multiply(java.math.BigDecimal.valueOf(refundPct))
+                        .setScale(2, java.math.RoundingMode.HALF_UP);
+                result.put("totalPaid", tx.getAmount());
+                result.put("refundAmount", refundAmount);
+                result.put("penaltyAmount", tx.getAmount().subtract(refundAmount));
+                result.put("paymentMethod", tx.getPaymentMethod().name());
+            }
+        });
+        return result;
+    }
+
+    private void sendCancellationEmails(Appointment appointment, String cancelledByName) {
+        String customerEmail = appointment.getCustomer().getEmail();
+        String customerName = appointment.getCustomer().getName();
+        String barberEmail = appointment.getBarber().getEmail();
+        String barberName = appointment.getBarber().getName();
+        String serviceNames = appointment.getServices().stream().map(ServiceOffering::getName).collect(Collectors.joining(", "));
+        String date = appointment.getScheduledTime().toLocalDate().toString();
+
+        emailService.sendAppointmentCancellation(customerEmail, customerName, serviceNames, date, cancelledByName);
+        emailService.sendAppointmentCancellation(barberEmail, barberName, serviceNames, date, cancelledByName);
+    }
+
+    public Page<Appointment> getUpcomingByCustomer(Customer customer, int page, int size) {
+        return appointmentRepository.findUpcomingByCustomer(customer, LocalDateTime.now(), PageRequest.of(page, size));
+    }
+
+    public Page<Appointment> getPastByCustomer(Customer customer, int page, int size) {
+        return appointmentRepository.findPastByCustomer(customer, LocalDateTime.now(), PageRequest.of(page, size));
     }
 
     private void sendBookingEmails(Appointment savedAppointment, Customer customer) {
@@ -535,14 +599,6 @@ public class AppointmentService {
         emailService.sendNewBookingAlert(barberEmail, barberName, customerName, serviceNames, date, time);
     }
 
-    public Page<Appointment> getUpcomingByCustomer(Customer customer, int page, int size) {
-        return appointmentRepository.findUpcomingByCustomer(customer, LocalDateTime.now(), PageRequest.of(page, size));
-    }
-
-    public Page<Appointment> getPastByCustomer(Customer customer, int page, int size) {
-        return appointmentRepository.findPastByCustomer(customer, LocalDateTime.now(), PageRequest.of(page, size));
-    }
-
     public Page<Appointment> getUpcomingByBarber(Barber barber, int page, int size) {
         return appointmentRepository.findUpcomingByBarber(barber, LocalDateTime.now(), PageRequest.of(page, size));
     }
@@ -551,38 +607,14 @@ public class AppointmentService {
         return appointmentRepository.findPastByBarber(barber, LocalDateTime.now(), PageRequest.of(page, size));
     }
 
-    @Transactional
-    public void cancel(Long appointmentId, String cancelledByName) {
-        Appointment appointment = findById(appointmentId);
-        if (appointment.getStatus().equals(AppointmentStatus.CANCELLED)) {
-            throw new AppointmentAlreadyCancelledException(appointmentId);
-        }
-        appointment.setStatus(AppointmentStatus.CANCELLED);
-        appointmentRepository.save(appointment);
-
-        String customerEmail = appointment.getCustomer().getEmail();
-        String customerName = appointment.getCustomer().getName();
-        String barberEmail = appointment.getBarber().getEmail();
-        String barberName = appointment.getBarber().getName();
-        String serviceNames = appointment.getServices().stream().map(ServiceOffering::getName).collect(Collectors.joining(", "));
-        String date = appointment.getScheduledTime().toLocalDate().toString();
-
-        emailService.sendAppointmentCancellation(customerEmail, customerName, serviceNames, date, cancelledByName);
-        emailService.sendAppointmentCancellation(barberEmail, barberName, serviceNames, date, cancelledByName);
-    }
-
-    /**
-     * ✅ PURE LOGIC: Computes slots based ONLY on actual booked appointments.
-     * Does NOT look at temporary payment locks (that is PaymentService's job).
-     */
     public List<LocalDateTime> computeAvailableSlots(
             Barber barber,
             LocalDate date,
             List<ServiceOffering> services,
             Long excludeAppointmentId
     ) {
-        boolean isOnLeave = barberLeaveRepository
-                .existsByBarberAndStatusAndStartDateLessThanEqualAndEndDateGreaterThanEqual(barber, LeaveStatus.APPROVED, date, date);
+        boolean isOnLeave = barberLeaveService
+                .isOnLeave(barber, LeaveStatus.APPROVED, date, date);
 
         if (isOnLeave) {
             return new ArrayList<>();
@@ -594,7 +626,6 @@ public class AppointmentService {
         LocalDateTime workStart = date.atTime(9, 0);
         LocalDateTime workEnd = date.atTime(18, 0);
 
-        // 1. Get actual booked appointments
         List<Appointment> bookedAppointments =
                 appointmentRepository.findByBarberAndStatusAndScheduledTimeBetween(
                         barber,
@@ -603,16 +634,12 @@ public class AppointmentService {
                         date.atTime(LocalTime.MAX)
                 );
 
-        // ✅ 2. GET ACTIVE RESERVATIONS (Pending Payments)
-        List<LocalDateTime> reservedSlotTimes = slotReservationRepository
+        List<LocalDateTime> reservedSlotTimes = slotReservationService
                 .findActiveByBarberAndDate(
-                        barber.getId(),
+                        barber,
                         date.atStartOfDay(),
                         date.atTime(LocalTime.MAX)
-                )
-                .stream()
-                .map(SlotReservation::getReservedTime)
-                .collect(Collectors.toList());
+                );
 
         List<LocalDateTime> availableSlots = new ArrayList<>();
         LocalDateTime slotStart = workStart;

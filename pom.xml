@@ -147,6 +147,12 @@
 			<artifactId>firebase-admin</artifactId>
 			<version>9.1.1</version>
 		</dependency>
+		<!-- Fix for Google API grpc ClassNotFoundError -->
+		<dependency>
+			<groupId>io.grpc</groupId>
+			<artifactId>grpc-core</artifactId>
+			<version>1.62.2</version>
+		</dependency>
 	</dependencies>
 
 	<build>

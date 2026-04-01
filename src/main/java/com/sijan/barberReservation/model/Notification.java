@@ -20,6 +20,7 @@ public class Notification {
     @JoinColumn(name = "user_id")
     private User user;
     private String message;
+    private String title;
     private boolean isRead = false;
     @CreationTimestamp
     private LocalDateTime timestamp;

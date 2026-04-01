@@ -9,6 +9,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
@@ -100,5 +101,9 @@ public class BarberLeaveService {
 
     public Page<BarberLeave> getLeavesByBarber(Barber barber, Pageable pageable) {
         return barberLeaveRepository.findByBarberOrderByRequestedAtDesc(barber, pageable);
+    }
+
+    public boolean isOnLeave(Barber barber, LeaveStatus leaveStatus, LocalDate date, LocalDate date1) {
+        return barberLeaveRepository.existsByBarberAndStatusAndStartDateLessThanEqualAndEndDateGreaterThanEqual(barber, leaveStatus, date, date);
     }
 }

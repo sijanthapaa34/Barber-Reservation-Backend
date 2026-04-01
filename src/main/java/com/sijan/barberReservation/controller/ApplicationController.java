@@ -48,7 +48,7 @@ public class ApplicationController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size){
         Pageable pageable = PageRequest.of(page, size);
-        Page<Application> application = applicationService.getPendingForShopAdmin(barbershopId, pageable);
+        Page<Application> application = applicationService.getAllForShopAdmin(barbershopId, pageable);
         return ResponseEntity.ok(pageMapper.toApplicationPageResponse(application));
     }
 

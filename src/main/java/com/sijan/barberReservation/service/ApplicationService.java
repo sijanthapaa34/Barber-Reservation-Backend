@@ -11,6 +11,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+
 @Service
 @RequiredArgsConstructor
 public class ApplicationService {
@@ -20,7 +21,8 @@ public class ApplicationService {
     private final ApplicationMapper applicationMapper;
     private final UserService userService;
     private final BarbershopService barbershopService;
-    private final EmailService emailService; // <--- INJECT EMAIL SERVICE
+    private final EmailService emailService;
+    private final NotificationService notificationService;
 
     public Application save(Application application) {
         application.setPassword(passwordEncoder.encode(application.getPassword()));
@@ -29,11 +31,21 @@ public class ApplicationService {
         String entityName;
         if (application.getType() == ApplicationType.BARBER_SHOP) {
             entityName = application.getShopName();
+//            User admin = userService.findByRole(Roles.MAIN_ADMIN).stream().findFirst().orElse(null);
+//            if (admin != null) {
+//                notificationService.sendApplicationSubmittedToAdmin(
+//                        admin.getId(),
+//                        request.getName(),
+//                        request.getType().name()
+//                );
+//            }
         } else {
             entityName = application.getBarbershopName() != null ? application.getBarbershopName() : "Barber Position";
         }
 
         emailService.sendApplicationSubmissionEmail(application.getEmail(), entityName);
+
+
         return savedApplication;
     }
 
@@ -43,6 +55,10 @@ public class ApplicationService {
 
     public Page<Application> getPendingForShopAdmin(Long barbershopId, Pageable pageable) {
         return applicationRepository.findByBarbershopIdAndStatus(barbershopId, ApplicationStatus.PENDING, pageable);
+    }
+
+    public Page<Application> getAllForShopAdmin(Long barbershopId, Pageable pageable) {
+        return applicationRepository.findAllBarberApplicationsByShop(barbershopId, pageable);
     }
 
     public Page<Application> getAll(Pageable pageable) {
@@ -62,6 +78,10 @@ public class ApplicationService {
 
         app.setStatus(ApplicationStatus.PENDING_MAIN_APPROVAL);
         applicationRepository.save(app);
+
+        // Notify applicant that shop admin approved
+        notificationService.sendApplicationStatusUpdate(
+                app.getId(), "UNDER_REVIEW", app.getType().name());
     }
 
     @Transactional
@@ -103,6 +123,9 @@ public class ApplicationService {
 
         // Send Approval Email
         emailService.sendApplicationStatusEmail(app.getEmail(), entityName, "APPROVED");
+
+        // Send push notification
+        notificationService.sendApplicationStatusUpdate(app.getId(), "APPROVED", app.getType().name());
     }
 
     @Transactional
@@ -116,6 +139,9 @@ public class ApplicationService {
                 : application.getBarbershopName();
 
         emailService.sendApplicationStatusEmail(application.getEmail(), name, "REJECTED");
+
+        // Send push notification
+        notificationService.sendApplicationStatusUpdate(application.getId(), "REJECTED", application.getType().name());
     }
 
     public Application findById(Long id) {

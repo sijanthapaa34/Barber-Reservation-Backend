@@ -55,17 +55,6 @@ public class AppointmentController {
         return ResponseEntity.ok(response);
     }
 
-//    @PostMapping
-//    @PreAuthorize("hasRole('CUSTOMER')")
-//    public ResponseEntity<AppointmentDetailsResponse> book(@RequestBody CreateAppointmentRequest request,
-//                                                           @AuthenticationPrincipal UserPrincipal userPrincipal) {
-//        Customer customer = customerService.findById(userPrincipal.getId());
-//        Appointment appointment = createAppointmentMapper.toAppointment(request);
-//        AppointmentDetailsResponse booked = appointmentDetailsMapper.toDTO(appointmentService.book(appointment, customer));
-//        return ResponseEntity.status(HttpStatus.CREATED)
-//                .body(booked);
-//    }
-
     @GetMapping("/upcoming")
     public ResponseEntity<PageResponse<AppointmentDetailsResponse>> upcomingByCustomer(@RequestParam(defaultValue = "0") int page,
                                                                                        @RequestParam(defaultValue = "10") int size,
@@ -104,19 +93,20 @@ public class AppointmentController {
         return ResponseEntity.ok(pageMapper.toAppointmentPageResponse(result));
     }
 
-    // UPDATED CANCEL METHOD
     @PutMapping("/{appointmentId}/cancel")
     public ResponseEntity<Void> cancel(
             @PathVariable Long appointmentId,
             @AuthenticationPrincipal UserPrincipal userPrincipal) {
-
-        // Fetch user to get their name for the email notification
         User user = userService.findById(userPrincipal.getId());
-
-        // Call service with ID and Name
-        appointmentService.cancel(appointmentId, user.getName());
-
+        appointmentService.cancel(appointmentId, user);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{appointmentId}/refund-preview")
+    public ResponseEntity<java.util.Map<String, Object>> getRefundPreview(
+            @PathVariable Long appointmentId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+        return ResponseEntity.ok(appointmentService.getRefundPreview(appointmentId, userPrincipal.getId()));
     }
 
     @GetMapping("{barberId}/availability")

@@ -1,5 +1,6 @@
 package com.sijan.barberReservation.repository;
 
+import com.sijan.barberReservation.model.Barber;
 import com.sijan.barberReservation.model.SlotReservation;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -26,10 +27,12 @@ public interface SlotReservationRepository extends JpaRepository<SlotReservation
         return findActiveByTransactionIdForUpdate(txId);
     }
 
-    @Query("SELECT sr FROM SlotReservation sr WHERE sr.barberId = :barberId AND sr.status = 'ACTIVE' AND sr.reservedTime >= :start AND sr.reservedTime <= :end")
-    List<SlotReservation> findActiveByBarberAndDate(@Param("barberId") Long barberId, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
-
-    // ✅ CHANGED: Delete expired reservations instead of updating their status
+    List<SlotReservation> findByBarberIdAndStatusAndReservedTimeBetween(
+            Long barberId,
+            SlotReservation.ReservationStatus status,
+            LocalDateTime start,
+            LocalDateTime end
+    );
     @Modifying
     @Query("DELETE FROM SlotReservation sr WHERE sr.status != 'CONSUMED' AND sr.expiresAt < :now")
     int deleteExpiredReservations(@Param("now") LocalDateTime now);

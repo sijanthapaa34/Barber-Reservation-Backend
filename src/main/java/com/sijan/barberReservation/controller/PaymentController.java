@@ -4,9 +4,10 @@ import com.sijan.barberReservation.DTO.appointment.AppointmentDetailsResponse;
 import com.sijan.barberReservation.DTO.appointment.PaymentInitiationResponse;
 import com.sijan.barberReservation.DTO.appointment.PaymentRequestDTO;
 import com.sijan.barberReservation.DTO.appointment.PaymentVerificationRequest;
+import com.sijan.barberReservation.mapper.appointment.PaymentMapper;
 import com.sijan.barberReservation.mapper.appointment.AppointmentDetailsMapper;
-import com.sijan.barberReservation.mapper.appointment.CreateAppointmentMapper;
 import com.sijan.barberReservation.model.Appointment;
+import com.sijan.barberReservation.model.PaymentTransaction;
 import com.sijan.barberReservation.model.UserPrincipal;
 import com.sijan.barberReservation.service.CustomerService;
 import com.sijan.barberReservation.service.PaymentService;
@@ -21,9 +22,9 @@ import org.springframework.web.bind.annotation.*;
 public class PaymentController {
 
     private final PaymentService paymentService;
-    private final CreateAppointmentMapper createAppointmentMapper;
-    private final CustomerService customerService;
     private final AppointmentDetailsMapper appointmentDetailsMapper;
+    private final CustomerService customerService;
+    private final PaymentMapper paymentMapper;
 
     @PostMapping("/initiate")
     public ResponseEntity<PaymentInitiationResponse> initiatePayment(
@@ -31,8 +32,8 @@ public class PaymentController {
             @AuthenticationPrincipal UserPrincipal userPrincipal
     ) {
         Long customerId = userPrincipal.getId();
-        Appointment appointment = createAppointmentMapper.toAppointment(request);
-        PaymentInitiationResponse tx = paymentService.initiatePayment(appointment,customerService.findById(customerId));
+        PaymentTransaction transaction = paymentMapper.toEntity(request);
+        PaymentInitiationResponse tx = paymentService.initiatePayment(transaction,customerService.findById(customerId));
         return ResponseEntity.ok(tx);
     }
 
@@ -40,5 +41,11 @@ public class PaymentController {
     public ResponseEntity<AppointmentDetailsResponse> verifyPayment(@RequestBody PaymentVerificationRequest request) {
         Appointment appointment = paymentService.verifyAndConfirmPayment(request);
         return ResponseEntity.ok(appointmentDetailsMapper.toDTO(appointment));
+    }
+
+    @PostMapping("/{transactionId}/cancel")
+    public ResponseEntity<Void> cancelPayment(@PathVariable Long transactionId) {
+        paymentService.cancelPayment(transactionId);
+        return ResponseEntity.ok().build();
     }
 }

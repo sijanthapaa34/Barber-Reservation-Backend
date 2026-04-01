@@ -23,6 +23,7 @@ public class ReviewService {
     private final ServiceOfferingService serviceService;
     private final UserService userService;
     private final ReviewMapper reviewMapper;
+    private final NotificationService notificationService;
 
     @Transactional
     public ReviewDTO createReview(Review review) {
@@ -56,6 +57,12 @@ public class ReviewService {
                     saved.getCustomer().getName(),
                     saved.getRating(),
                     saved.getComment()
+            );
+
+            notificationService.sendReviewSubmittedToBarber(
+                    barber.getId(),
+                    saved.getCustomer().getName(),
+                    saved.getRating()
             );
         }
 
@@ -138,6 +145,12 @@ public class ReviewService {
         reply.setComment(request.getComment());
 
         review.getReplies().add(reply);
+//
+//        notificationService.sendReviewReplyToCustomer(
+//                customer.getId(),
+//                barber.getName(),
+//                barbershop.getName()
+//        );
 
         return reviewRepository.save(review);
     }
