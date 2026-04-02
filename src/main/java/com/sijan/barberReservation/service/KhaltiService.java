@@ -134,9 +134,10 @@ public class KhaltiService {
 
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
 
-        String refundUrl = baseUrl + "refund/";
+        // Khalti refund API only exists on production endpoint regardless of environment
+        String refundUrl = "https://a.khalti.com/api/v2/epayment/refund/";
 
-        log.info("Initiating Khalti Refund: pidx={}, amount={} paisa", pidx, amountInPaisa);
+        log.info("Initiating Khalti Refund: url={}, pidx={}, amount={} paisa", refundUrl, pidx, amountInPaisa);
 
         try {
             ResponseEntity<Map> response = restTemplate.exchange(

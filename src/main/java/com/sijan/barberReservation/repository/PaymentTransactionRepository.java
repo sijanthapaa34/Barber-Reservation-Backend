@@ -31,4 +31,6 @@ public interface PaymentTransactionRepository extends JpaRepository<PaymentTrans
     Optional<PaymentTransaction> findByPidxWithLock(@Param("pidx") String pidx);
 
     Optional<PaymentTransaction> findByAppointmentId(Long appointmentId);
+
+    List<PaymentTransaction> findByCustomerIdOrderByCreatedAtDesc(Long customerId);
 }

@@ -3,6 +3,7 @@ package com.sijan.barberReservation.service;
 import com.sijan.barberReservation.exception.appointment.AppointmentSlotUnavailableException;
 import com.sijan.barberReservation.model.*;
 import com.sijan.barberReservation.repository.AppointmentRepository;
+import com.sijan.barberReservation.repository.CustomerRepository;
 import com.sijan.barberReservation.repository.PaymentTransactionRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -24,8 +25,13 @@ public class AppointmentBookingServiceImpl implements AppointmentBookingService 
     private final PaymentTransactionRepository transactionRepository;
     private final EmailService emailService;
     private final NotificationService notificationService;
+    private final CustomerRepository customerRepository;
     @PersistenceContext
     private EntityManager entityManager;
+
+    // Loyalty: ₹100 spent = 1 point. 100 points = 1 free appointment
+    private static final int POINTS_PER_100_RS = 1;
+    private static final int FREE_APPOINTMENT_THRESHOLD = 100;
 
     @Override
     @Transactional
@@ -62,6 +68,7 @@ public class AppointmentBookingServiceImpl implements AppointmentBookingService 
             transactionRepository.save(tx);
 
             distributeEarnings(tx, savedAppointment);
+            awardLoyaltyPoints(tx.getCustomer(), tx.getAmount());
 
             // Send notifications — wrapped in try-catch so failures never affect the booking
             try {
@@ -103,5 +110,19 @@ public class AppointmentBookingServiceImpl implements AppointmentBookingService 
 
         tx.setPlatformFee(platformFee);
         tx.setShopEarnings(shopEarnings);
+    }
+
+    private void awardLoyaltyPoints(Customer customer, BigDecimal amountPaid) {
+        try {
+            int pointsEarned = amountPaid.divide(new BigDecimal("100"), 0, RoundingMode.FLOOR).intValue() * POINTS_PER_100_RS;
+            if (pointsEarned > 0) {
+                int currentPoints = customer.getPoints() != null ? customer.getPoints() : 0;
+                customer.setPoints(currentPoints + pointsEarned);
+                customerRepository.save(customer);
+                log.info("Awarded {} loyalty points to customer {}. Total: {}", pointsEarned, customer.getId(), customer.getPoints());
+            }
+        } catch (Exception e) {
+            log.warn("Failed to award loyalty points to customer {}: {}", customer.getId(), e.getMessage());
+        }
     }
 }

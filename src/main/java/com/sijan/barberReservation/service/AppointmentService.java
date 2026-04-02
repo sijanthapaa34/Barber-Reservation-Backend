@@ -550,7 +550,7 @@ public class AppointmentService{
         result.put("refundPercent", (int)(refundPct * 100));
 
         transactionRepository.findByAppointmentId(appointmentId).ifPresent(tx -> {
-            if (tx.getStatus() == TransactionStatus.COMPLETED) {
+            if (tx.getStatus() == TransactionStatus.COMPLETED || tx.getStatus() == TransactionStatus.REFUNDED) {
                 java.math.BigDecimal refundAmount = tx.getAmount()
                         .multiply(java.math.BigDecimal.valueOf(refundPct))
                         .setScale(2, java.math.RoundingMode.HALF_UP);

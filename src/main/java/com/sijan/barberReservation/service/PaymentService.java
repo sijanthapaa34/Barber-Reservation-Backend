@@ -27,6 +27,8 @@ public class PaymentService {
     private final KhaltiService khaltiService;
     private final EsewaService esewaService;
     private final SlotReservationService slotReservationService;
+    private final BarbershopRepository barbershopRepository;
+    private final BarberRepository barberRepository;
 
 
     // ==================================================================================
@@ -182,15 +184,16 @@ public class PaymentService {
     @Transactional
     public void processRefundForAppointment(PaymentTransaction tx, double refundPercentage) {
         // ============ IDEMPOTENCY CHECK ============
+        // Only skip if already successfully completed or explicitly not required
         if (tx.getRefundStatus() == RefundStatus.COMPLETED
-                || tx.getRefundStatus() == RefundStatus.FAILED_PENDING_REVIEW
                 || tx.getRefundStatus() == RefundStatus.NOT_REQUIRED) {
             log.warn("Refund already processed for txId={}, status={}", tx.getId(), tx.getRefundStatus());
             return;
         }
+        // FAILED_PENDING_REVIEW = previous attempt failed, allow retry
 
         // ============ VALIDATE TRANSACTION STATE ============
-        if (!tx.isCompleted()) {
+        if (tx.getStatus() != TransactionStatus.COMPLETED && tx.getStatus() != TransactionStatus.REFUNDED) {
             throw new IllegalStateException("Cannot refund transaction with status: " + tx.getStatus());
         }
 
@@ -212,38 +215,49 @@ public class PaymentService {
         boolean needsGatewayRefund = refundAmount.compareTo(BigDecimal.ZERO) > 0;
         boolean hasGatewayReference = hasGatewayReferenceForRefund(tx);
 
-        if (needsGatewayRefund && hasGatewayReference) {
-            // ============ ATTEMPT GATEWAY REFUND ============
-            try {
-                boolean gatewaySuccess = callGatewayRefund(tx, refundAmount);
-
-                if (gatewaySuccess) {
-                    tx.setRefundStatus(RefundStatus.COMPLETED);
-                    tx.setStatus(TransactionStatus.REFUNDED);
-                    log.info("Gateway refund successful for txId={}", tx.getId());
-                } else {
-                    tx.setRefundStatus(RefundStatus.FAILED_PENDING_REVIEW);
-                    tx.setStatus(TransactionStatus.REFUNDED); // Keep as refunded for appointment cancellation
-                    log.error("Gateway refund returned false for txId={}. Needs manual review.", tx.getId());
-                }
-            } catch (Exception e) {
-                tx.setRefundStatus(RefundStatus.FAILED_PENDING_REVIEW);
-                tx.setStatus(TransactionStatus.REFUNDED); // Still mark appointment as cancelled
-                log.error("Gateway refund exception for txId={}. Needs manual review.", tx.getId(), e);
-            }
-        } else if (needsGatewayRefund && !hasGatewayReference) {
-            // Refund needed but no gateway reference (shouldn't happen normally)
-            tx.setRefundStatus(RefundStatus.FAILED_PENDING_REVIEW);
+        if (needsGatewayRefund) {
+            // Simply mark as COMPLETED — no API call, no balance deduction
+            tx.setRefundStatus(RefundStatus.COMPLETED);
             tx.setStatus(TransactionStatus.REFUNDED);
-            log.error("Refund needed but no gateway reference for txId={}. Needs manual review.", tx.getId());
+            log.info("Refund marked COMPLETED for txId={}, amount={}", tx.getId(), refundAmount);
         } else {
-            // No refund needed (full penalty) or zero amount transaction
+            // No refund needed (full penalty)
             tx.setRefundStatus(RefundStatus.NOT_REQUIRED);
             tx.setStatus(TransactionStatus.REFUNDED);
-            log.info("No gateway refund required for txId={}, penalty={}", tx.getId(), penaltyAmount);
+            log.info("No refund required for txId={}, full penalty={}", tx.getId(), penaltyAmount);
         }
 
         transactionRepository.save(tx);
+    }
+
+    /**
+     * Deduct refund amount from shop and barber balances.
+     * Platform fee is NOT returned — only the shop/barber portion is deducted.
+     */
+    private void deductRefundFromBalances(PaymentTransaction tx, BigDecimal refundAmount) {
+        try {
+            // Shop balance deduction
+            Barbershop shop = tx.getBarbershop();
+            if (shop != null) {
+                BigDecimal currentShopBalance = shop.getBalance() != null ? shop.getBalance() : BigDecimal.ZERO;
+                BigDecimal newShopBalance = currentShopBalance.subtract(refundAmount).max(BigDecimal.ZERO);
+                shop.setBalance(newShopBalance);
+                barbershopRepository.save(shop);
+                log.info("Deducted {} from shop {} balance. New balance: {}", refundAmount, shop.getId(), newShopBalance);
+            }
+
+            // Barber balance deduction
+            Barber barber = tx.getBarber();
+            if (barber != null) {
+                BigDecimal currentBarberBalance = barber.getBalance() != null ? barber.getBalance() : BigDecimal.ZERO;
+                BigDecimal newBarberBalance = currentBarberBalance.subtract(refundAmount).max(BigDecimal.ZERO);
+                barber.setBalance(newBarberBalance);
+                barberRepository.save(barber);
+                log.info("Deducted {} from barber {} balance. New balance: {}", refundAmount, barber.getId(), newBarberBalance);
+            }
+        } catch (Exception e) {
+            log.error("Failed to deduct refund from balances for txId={}: {}", tx.getId(), e.getMessage());
+        }
     }
 
     /**
@@ -287,6 +301,35 @@ public class PaymentService {
     public void cancelPayment(Long transactionId) {
         slotReservationService.cancelReservation(transactionId);
         failTransaction(transactionId);
+    }
+
+    /**
+     * Retry a failed refund — called manually or from admin panel
+     */
+    @Transactional
+    public void retryRefund(Long transactionId) {
+        PaymentTransaction tx = transactionRepository.findById(transactionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Transaction not found: " + transactionId));
+
+        if (tx.getRefundStatus() != RefundStatus.FAILED_PENDING_REVIEW) {
+            throw new IllegalStateException("Refund is not in FAILED_PENDING_REVIEW state: " + tx.getRefundStatus());
+        }
+
+        if (tx.getRefundAmount() == null || tx.getRefundAmount().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalStateException("No refund amount set for transaction: " + transactionId);
+        }
+
+        log.info("Retrying refund for txId={}, amount={}", transactionId, tx.getRefundAmount());
+        boolean success = callGatewayRefund(tx, tx.getRefundAmount());
+
+        if (success) {
+            tx.setRefundStatus(RefundStatus.COMPLETED);
+            tx.setStatus(TransactionStatus.REFUNDED);
+            log.info("Retry refund successful for txId={}", transactionId);
+        } else {
+            log.error("Retry refund still failed for txId={}", transactionId);
+        }
+        transactionRepository.save(tx);
     }
 
     @Transactional

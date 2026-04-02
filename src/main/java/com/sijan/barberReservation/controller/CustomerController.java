@@ -40,4 +40,21 @@ public class CustomerController {
         customerService.changePassword(customer, request.getCurrentPassword(), request.getNewPassword());
         return ResponseEntity.ok().build();
     }
+
+    // GET /api/customers/{customerId}/loyalty - Get loyalty points summary
+    @GetMapping("/{customerId}/loyalty")
+    public ResponseEntity<java.util.Map<String, Object>> getLoyalty(@PathVariable Long customerId) {
+        Customer customer = customerService.findById(customerId);
+        int points = customer.getPoints() != null ? customer.getPoints() : 0;
+        int pointsToFree = Math.max(0, 100 - (points % 100));
+        int freeAppointmentsEarned = points / 100;
+
+        java.util.Map<String, Object> result = new java.util.HashMap<>();
+        result.put("points", points);
+        result.put("pointsToNextReward", pointsToFree);
+        result.put("freeAppointmentsEarned", freeAppointmentsEarned);
+        result.put("progressPercent", (points % 100));
+        result.put("rule", "Spend Rs. 100 = 1 point. Collect 100 points = 1 free appointment!");
+        return ResponseEntity.ok(result);
+    }
 }
