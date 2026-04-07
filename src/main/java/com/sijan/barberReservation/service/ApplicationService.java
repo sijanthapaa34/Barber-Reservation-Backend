@@ -2,18 +2,20 @@ package com.sijan.barberReservation.service;
 
 import com.sijan.barberReservation.mapper.application.ApplicationMapper;
 import com.sijan.barberReservation.model.*;
+import com.sijan.barberReservation.repository.AdminRepository;
 import com.sijan.barberReservation.repository.ApplicationRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ApplicationService {
 
     private final ApplicationRepository applicationRepository;
@@ -23,6 +25,7 @@ public class ApplicationService {
     private final BarbershopService barbershopService;
     private final EmailService emailService;
     private final NotificationService notificationService;
+    private final AdminRepository adminRepository;
 
     public Application save(Application application) {
         application.setPassword(passwordEncoder.encode(application.getPassword()));
@@ -31,21 +34,26 @@ public class ApplicationService {
         String entityName;
         if (application.getType() == ApplicationType.BARBER_SHOP) {
             entityName = application.getShopName();
-//            User admin = userService.findByRole(Roles.MAIN_ADMIN).stream().findFirst().orElse(null);
-//            if (admin != null) {
-//                notificationService.sendApplicationSubmittedToAdmin(
-//                        admin.getId(),
-//                        request.getName(),
-//                        request.getType().name()
-//                );
-//            }
+            // Notify all main admins about new shop application
+            try {
+                adminRepository.findAllByAdminLevel(AdminLevel.SUPER_ADMIN).forEach(admin ->
+                    notificationService.sendShopApplicationToMainAdmin(admin.getId(), application.getShopName(), application.getName())
+                );
+            } catch (Exception e) { log.warn("Failed to notify main admins of shop application: {}", e.getMessage()); }
         } else {
             entityName = application.getBarbershopName() != null ? application.getBarbershopName() : "Barber Position";
+            // Notify shop admin about new barber application
+            try {
+                if (application.getBarbershopId() != null) {
+                    Barbershop shop = barbershopService.findById(application.getBarbershopId());
+                    adminRepository.findByBarbershop(shop).ifPresent(admin ->
+                        notificationService.sendBarberApplicationToShopAdmin(admin.getId(), application.getName())
+                    );
+                }
+            } catch (Exception e) { log.warn("Failed to notify shop admin of barber application: {}", e.getMessage()); }
         }
 
         emailService.sendApplicationSubmissionEmail(application.getEmail(), entityName);
-
-
         return savedApplication;
     }
 
@@ -80,8 +88,14 @@ public class ApplicationService {
         applicationRepository.save(app);
 
         // Notify applicant that shop admin approved
-        notificationService.sendApplicationStatusUpdate(
-                app.getId(), "UNDER_REVIEW", app.getType().name());
+        notificationService.sendApplicationStatusUpdate(app.getId(), "UNDER_REVIEW", app.getType().name());
+
+        // Notify all main admins that barber application needs final approval
+        try {
+            adminRepository.findAllByAdminLevel(AdminLevel.SUPER_ADMIN).forEach(admin ->
+                notificationService.sendBarberApplicationToMainAdmin(admin.getId(), app.getName(), app.getBarbershopName())
+            );
+        } catch (Exception e) { log.warn("Failed to notify main admins of barber approval: {}", e.getMessage()); }
     }
 
     @Transactional
@@ -124,8 +138,25 @@ public class ApplicationService {
         // Send Approval Email
         emailService.sendApplicationStatusEmail(app.getEmail(), entityName, "APPROVED");
 
-        // Send push notification
+        // Send push notification to applicant
         notificationService.sendApplicationStatusUpdate(app.getId(), "APPROVED", app.getType().name());
+
+        // Notify shop admin when barber joins, notify main admins when shop is created
+        try {
+            if (app.getType() == ApplicationType.BARBER) {
+                Barbershop shop = barbershopService.findById(app.getBarbershopId());
+                adminRepository.findByBarbershop(shop).ifPresent(admin ->
+                    notificationService.sendBarberJoinedToShopAdmin(admin.getId(), app.getName())
+                );
+                adminRepository.findAllByAdminLevel(AdminLevel.SUPER_ADMIN).forEach(admin ->
+                    notificationService.sendBarberRegisteredToMainAdmin(admin.getId(), app.getName(), app.getBarbershopName())
+                );
+            } else if (app.getType() == ApplicationType.BARBER_SHOP) {
+                adminRepository.findAllByAdminLevel(AdminLevel.SUPER_ADMIN).forEach(admin ->
+                    notificationService.sendShopRegisteredToMainAdmin(admin.getId(), app.getShopName())
+                );
+            }
+        } catch (Exception e) { log.warn("Failed to send post-approval notifications: {}", e.getMessage()); }
     }
 
     @Transactional

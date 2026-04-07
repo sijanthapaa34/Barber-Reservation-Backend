@@ -6,10 +6,12 @@ import com.sijan.barberReservation.model.Admin;
 import com.sijan.barberReservation.model.Barbershop;
 import com.sijan.barberReservation.model.ServiceOffering;
 import com.sijan.barberReservation.repository.ServiceRepository;
+import com.sijan.barberReservation.repository.AdminRepository;
 import jakarta.transaction.Transactional;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -19,8 +21,11 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ServiceOfferingService {
     private final ServiceRepository serviceRepository;
+    private final AdminRepository adminRepository;
+    private final NotificationService notificationService;
 
     public ServiceOffering findById(Long id) {
         return serviceRepository.findById(id)
@@ -38,7 +43,16 @@ public class ServiceOfferingService {
     public ServiceOffering add(Barbershop barberShop, ServiceOffering serviceOffering) {
         serviceOffering.setBarbershop(barberShop);
         serviceOffering.setAvailable(true);
-        return serviceRepository.save(serviceOffering);
+        ServiceOffering saved = serviceRepository.save(serviceOffering);
+
+        // Notify shop admin
+        try {
+            adminRepository.findByBarbershop(barberShop).ifPresent(admin ->
+                notificationService.sendServiceAddedToShopAdmin(admin.getId(), saved.getName())
+            );
+        } catch (Exception e) { log.warn("Failed to notify shop admin of new service: {}", e.getMessage()); }
+
+        return saved;
     }
 
     @Transactional
