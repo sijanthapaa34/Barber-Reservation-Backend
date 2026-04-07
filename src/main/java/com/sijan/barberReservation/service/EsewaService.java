@@ -51,12 +51,16 @@ public class EsewaService {
     public Map<String, String> preparePaymentData(Long transactionId, BigDecimal amount) {
         String totalAmountStr = amount.setScale(2, RoundingMode.HALF_UP).toString();
 
+        // ✅ FIX: Create unique transaction UUID by appending timestamp
+        // This prevents "Duplicate transaction UUID" errors on retries
+        String uniqueTransactionUuid = transactionId.toString() + "-" + System.currentTimeMillis();
+
         // eSewa V2 Signature format
         String signedFieldNames = "total_amount,transaction_uuid,product_code";
         String messageToSign = String.format(
                 "total_amount=%s,transaction_uuid=%s,product_code=%s",
                 totalAmountStr,
-                transactionId.toString(),
+                uniqueTransactionUuid,
                 merchantId
         );
 
@@ -65,7 +69,7 @@ public class EsewaService {
         Map<String, String> data = new HashMap<>();
 
         // ✅ FIXED: Correct payment URL for eSewa V2 form submission
-        data.put("payment_url", baseUrl + "main/v2/form/");
+        data.put("payment_url", baseUrl + "main/v2/form");
 
         // Form Data
         data.put("amount", totalAmountStr);
@@ -73,27 +77,34 @@ public class EsewaService {
         data.put("product_service_charge", "0");
         data.put("product_delivery_charge", "0");
         data.put("total_amount", totalAmountStr);
-        data.put("transaction_uuid", transactionId.toString());
+        data.put("transaction_uuid", uniqueTransactionUuid);
         data.put("product_code", merchantId);
-        data.put("success_url", successUrl + "?txId=" + transactionId);
+        data.put("success_url", successUrl + "?txId=" + transactionId + "&refId=" + uniqueTransactionUuid);
         data.put("failure_url", failureUrl + "?txId=" + transactionId + "&status=failure");
         data.put("signed_field_names", signedFieldNames);
         data.put("signature", signature);
 
         log.info("eSewa Payment URL: {}", data.get("payment_url"));
+        log.info("eSewa Transaction UUID: {}", uniqueTransactionUuid);
+        log.info("eSewa Success URL: {}", data.get("success_url"));
+        log.info("eSewa Failure URL: {}", data.get("failure_url"));
         log.info("eSewa Signature: {}", signature);
 
         return data;
     }
 
     public boolean verifyPayment(String refId, Long transactionId, BigDecimal amount) {
+        // ✅ FIX: Extract the unique UUID from refId (format: "txId-timestamp")
+        // The refId passed here is the uniqueTransactionUuid from preparePaymentData
+        String transactionUuid = refId;
+        
         // ✅ FIXED: Correct verification endpoint for eSewa V2
         String url = String.format(
                 "%smain/v2/form/transaction/status/?product_code=%s&total_amount=%s&transaction_uuid=%s",
                 baseUrl,
                 merchantId,
                 amount.setScale(2, RoundingMode.HALF_UP).toString(),
-                transactionId.toString()
+                transactionUuid
         );
 
         log.info("eSewa Verify URL: {}", url);
