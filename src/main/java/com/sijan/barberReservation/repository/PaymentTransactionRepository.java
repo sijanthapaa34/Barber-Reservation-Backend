@@ -33,4 +33,27 @@ public interface PaymentTransactionRepository extends JpaRepository<PaymentTrans
     Optional<PaymentTransaction> findByAppointmentId(Long appointmentId);
 
     List<PaymentTransaction> findByCustomerIdOrderByCreatedAtDesc(Long customerId);
+
+    @Query("SELECT COALESCE(SUM(tx.amount), 0) FROM PaymentTransaction tx WHERE tx.status = 'COMPLETED' AND (tx.refundStatus IS NULL OR tx.refundStatus = 'NOT_APPLICABLE' OR tx.refundStatus = 'NOT_REQUIRED') AND tx.paidAt BETWEEN :start AND :end")
+    Double sumRevenueByPaidAtBetween(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+
+    @Query("SELECT COALESCE(SUM(tx.platformFee), 0) FROM PaymentTransaction tx WHERE tx.status = 'COMPLETED' AND (tx.refundStatus IS NULL OR tx.refundStatus = 'NOT_APPLICABLE' OR tx.refundStatus = 'NOT_REQUIRED') AND tx.paidAt BETWEEN :start AND :end")
+    Double sumPlatformFeeByPaidAtBetween(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+
+    @Query("SELECT COALESCE(SUM(tx.shopEarnings), 0) FROM PaymentTransaction tx WHERE tx.status = 'COMPLETED' AND (tx.refundStatus IS NULL OR tx.refundStatus = 'NOT_APPLICABLE' OR tx.refundStatus = 'NOT_REQUIRED') AND tx.paidAt BETWEEN :start AND :end")
+    Double sumShopEarningsByPaidAtBetween(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+
+    @Query("SELECT tx FROM PaymentTransaction tx WHERE tx.status = 'COMPLETED' ORDER BY tx.paidAt DESC")
+    List<PaymentTransaction> findRecentCompleted(org.springframework.data.domain.Pageable pageable);
+
+    // Shop-specific queries
+    @Query("SELECT COALESCE(SUM(tx.amount), 0) FROM PaymentTransaction tx WHERE tx.barbershop = :shop AND tx.status = 'COMPLETED' AND (tx.refundStatus IS NULL OR tx.refundStatus = 'NOT_APPLICABLE' OR tx.refundStatus = 'NOT_REQUIRED') AND tx.paidAt BETWEEN :start AND :end")
+    Double sumRevenueByBarbershopAndPaidAtBetween(@Param("shop") com.sijan.barberReservation.model.Barbershop shop, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+
+    @Query("SELECT COUNT(tx) FROM PaymentTransaction tx WHERE tx.barbershop = :shop AND tx.status = 'COMPLETED' AND (tx.refundStatus IS NULL OR tx.refundStatus = 'NOT_APPLICABLE' OR tx.refundStatus = 'NOT_REQUIRED') AND tx.paidAt BETWEEN :start AND :end")
+    Integer countByBarbershopAndPaidAtBetween(@Param("shop") com.sijan.barberReservation.model.Barbershop shop, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+
+    // Barber-specific queries
+    @Query("SELECT COALESCE(SUM(tx.amount * 0.57), 0) FROM PaymentTransaction tx WHERE tx.barber = :barber AND tx.status = 'COMPLETED' AND (tx.refundStatus IS NULL OR tx.refundStatus = 'NOT_APPLICABLE' OR tx.refundStatus = 'NOT_REQUIRED') AND tx.paidAt BETWEEN :start AND :end")
+    Double sumBarberEarningsByPaidAtBetween(@Param("barber") com.sijan.barberReservation.model.Barber barber, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 }
