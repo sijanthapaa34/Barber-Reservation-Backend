@@ -146,4 +146,18 @@ public class AppointmentController {
         Double earnings = appointmentService.getEarnings(barberService.findById(barberId), startDate, endDate);
         return ResponseEntity.ok(earnings);
     }
+
+    // Shop Admin Endpoints
+    @GetMapping("/shop/{shopId}/all")
+    @PreAuthorize("hasRole('SHOP_ADMIN') or hasRole('MAIN_ADMIN')")
+    public ResponseEntity<PageResponse<AppointmentDetailsResponse>> getShopAppointments(
+            @PathVariable Long shopId,
+            @RequestParam(required = false) String filter, // "today", "upcoming", "past", or null for all
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Appointment> result = appointmentService.getShopAppointments(shopId, filter, pageable);
+        return ResponseEntity.ok(pageMapper.toAppointmentPageResponse(result));
+    }
 }

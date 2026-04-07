@@ -159,4 +159,25 @@ public class AuthController {
         User user = userService.findById(userPrincipal.getId());
         return ResponseEntity.ok(userMapper.toDTO(user));
     }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<Map<String, String>> refreshToken(@AuthenticationPrincipal UserPrincipal userPrincipal) {
+        if (userPrincipal == null) {
+            return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
+        }
+        
+        // Get user and generate new token
+        User user = userService.findById(userPrincipal.getId());
+        String newToken = tokenProvider.generateToken(
+                user.getEmail(),
+                user.getId(),
+                user.getRole().toString()
+        );
+        
+        Map<String, String> response = new HashMap<>();
+        response.put("token", newToken);
+        return ResponseEntity.ok()
+                .header("Authorization", "Bearer " + newToken)
+                .body(response);
+    }
 }
