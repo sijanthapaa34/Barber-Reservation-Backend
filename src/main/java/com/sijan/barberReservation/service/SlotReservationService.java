@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 public class SlotReservationService {
 
     private final SlotReservationRepository reservationRepository;
-    private static final int RESERVATION_TIMEOUT_MINUTES = 10;
+    private static final int RESERVATION_TIMEOUT_MINUTES = 5;
 
     @Transactional
     public void reserveSlot(Long barberId, Long customerId, LocalDateTime scheduledTime, Long paymentTransactionId) {
