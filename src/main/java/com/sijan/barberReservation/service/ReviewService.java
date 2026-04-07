@@ -8,12 +8,14 @@ import com.sijan.barberReservation.model.*;
 import com.sijan.barberReservation.repository.*;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ReviewService {
 
     private final ReviewRepository reviewRepository;
@@ -24,6 +26,7 @@ public class ReviewService {
     private final UserService userService;
     private final ReviewMapper reviewMapper;
     private final NotificationService notificationService;
+    private final AdminRepository adminRepository;
 
     @Transactional
     public ReviewDTO createReview(Review review) {
@@ -64,6 +67,25 @@ public class ReviewService {
                     saved.getCustomer().getName(),
                     saved.getRating()
             );
+
+            // Notify shop admin about barber review
+            try {
+                if (barber.getBarbershop() != null) {
+                    adminRepository.findByBarbershop(barber.getBarbershop()).ifPresent(admin ->
+                        notificationService.sendNewReviewToShopAdmin(admin.getId(), saved.getCustomer().getName(), saved.getRating())
+                    );
+                }
+            } catch (Exception e) { log.warn("Failed to notify shop admin of barber review: {}", e.getMessage()); }
+        }
+
+        // Notify shop admin about shop review
+        if (saved.getTargetType() == ReviewType.BARBER_SHOP) {
+            try {
+                Barbershop shop = barbershopService.findById(saved.getTargetId());
+                adminRepository.findByBarbershop(shop).ifPresent(admin ->
+                    notificationService.sendNewReviewToShopAdmin(admin.getId(), saved.getCustomer().getName(), saved.getRating())
+                );
+            } catch (Exception e) { log.warn("Failed to notify shop admin of shop review: {}", e.getMessage()); }
         }
 
         return reviewMapper.toDTO(saved);
