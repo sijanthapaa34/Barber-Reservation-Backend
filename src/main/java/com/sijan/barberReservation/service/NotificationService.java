@@ -252,4 +252,68 @@ public class NotificationService {
                         "shopName", shopName
                 ));
     }
+
+    // ==================== SHOP ADMIN NOTIFICATIONS ====================
+
+    public void sendNewAppointmentToShopAdmin(Long shopAdminId, String customerName, String barberName, String scheduledTime) {
+        String title = "New Appointment Booked \uD83D\uDCC5";
+        String body = String.format("%s booked with %s on %s.", customerName, barberName, scheduledTime);
+        sendPushNotification(shopAdminId, "ADMIN", title, body, Map.of("type", "NEW_APPOINTMENT", "customerName", customerName));
+    }
+
+    public void sendAppointmentCancelledToShopAdmin(Long shopAdminId, String customerName, String barberName) {
+        String title = "Appointment Cancelled \u274C";
+        String body = String.format("%s cancelled their appointment with %s.", customerName, barberName);
+        sendPushNotification(shopAdminId, "ADMIN", title, body, Map.of("type", "APPOINTMENT_CANCELLED", "customerName", customerName));
+    }
+
+    public void sendBarberApplicationToShopAdmin(Long shopAdminId, String applicantName) {
+        String title = "New Barber Application \uD83D\uDCCB";
+        String body = String.format("%s applied to join your shop. Review their application now.", applicantName);
+        sendPushNotification(shopAdminId, "ADMIN", title, body, Map.of("type", "NEW_APPLICATION", "applicantName", applicantName));
+    }
+
+    public void sendNewReviewToShopAdmin(Long shopAdminId, String customerName, int rating) {
+        String title = "New Review Received \u2B50";
+        String body = String.format("%s left a %d-star review on your shop.", customerName, rating);
+        sendPushNotification(shopAdminId, "ADMIN", title, body, Map.of("type", "NEW_REVIEW", "customerName", customerName, "rating", String.valueOf(rating)));
+    }
+
+    public void sendBarberJoinedToShopAdmin(Long shopAdminId, String barberName) {
+        String title = "New Barber Joined \u2702\uFE0F";
+        String body = String.format("%s has joined your shop.", barberName);
+        sendPushNotification(shopAdminId, "ADMIN", title, body, Map.of("type", "GENERAL", "barberName", barberName));
+    }
+
+    public void sendServiceAddedToShopAdmin(Long shopAdminId, String serviceName) {
+        String title = "New Service Added \uD83D\uDC88";
+        String body = String.format("Service '%s' has been added to your shop.", serviceName);
+        sendPushNotification(shopAdminId, "ADMIN", title, body, Map.of("type", "GENERAL", "serviceName", serviceName));
+    }
+
+    // ==================== MAIN ADMIN NOTIFICATIONS ====================
+
+    public void sendShopApplicationToMainAdmin(Long mainAdminId, String shopName, String ownerName) {
+        String title = "New Shop Application \uD83C\uDFEA";
+        String body = String.format("%s applied to open '%s'. Review it now.", ownerName, shopName);
+        sendPushNotification(mainAdminId, "ADMIN", title, body, Map.of("type", "NEW_APPLICATION", "applicantName", ownerName));
+    }
+
+    public void sendBarberApplicationToMainAdmin(Long mainAdminId, String barberName, String shopName) {
+        String title = "Barber Application Awaiting Approval \uD83D\uDCCB";
+        String body = String.format("%s's application for %s is ready for your final review.", barberName, shopName);
+        sendPushNotification(mainAdminId, "ADMIN", title, body, Map.of("type", "NEW_APPLICATION", "applicantName", barberName));
+    }
+
+    public void sendShopRegisteredToMainAdmin(Long mainAdminId, String shopName) {
+        String title = "New Shop Registered \uD83C\uDFEA";
+        String body = String.format("'%s' is now live on FadeBook.", shopName);
+        sendPushNotification(mainAdminId, "ADMIN", title, body, Map.of("type", "GENERAL", "shopName", shopName));
+    }
+
+    public void sendBarberRegisteredToMainAdmin(Long mainAdminId, String barberName, String shopName) {
+        String title = "New Barber Registered \u2702\uFE0F";
+        String body = String.format("%s is now active at %s.", barberName, shopName);
+        sendPushNotification(mainAdminId, "ADMIN", title, body, Map.of("type", "GENERAL", "barberName", barberName));
+    }
 }
