@@ -10,45 +10,66 @@ import java.util.List;
 @NoArgsConstructor
 public class AdminDashboardResponse {
 
-    // 1. Stats Grid
     private long totalUsers;
     private long activeShops;
     private double monthlyRevenue;
     private long totalBookings;
 
-    // 2. Revenue Split (Calated from payments)
     private double barberEarnings;
     private double shopEarnings;
     private double platformEarnings;
 
-    // 3. System Health (Can be mocked or pulled from Actuator)
     private SystemHealth health;
-
-    // 4. Config
     private CommissionConfig config;
-
-    // 5. Top Shops (List of simplified ShopDTO)
     private List<BarbershopDTO> topShops;
 
-    // --- Inner Classes ---
+    // Real revenue data
+    private double lastMonthRevenue;
+    private double revenueGrowthPercent;
+
+    // Recent activities
+    private List<ActivityItem> recentActivities;
+
+    public AdminDashboardResponse(long users, long shops, Double monthlyRevenue, long bookings, double barberEarnings, double actualShopEarnings, Double platformEarnings, SystemHealth health, CommissionConfig config, List<BarbershopDTO> topShops) {
+        this.totalUsers = users;
+        this.activeShops = shops;
+        this.monthlyRevenue = monthlyRevenue != null ? monthlyRevenue : 0.0;
+        this.totalBookings = bookings;
+        this.barberEarnings = barberEarnings;
+        this.shopEarnings = actualShopEarnings;
+        this.platformEarnings = platformEarnings != null ? platformEarnings : 0.0;
+        this.health = health;
+        this.config = config;
+        this.topShops = topShops;
+    }
 
     @Data
     @AllArgsConstructor
     @NoArgsConstructor
     public static class SystemHealth {
-        private String uptime; // e.g., "99.98%"
-        private String avgResponseTime; // e.g., "45ms"
+        private String uptime;
+        private String avgResponseTime;
         private int activeSessions;
-        private String errorRate; // e.g., "0.02%"
+        private String errorRate;
     }
 
     @Data
     @AllArgsConstructor
     @NoArgsConstructor
     public static class CommissionConfig {
-        private double platformFee;       // 10.0
-        private double defaultShopCut;    // 30.0
-        private double defaultBarberCut;  // 60.0
-        private double cancellationFee;   // 20.0
+        private double platformFee;
+        private double defaultShopCut;
+        private double defaultBarberCut;
+        private double cancellationFee;
+    }
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class ActivityItem {
+        private String type;       // BOOKING, CANCELLATION, NEW_SHOP, NEW_BARBER, NEW_REVIEW
+        private String title;
+        private String subtitle;
+        private String timestamp;
     }
 }
