@@ -75,4 +75,10 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     Integer countByBarbershopAndStatus(Barbershop shop, AppointmentStatus appointmentStatus);
 
     Integer countByBarbershopAndScheduledTimeBetween(Barbershop shop, LocalDateTime startOfDay, LocalDateTime endOfDay);
+
+    Page<Appointment> findByBarbershopAndScheduledTimeBetween(Barbershop shop, LocalDateTime startOfDay, LocalDateTime endOfDay, Pageable pageable);
+
+    Page<Appointment> findByBarbershopAndScheduledTimeAfterOrderByScheduledTimeAsc(Barbershop shop, LocalDateTime now, Pageable pageable);
+
+    Page<Appointment> findByBarbershopAndScheduledTimeBeforeOrderByScheduledTimeDesc(Barbershop shop, LocalDateTime now, Pageable pageable);
 }

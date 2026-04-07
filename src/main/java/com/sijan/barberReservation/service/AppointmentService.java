@@ -451,6 +451,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.sijan.barberReservation.repository.AdminRepository;
 import com.sijan.barberReservation.repository.PaymentTransactionRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -473,6 +474,8 @@ public class AppointmentService{
     private final PaymentService paymentService;
     private final SlotReservationService slotReservationService;
     private final NotificationService notificationService;
+    private final AdminRepository adminRepository;
+    private final BarbershopService barbershopService;
 
     @Transactional
     public Appointment findById(Long id) {
@@ -528,6 +531,11 @@ public class AppointmentService{
             String cancelledByName = cancelledByUser.getName();
             notificationService.sendAppointmentCancelled(customerId, "CUSTOMER", cancelledByName, shopName);
             notificationService.sendAppointmentCancelled(barberId, "BARBER", cancelledByName, shopName);
+
+            // Notify shop admin
+            adminRepository.findByBarbershop(appointment.getBarbershop()).ifPresent(admin ->
+                notificationService.sendAppointmentCancelledToShopAdmin(admin.getId(), appointment.getCustomer().getName(), appointment.getBarber().getName())
+            );
         } catch (Exception e) {
             log.warn("Failed to send cancellation notifications: {}", e.getMessage());
         }
@@ -790,7 +798,9 @@ public class AppointmentService{
             startOfDay = startDate.atStartOfDay();
             endOfDay = endDate.atTime(23, 59, 59);
         }
-        Double earnings = appointmentRepository.sumEarningsByBarberAndDate(barber, startOfDay, endOfDay);
+        
+        // Use payment transactions instead of appointments for accurate earnings (excluding refunds)
+        Double earnings = transactionRepository.sumBarberEarningsByPaidAtBetween(barber, startOfDay, endOfDay);
         return earnings != null ? earnings : 0.0;
     }
 
@@ -799,4 +809,22 @@ public class AppointmentService{
     public Double sumRevenueByShopAndScheduledTimeBetween(Barbershop shop, LocalDateTime startOfDay, LocalDateTime endOfDay) { return appointmentRepository.sumRevenueByBarbershopAndScheduledTimeBetween(shop, startOfDay, endOfDay); }
     public Integer countByShopAndStatus(Barbershop shop, AppointmentStatus appointmentStatus) { return appointmentRepository.countByBarbershopAndStatus(shop, appointmentStatus); }
     public List<Appointment> findUpcomingByShop(Barbershop shop, LocalDateTime now, PageRequest of) { return appointmentRepository.findUpcomingByBarbershop(shop, now, of); }
+
+    public Page<Appointment> getShopAppointments(Long shopId, String filter, Pageable pageable) {
+        Barbershop shop = barbershopService.findById(shopId);
+        LocalDateTime now = LocalDateTime.now();
+        
+        if ("today".equalsIgnoreCase(filter)) {
+            LocalDateTime startOfDay = now.toLocalDate().atStartOfDay();
+            LocalDateTime endOfDay = now.toLocalDate().atTime(LocalTime.MAX);
+            return appointmentRepository.findByBarbershopAndScheduledTimeBetween(shop, startOfDay, endOfDay, pageable);
+        } else if ("upcoming".equalsIgnoreCase(filter)) {
+            return appointmentRepository.findByBarbershopAndScheduledTimeAfterOrderByScheduledTimeAsc(shop, now, pageable);
+        } else if ("past".equalsIgnoreCase(filter)) {
+            return appointmentRepository.findByBarbershopAndScheduledTimeBeforeOrderByScheduledTimeDesc(shop, now, pageable);
+        } else {
+            // Return all appointments
+            return appointmentRepository.findAllByBarbershop(shop, pageable);
+        }
+    }
 }

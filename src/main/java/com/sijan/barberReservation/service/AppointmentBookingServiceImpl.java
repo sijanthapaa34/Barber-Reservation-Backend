@@ -2,6 +2,7 @@ package com.sijan.barberReservation.service;
 
 import com.sijan.barberReservation.exception.appointment.AppointmentSlotUnavailableException;
 import com.sijan.barberReservation.model.*;
+import com.sijan.barberReservation.repository.AdminRepository;
 import com.sijan.barberReservation.repository.AppointmentRepository;
 import com.sijan.barberReservation.repository.CustomerRepository;
 import com.sijan.barberReservation.repository.PaymentTransactionRepository;
@@ -26,6 +27,7 @@ public class AppointmentBookingServiceImpl implements AppointmentBookingService 
     private final EmailService emailService;
     private final NotificationService notificationService;
     private final CustomerRepository customerRepository;
+    private final AdminRepository adminRepository;
     @PersistenceContext
     private EntityManager entityManager;
 
@@ -83,6 +85,11 @@ public class AppointmentBookingServiceImpl implements AppointmentBookingService 
 
                 notificationService.sendAppointmentBookedToCustomer(customerId, shopName, barberName, scheduledTime);
                 notificationService.sendNewAppointmentToBarber(barberId, customerName, serviceName, scheduledTime);
+
+                // Notify shop admin
+                adminRepository.findByBarbershop(savedAppointment.getBarbershop()).ifPresent(admin ->
+                    notificationService.sendNewAppointmentToShopAdmin(admin.getId(), customerName, barberName, scheduledTime)
+                );
             } catch (Exception e) {
                 log.warn("Failed to send appointment notifications: {}", e.getMessage());
             }
