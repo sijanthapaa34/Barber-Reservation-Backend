@@ -62,6 +62,15 @@ public class JwtTokenProvider {
         return !isTokenExpired(token);
     }
 
+    public Date extractExpiration(String token) {
+        return extractAllClaims(token).getExpiration();
+    }
+
+    public long getExpirationTimeInMillis(String token) {
+        Date expiration = extractExpiration(token);
+        return expiration.getTime() - new Date().getTime();
+    }
+
     private boolean isTokenExpired(String token) {
         return extractAllClaims(token).getExpiration().before(new Date());
     }
