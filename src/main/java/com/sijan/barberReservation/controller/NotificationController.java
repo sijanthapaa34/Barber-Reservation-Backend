@@ -12,6 +12,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
@@ -78,6 +79,37 @@ public class NotificationController {
 
         unreadNotifications.forEach(n -> n.setRead(true));
         notificationRepository.saveAll(unreadNotifications);
+
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * Send chat message notification
+     */
+    @PostMapping("/chat")
+    public ResponseEntity<Void> sendChatNotification(
+            @RequestBody Map<String, String> payload
+    ) {
+        Long recipientId = Long.parseLong(payload.get("recipientId"));
+        String recipientType = payload.get("recipientType");
+        String senderName = payload.get("senderName");
+        String messagePreview = payload.get("messagePreview");
+        String chatId = payload.get("chatId");
+
+        String title = "New message from " + senderName;
+        String body = messagePreview;
+
+        notificationService.sendPushNotification(
+            recipientId,
+            recipientType,
+            title,
+            body,
+            Map.of(
+                "type", "CHAT_MESSAGE",
+                "chatId", chatId,
+                "senderName", senderName
+            )
+        );
 
         return ResponseEntity.ok().build();
     }
