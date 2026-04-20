@@ -116,6 +116,13 @@ public class ApplicationService {
             userService.registerBarberOfApplication(barber, barbershop);
 
             entityName = app.getBarbershopName();
+            
+            // ✅ SEND PUSH NOTIFICATION: Barber application approved
+            try {
+                notificationService.sendBarberApplicationApproved(barber.getId(), barbershop.getName());
+            } catch (Exception e) {
+                log.error("Failed to send barber approval notification", e);
+            }
 
         }
         else if (app.getType() == ApplicationType.BARBER_SHOP) {
@@ -130,6 +137,13 @@ public class ApplicationService {
             userService.registerAdminOfApplication(admin, shop);
 
             entityName = app.getShopName();
+            
+            // ✅ SEND PUSH NOTIFICATION: Shop application approved
+            try {
+                notificationService.sendShopApplicationApproved(admin.getId(), shop.getName());
+            } catch (Exception e) {
+                log.error("Failed to send shop approval notification", e);
+            }
         }
 
         app.setStatus(ApplicationStatus.APPROVED);
@@ -137,9 +151,6 @@ public class ApplicationService {
 
         // Send Approval Email
         emailService.sendApplicationStatusEmail(app.getEmail(), entityName, "APPROVED");
-
-        // Send push notification to applicant
-        notificationService.sendApplicationStatusUpdate(app.getId(), "APPROVED", app.getType().name());
 
         // Notify shop admin when barber joins, notify main admins when shop is created
         try {
@@ -171,8 +182,29 @@ public class ApplicationService {
 
         emailService.sendApplicationStatusEmail(application.getEmail(), name, "REJECTED");
 
-        // Send push notification
-        notificationService.sendApplicationStatusUpdate(application.getId(), "REJECTED", application.getType().name());
+        // ✅ SEND PUSH NOTIFICATION: Application rejected
+        // Note: This won't work for new applicants who aren't registered yet
+        // But will work if they reapply after being rejected
+        try {
+            User user = userService.findByEmail(application.getEmail());
+            if (user != null) {
+                if (application.getType() == ApplicationType.BARBER && user instanceof Barber barber) {
+                    notificationService.sendBarberApplicationRejected(
+                        barber.getId(), 
+                        application.getBarbershopName(), 
+                        "Please contact support for more details."
+                    );
+                } else if (application.getType() == ApplicationType.BARBER_SHOP && user instanceof Admin admin) {
+                    notificationService.sendShopApplicationRejected(
+                        admin.getId(), 
+                        application.getShopName(), 
+                        "Please contact support for more details."
+                    );
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Failed to send rejection push notification: {}", e.getMessage());
+        }
     }
 
     public Application findById(Long id) {
