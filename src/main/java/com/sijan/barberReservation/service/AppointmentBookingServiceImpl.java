@@ -42,7 +42,6 @@ public class AppointmentBookingServiceImpl implements AppointmentBookingService 
         appointment.setCustomer(tx.getCustomer());
         appointment.setBarber(tx.getBarber());
         appointment.setBarbershop(tx.getBarbershop());
-        // DO NOT SET SERVICES HERE
         appointment.setScheduledTime(tx.getScheduledTime());
         appointment.setStatus(AppointmentStatus.SCHEDULED);
         appointment.setPaymentStatus(PaymentStatus.PAID);
@@ -71,6 +70,9 @@ public class AppointmentBookingServiceImpl implements AppointmentBookingService 
 
             distributeEarnings(tx, savedAppointment);
             awardLoyaltyPoints(tx.getCustomer(), tx.getAmount());
+            
+            // Increment total_bookings for customer
+            incrementCustomerBookings(tx.getCustomer());
 
             // Send notifications — wrapped in try-catch so failures never affect the booking
             try {
@@ -130,6 +132,17 @@ public class AppointmentBookingServiceImpl implements AppointmentBookingService 
             }
         } catch (Exception e) {
             log.warn("Failed to award loyalty points to customer {}: {}", customer.getId(), e.getMessage());
+        }
+    }
+
+    private void incrementCustomerBookings(Customer customer) {
+        try {
+            int currentBookings = customer.getTotalBookings() != null ? customer.getTotalBookings() : 0;
+            customer.setTotalBookings(currentBookings + 1);
+            customerRepository.save(customer);
+            log.info("Incremented total_bookings for customer {}. New total: {}", customer.getId(), customer.getTotalBookings());
+        } catch (Exception e) {
+            log.warn("Failed to increment total_bookings for customer {}: {}", customer.getId(), e.getMessage());
         }
     }
 }

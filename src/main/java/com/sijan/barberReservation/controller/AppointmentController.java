@@ -160,4 +160,20 @@ public class AppointmentController {
         Page<Appointment> result = appointmentService.getShopAppointments(shopId, filter, pageable);
         return ResponseEntity.ok(pageMapper.toAppointmentPageResponse(result));
     }
+
+    // Notify Customer (Manual reminder for barbers)
+    @PostMapping("/{appointmentId}/notify")
+    @PreAuthorize("hasRole('BARBER') or hasRole('SHOP_ADMIN')")
+    public ResponseEntity<java.util.Map<String, String>> notifyCustomer(
+            @PathVariable Long appointmentId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+        
+        Appointment appointment = appointmentService.findById(appointmentId);
+        appointmentService.sendManualReminder(appointment);
+        
+        return ResponseEntity.ok(java.util.Map.of(
+            "message", "Notification sent to customer successfully",
+            "customerName", appointment.getCustomer().getName()
+        ));
+    }
 }

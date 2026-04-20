@@ -453,6 +453,7 @@ import java.util.stream.Collectors;
 
 import com.sijan.barberReservation.repository.AdminRepository;
 import com.sijan.barberReservation.repository.PaymentTransactionRepository;
+import com.sijan.barberReservation.repository.CustomerRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -468,6 +469,7 @@ public class AppointmentService{
 
     private final AppointmentRepository appointmentRepository;
     private final PaymentTransactionRepository transactionRepository;
+    private final CustomerRepository customerRepository;
     private final AppointmentSlotMapper appointmentSlotMapper;
     private final EmailService emailService;
     private final BarberLeaveService barberLeaveService;
@@ -511,6 +513,17 @@ public class AppointmentService{
                 slotReservationService.cancelReservation(tx.getId());
             }
         });
+
+        // 1.5. Deduct loyalty point if CUSTOMER cancels
+        if (cancelledByUser.getRole() == Roles.CUSTOMER) {
+            Customer customer = (Customer) cancelledByUser;
+            if (customer.getPoints() > 0) {
+                customer.setPoints(customer.getPoints() - 1);
+                customerRepository.save(customer);
+                log.info("Deducted 1 loyalty point from customer {} for cancelling appointment. New balance: {}", 
+                    customer.getName(), customer.getPoints());
+            }
+        }
 
         // 2. Update Appointment Status
         appointment.setStatus(AppointmentStatus.CANCELLED);
@@ -706,7 +719,7 @@ public class AppointmentService{
             startOfDay = startDate.atStartOfDay();
             endOfDay = endDate.atTime(23, 59, 59);
         }
-        return appointmentRepository.findByBarberAndScheduledTimeBetween(barber, startOfDay, endOfDay, pageable);
+        return appointmentRepository.findByBarberAndScheduledTimeBetweenAndStatusNot(barber, startOfDay, endOfDay, AppointmentStatus.CANCELLED, pageable);
     }
 
     public Page<Appointment> getAppointmentsForAdmin(Admin admin, Pageable pageable) {
@@ -826,5 +839,44 @@ public class AppointmentService{
             // Return all appointments
             return appointmentRepository.findAllByBarbershop(shop, pageable);
         }
+    }
+
+    /**
+     * Send manual reminder to customer (for barbers)
+     */
+    public void sendManualReminder(Appointment appointment) {
+        String customerEmail = appointment.getCustomer().getEmail();
+        String customerName = appointment.getCustomer().getName();
+        String barberName = appointment.getBarber().getName();
+        String shopName = appointment.getBarbershop().getName();
+        String serviceNames = appointment.getServices().stream()
+                .map(s -> s.getName())
+                .collect(Collectors.joining(", "));
+        String time = appointment.getScheduledTime().toLocalTime().toString();
+
+        // Send email reminder
+        emailService.sendAppointmentReminder(
+                customerEmail, 
+                customerName, 
+                barberName, 
+                serviceNames, 
+                time, 
+                shopName
+        );
+
+        // Send push notification
+        try {
+            notificationService.sendAppointmentReminder(
+                    appointment.getCustomer().getId(),
+                    shopName,
+                    barberName,
+                    appointment.getScheduledTime().toString()
+            );
+        } catch (Exception e) {
+            log.warn("Failed to send push notification reminder: {}", e.getMessage());
+        }
+
+        log.info("Manual reminder sent for appointment {} to customer {}", 
+            appointment.getId(), customerName);
     }
 }

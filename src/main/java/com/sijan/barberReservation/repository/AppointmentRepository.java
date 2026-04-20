@@ -37,7 +37,9 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
 
     List<Appointment> findByBarberAndStatusAndScheduledTimeBetween(Barber barber, AppointmentStatus status, LocalDateTime start, LocalDateTime end);
 
-    Page<Appointment> findByBarberAndScheduledTimeBetween(Barber barber, LocalDateTime dayStart, LocalDateTime dayEnd, Pageable pageable);
+    List<Appointment> findByStatusAndScheduledTimeBetween(AppointmentStatus status, LocalDateTime start, LocalDateTime end);
+
+    Page<Appointment> findByBarberAndScheduledTimeBetweenAndStatusNot(Barber barber, LocalDateTime dayStart, LocalDateTime dayEnd, AppointmentStatus status, Pageable pageable);
 
     Page<Appointment> findAllByBarbershop(Barbershop shop, Pageable pageable);
     @Query("""
@@ -53,6 +55,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     FROM Appointment a
     WHERE a.barber = :barber
       AND a.scheduledTime >= :from
+      AND a.status != 'CANCELLED'
     ORDER BY a.scheduledTime ASC
 """)
     Page<Appointment> findUpcomingByBarber(@Param("barber") Barber barber,  @Param("from") LocalDateTime from, PageRequest of);
@@ -62,6 +65,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     FROM Appointment a
     WHERE a.barber = :barber
       AND a.scheduledTime < :to
+      AND a.status != 'CANCELLED'
     ORDER BY a.scheduledTime DESC
 """)
     Page<Appointment> findPastByBarber(@Param("barber") Barber barber,  @Param("to") LocalDateTime to, PageRequest of);
