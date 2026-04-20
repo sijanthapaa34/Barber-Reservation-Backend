@@ -64,7 +64,7 @@ public class EmailService {
             <body>
                 <div class="container">
                     <div class="header">
-                        <h1>✂️ FadeBook</h1>
+                        <h1>FadeBook</h1>
                     </div>
                     <div class="body">
                         <h2>""" + title + """
@@ -196,7 +196,7 @@ public class EmailService {
     // 2. NEW BOOKING ALERT (Instant for Barber/Admin)
     @Async
     public void sendNewBookingAlert(String to, String barberName, String customerName, String serviceName, String date, String time) {
-        String subject = "🔔 New Booking: " + serviceName + " at " + time;
+        String subject = "New Booking: " + serviceName + " at " + time;
         String content = """
             <p>Hello <b>""" + barberName + """
             </b>,</p>
@@ -324,7 +324,7 @@ public class EmailService {
     // 6. PAYOUT NOTIFICATION (For Barbers/Admins)
     @Async
     public void sendPayoutConfirmation(String to, String userName, String amount, String bankName, String transactionId) {
-        String subject = "💰 Payout Processed: " + amount;
+        String subject = "Payout Processed: " + amount;
         String content = """
             <p>Hello <b>""" + userName + """
             </b>,</p>
@@ -345,7 +345,7 @@ public class EmailService {
 
     @Async
     public void sendLeaveRequestNotificationAdmin(String adminEmail, String barberName, String startDate, String endDate, String reason) {
-        String subject = "📅 New Leave Request: " + barberName;
+        String subject = "New Leave Request: " + barberName;
         String content = """
             <p>Hello Admin,</p>
             <p>A new leave request has been submitted by <b>""" + barberName + """
@@ -365,7 +365,7 @@ public class EmailService {
 
     @Async
     public void sendLeaveApprovalNotification(String barberEmail, String barberName, String startDate, String endDate) {
-        String subject = "✅ Leave Request Approved";
+        String subject = "Leave Request Approved";
         String content = """
             <p>Hello <b>""" + barberName + """
             </b>,</p>
@@ -383,7 +383,7 @@ public class EmailService {
 
     @Async
     public void sendLeaveRejectionNotification(String barberEmail, String barberName, String startDate, String endDate) {
-        String subject = "❌ Leave Request Rejected";
+        String subject = "Leave Request Rejected";
         String content = """
             <p>Hello <b>""" + barberName + """
             </b>,</p>
@@ -397,5 +397,57 @@ public class EmailService {
             <p>Please contact your shop administrator for more details.</p>
             """;
         sendHtmlEmail(barberEmail, subject, buildBaseTemplate("Leave Rejected", content));
+    }
+
+    // --- 7. ACCOUNT CREDENTIALS ---
+
+    @Async
+    public void sendBarberCredentials(String barberEmail, String barberName, String shopName, String password) {
+        String subject = "Your Barber Account Credentials - FadeBook";
+        String content = """
+            <p>Hello <b>""" + barberName + """
+            </b>,</p>
+            <p>Your barber account has been created by the administrator of <b>""" + shopName + """
+            </b>. You can now log in to the FadeBook app using the credentials below:</p>
+            <div class="info-card" style="background-color: #fef3c7; border-left-color: #f59e0b;">
+                <div class="info-row"><span class="info-label">Email:</span> <span class="info-value">""" + barberEmail + """
+            </span></div>
+                <div class="info-row"><span class="info-label">Password:</span> <span class="info-value" style="font-family: monospace; background: #fff; padding: 4px 8px; border-radius: 4px;">""" + password + """
+            </span></div>
+                <div class="info-row"><span class="info-label">Shop:</span> <span class="info-value">""" + shopName + """
+            </span></div>
+            </div>
+            <div style="background-color: #fee2e2; border-left: 4px solid #ef4444; padding: 15px; margin: 20px 0; border-radius: 0 8px 8px 0;">
+                <p style="margin: 0; font-size: 13px; color: #991b1b;"><b>⚠️ Important Security Notice:</b></p>
+                <p style="margin: 8px 0 0 0; font-size: 12px; color: #7f1d1d;">Please change your password immediately after your first login for security purposes. Go to Settings → Change Password.</p>
+            </div>
+            <p>Download the FadeBook app and start managing your appointments today!</p>
+            """;
+        sendHtmlEmail(barberEmail, subject, buildBaseTemplate("Account Created", content));
+    }
+
+    @Async
+    public void sendShopAdminCredentials(String adminEmail, String adminName, String shopName, String password) {
+        String subject = "Your Shop Admin Account Credentials - FadeBook";
+        String content = """
+            <p>Hello <b>""" + adminName + """
+            </b>,</p>
+            <p>Your shop administrator account has been created for <b>""" + shopName + """
+            </b>. You can now log in to the FadeBook admin panel using the credentials below:</p>
+            <div class="info-card" style="background-color: #fef3c7; border-left-color: #f59e0b;">
+                <div class="info-row"><span class="info-label">Email:</span> <span class="info-value">""" + adminEmail + """
+            </span></div>
+                <div class="info-row"><span class="info-label">Password:</span> <span class="info-value" style="font-family: monospace; background: #fff; padding: 4px 8px; border-radius: 4px;">""" + password + """
+            </span></div>
+                <div class="info-row"><span class="info-label">Shop:</span> <span class="info-value">""" + shopName + """
+            </span></div>
+            </div>
+            <div style="background-color: #fee2e2; border-left: 4px solid #ef4444; padding: 15px; margin: 20px 0; border-radius: 0 8px 8px 0;">
+                <p style="margin: 0; font-size: 13px; color: #991b1b;"><b>⚠️ Important Security Notice:</b></p>
+                <p style="margin: 8px 0 0 0; font-size: 12px; color: #7f1d1d;">Please change your password immediately after your first login for security purposes. Go to Settings → Change Password.</p>
+            </div>
+            <p>Access the admin panel to manage your shop, barbers, appointments, and more!</p>
+            """;
+        sendHtmlEmail(adminEmail, subject, buildBaseTemplate("Account Created", content));
     }
 }

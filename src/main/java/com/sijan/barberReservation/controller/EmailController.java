@@ -6,6 +6,7 @@ import com.sijan.barberReservation.DTO.email.OtpRequest;
 import com.sijan.barberReservation.DTO.email.OtpVerificationRequest;
 import com.sijan.barberReservation.service.EmailService;
 import com.sijan.barberReservation.service.OtpService;
+import com.sijan.barberReservation.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -20,10 +21,17 @@ public class EmailController {
 
     private final EmailService emailService;
     private final OtpService otpService;
+    private final UserService userService;
 
     // 1. Send OTP (Used during Registration)
     @PostMapping("/send-otp")
     public ResponseEntity<EmailResponse> sendOtp(@RequestBody OtpRequest request) {
+        // Check if email already exists
+        if (userService.findByEmail(request.getEmail()) != null) {
+            return ResponseEntity.badRequest()
+                    .body(new EmailResponse("Email is already registered. Please login instead.", false));
+        }
+        
         String otp = otpService.generateOtp(request.getEmail());
         emailService.sendOtpEmail(request.getEmail(), otp);
         return ResponseEntity.ok(new EmailResponse("OTP sent successfully to " + request.getEmail(), true));
