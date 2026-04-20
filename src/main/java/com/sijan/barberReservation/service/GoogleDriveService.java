@@ -9,6 +9,7 @@ import com.google.api.services.drive.model.Permission;
 import com.google.auth.http.HttpCredentialsAdapter;
 import com.google.auth.oauth2.GoogleCredentials;
 import jakarta.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -22,11 +23,18 @@ public class GoogleDriveService {
 
     private Drive driveService;
 
-    // Folder IDs
-    private final String PROFILE_FOLDER_ID = "1juM6JqGpS3PvLZtjM0CjqZw6PKABzhU3";
-    private final String APPLICATION_PROFILE_FOLDER_ID = "1HuvCv-VibLdlhFWz33LRwwwVlYHeOs99";
-    private final String APPLICATION_DOC_FOLDER_ID = "1om-SIPQ0KGSu0thphG8vEdo3EyPPbIt7";
-    private final String SHOP_IMAGES_FOLDER_ID = "1QuFjg_PaGU5pzOTA5efbMmqp7WahpW0r";
+    // Folder IDs from application.properties
+    @Value("${google.drive.folder.profile}")
+    private String PROFILE_FOLDER_ID;
+
+    @Value("${google.drive.folder.application-profile}")
+    private String APPLICATION_PROFILE_FOLDER_ID;
+
+    @Value("${google.drive.folder.application-doc}")
+    private String APPLICATION_DOC_FOLDER_ID;
+
+    @Value("${google.drive.folder.shop-images}")
+    private String SHOP_IMAGES_FOLDER_ID;
 
     @PostConstruct
     public void init() {
