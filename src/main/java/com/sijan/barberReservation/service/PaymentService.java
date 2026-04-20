@@ -29,6 +29,7 @@ public class PaymentService {
     private final SlotReservationService slotReservationService;
     private final BarbershopRepository barbershopRepository;
     private final BarberRepository barberRepository;
+    private final NotificationService notificationService;
 
 
     // ==================================================================================
@@ -78,6 +79,15 @@ public class PaymentService {
             } else if (savedTransaction.getPaymentMethod() == PaymentMethod.ESEWA) {
                 Map<String, String> esewaData = esewaService.preparePaymentData(savedTransaction.getId(), totalAmount);
                 String paymentUrl = esewaData.get("payment_url");
+                
+                // ✅ STORE transaction_uuid as refId for later verification
+                String transactionUuid = esewaData.get("transaction_uuid");
+                if (transactionUuid != null) {
+                    savedTransaction.setRefId(transactionUuid);
+                    transactionRepository.save(savedTransaction);
+                    log.info("✅ Stored eSewa transaction_uuid as refId: {}", transactionUuid);
+                }
+                
                 return new PaymentInitiationResponse(savedTransaction.getId(), paymentUrl, "ESEWA", null, esewaData);
 
             } else {
@@ -134,13 +144,31 @@ public class PaymentService {
 
         slotReservationService.consumeReservation(transactionId);
 
-        return appointmentService.bookPaidAppointment(tx);
+        Appointment appointment = appointmentService.bookPaidAppointment(tx);
+        
+        // ✅ SEND PUSH NOTIFICATION: Payment completed
+        try {
+            String paymentMethod = tx.getPaymentMethod() == com.sijan.barberReservation.model.PaymentMethod.KHALTI ? "Khalti" : "eSewa";
+            notificationService.sendPaymentCompletedToCustomer(
+                tx.getCustomer().getId(),
+                tx.getBarbershop().getName(),
+                tx.getAmount().toString(),
+                paymentMethod
+            );
+        } catch (Exception e) {
+            log.error("Failed to send payment notification", e);
+        }
+        
+        return appointment;
     }
 
     private boolean verifyWithGateway(PaymentTransaction tx, PaymentVerificationRequest request) {
         try {
             if (tx.getPaymentMethod() == PaymentMethod.KHALTI) {
-                if (request.getPidx() == null || request.getPidx().isEmpty()) return false;
+                if (request.getPidx() == null || request.getPidx().isEmpty()) {
+                    log.error("❌ Khalti verification failed: pidx is null or empty");
+                    return false;
+                }
 
                 // ✅ RETRY LOGIC FOR KHALTI PENDING STATUS
                 int maxRetries = 3;
@@ -168,8 +196,27 @@ public class PaymentService {
                 return false; // Exhausted all retries
 
             } else if (tx.getPaymentMethod() == PaymentMethod.ESEWA) {
-                if (request.getRefId() == null || request.getRefId().isEmpty()) return false;
-                return esewaService.verifyPayment(request.getRefId(), tx.getId(), tx.getAmount());
+                String refId = request.getRefId();
+                
+                // ⚠️ TEMPORARY WORKAROUND: If refId is missing, try to use stored refId from transaction
+                // This happens when WebView doesn't properly extract refId from callback URL
+                if ((refId == null || refId.isEmpty()) && tx.getRefId() != null && !tx.getRefId().isEmpty()) {
+                    log.warn("⚠️ refId missing from request, using stored refId from transaction: {}", tx.getRefId());
+                    refId = tx.getRefId();
+                }
+                
+                if (refId == null || refId.isEmpty()) {
+                    log.error("❌ eSewa verification failed: refId is null or empty");
+                    log.error("❌ Request details: transactionId={}, pidx={}, refId={}, gatewayTxId={}", 
+                        request.getTransactionId(), 
+                        request.getPidx(), 
+                        request.getRefId(),
+                        request.getGatewayTransactionId());
+                    log.error("❌ Transaction stored refId: {}", tx.getRefId());
+                    return false;
+                }
+                log.info("✅ eSewa verification starting with refId={}", refId);
+                return esewaService.verifyPayment(refId, tx.getId(), tx.getAmount());
             }
             return false;
         } catch (Exception e) {
