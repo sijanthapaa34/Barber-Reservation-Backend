@@ -4,18 +4,13 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
-
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class MessageDTO {
-    private Long id;
+public class SendMessageRequest {
     private Long chatRoomId;
     private Long senderId;
     private String senderName;
     private String senderType; // CUSTOMER or ADMIN
     private String messageText;
-    private String status; // SENT, DELIVERED, READ
-    private LocalDateTime createdAt;
 }
