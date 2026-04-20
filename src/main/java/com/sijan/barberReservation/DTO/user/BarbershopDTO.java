@@ -30,5 +30,6 @@ public class BarbershopDTO {
     private String operatingHours;
     private String profilePicture;
     private Double rating;
+    private Long adminId; // Shop admin user ID for chat
     }
 

@@ -47,4 +47,24 @@ public class CustomerService {
     public Page<Customer> getFrequentCustomers(Admin admin, Pageable pageable) {
         return customerRepository.findFrequentCustomersByAdmin(admin, pageable);
     }
+
+    // Get all customers
+    public Page<Customer> findAll(Pageable pageable) {
+        return customerRepository.findAll(pageable);
+    }
+
+    // Get regular customers (3+ bookings)
+    public Page<Customer> findRegularCustomers(Pageable pageable) {
+        return customerRepository.findByTotalBookingsGreaterThanEqual(3, pageable);
+    }
+
+    // Get customers by shop
+    public Page<Customer> findByShop(Long shopId, Pageable pageable) {
+        return customerRepository.findCustomersByShopId(shopId, pageable);
+    }
+
+    // Get regular customers by shop (3+ bookings at that shop)
+    public Page<Customer> findRegularCustomersByShop(Long shopId, Pageable pageable) {
+        return customerRepository.findRegularCustomersByShopId(shopId, 3, pageable);
+    }
 }

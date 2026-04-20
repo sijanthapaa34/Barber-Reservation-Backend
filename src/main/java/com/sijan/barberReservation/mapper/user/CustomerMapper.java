@@ -17,6 +17,7 @@ public class CustomerMapper {
         dto.setEmail(customer.getEmail());
         dto.setPhone(customer.getPhone());
         dto.setPoints(customer.getPoints());
+        dto.setTotalBookings(customer.getTotalBookings());
         dto.setCreatedAt(customer.getCreatedAt());
         return dto;
     }

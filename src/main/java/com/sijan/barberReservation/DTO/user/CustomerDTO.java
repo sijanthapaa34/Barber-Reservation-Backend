@@ -15,6 +15,7 @@ public class CustomerDTO {
     private String email;
     private String phone;
     private Integer points;
+    private Integer totalBookings;
     private LocalDateTime createdAt;
     private String profilePicture;
 }

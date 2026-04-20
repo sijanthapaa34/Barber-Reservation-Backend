@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -21,6 +22,21 @@ public class UserService {
     private final AdminRepository adminRepository;
     private final BarberRepository barberRepository;
     private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
+
+    private static final String CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%";
+    private static final SecureRandom RANDOM = new SecureRandom();
+
+    /**
+     * Generates a secure random password
+     */
+    private String generateRandomPassword(int length) {
+        StringBuilder password = new StringBuilder(length);
+        for (int i = 0; i < length; i++) {
+            password.append(CHARACTERS.charAt(RANDOM.nextInt(CHARACTERS.length())));
+        }
+        return password.toString();
+    }
 
     public User findByEmail(String email) {
         return userRepository.findByEmail(email);
@@ -42,11 +58,27 @@ public class UserService {
             throw new RuntimeException("User with this email already exists");
         }
         barber.setRole(Roles.BARBER);
+        
+        // Generate random password if not provided
         String rawPassword = barber.getPassword();
+        if (rawPassword == null || rawPassword.isEmpty()) {
+            rawPassword = generateRandomPassword(10);
+        }
+        
         String encodedPassword = passwordEncoder.encode(rawPassword);
         barber.setPassword(encodedPassword);
         barber.setBarbershop(shop);
-        return barberRepository.save(barber);
+        Barber savedBarber = barberRepository.save(barber);
+        
+        // Send credentials email to the barber
+        emailService.sendBarberCredentials(
+            savedBarber.getEmail(), 
+            savedBarber.getName(), 
+            shop.getName(), 
+            rawPassword
+        );
+        
+        return savedBarber;
     }
 
     public Barber registerBarberOfApplication(Barber barber, Barbershop shop) {
@@ -62,11 +94,27 @@ public class UserService {
             throw new RuntimeException("User with this email already exists");
         }
         admin.setRole(Roles.SHOP_ADMIN);
+        
+        // Generate random password if not provided
         String rawPassword = admin.getPassword();
+        if (rawPassword == null || rawPassword.isEmpty()) {
+            rawPassword = generateRandomPassword(10);
+        }
+        
         String encodedPassword = passwordEncoder.encode(rawPassword);
         admin.setPassword(encodedPassword);
         admin.setBarbershop(shop);
-        return adminRepository.save(admin);
+        Admin savedAdmin = adminRepository.save(admin);
+        
+        // Send credentials email to the shop admin
+        emailService.sendShopAdminCredentials(
+            savedAdmin.getEmail(), 
+            savedAdmin.getName(), 
+            shop.getName(), 
+            rawPassword
+        );
+        
+        return savedAdmin;
     }
     public Admin registerAdminOfApplication(Admin admin, Barbershop shop) {
         if(userRepository.existsByEmail(admin.getEmail())) {

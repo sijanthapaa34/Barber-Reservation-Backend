@@ -29,6 +29,10 @@ public class BarbershopMapper {
         dto.setWebsite(shop.getWebsite());
         dto.setOperatingHours(shop.getOperatingHours());
         dto.setRating(shop.getRating());
+        // Add admin ID for chat functionality
+        if (shop.getAdmin() != null) {
+            dto.setAdminId(shop.getAdmin().getId());
+        }
         return dto;
     }
 
