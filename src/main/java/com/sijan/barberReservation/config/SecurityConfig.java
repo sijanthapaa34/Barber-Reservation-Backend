@@ -70,6 +70,11 @@ public class SecurityConfig {
                             .requestMatchers(HttpMethod.GET, "/api/shops/**").permitAll()
                             .requestMatchers(HttpMethod.GET, "/api/barbershop/**").permitAll()
 
+                            // Chat Endpoints (require authentication)
+                            .requestMatchers("/api/chat/**").authenticated()
+                            .requestMatchers("/api/firestore-chat/**").authenticated()
+                            .requestMatchers("/ws/chat/**").permitAll()
+
                             // Role Protected
                             .requestMatchers("/api/admin/**").hasAnyRole("MAIN_ADMIN", "SHOP_ADMIN")
                             .requestMatchers("/api/barber/**").hasRole("BARBER")
