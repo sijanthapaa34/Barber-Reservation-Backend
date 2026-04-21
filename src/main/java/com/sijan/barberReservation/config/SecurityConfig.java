@@ -30,8 +30,6 @@ public class SecurityConfig {
 
     private final JwtTokenProvider tokenProvider;
 
-    // 1. MANUALLY CREATE THE BEAN HERE
-    // This fixes the "could not be found" error
     @Bean
     public JwtAuthenticationFilter jwtAuthenticationFilter(MyUserDetailsService userDetailsService) {
         return new JwtAuthenticationFilter(tokenProvider, userDetailsService);
@@ -64,7 +62,8 @@ public class SecurityConfig {
                             .requestMatchers("/api/email/**").permitAll()
                             .requestMatchers("/api/upload/**").permitAll()
                             .requestMatchers(HttpMethod.GET, "/api/applications/**").permitAll()
-                            .requestMatchers(HttpMethod.POST, "/api/applications").permitAll()                            .requestMatchers("/api/users/").permitAll()
+                            .requestMatchers(HttpMethod.POST, "/api/applications").permitAll()
+                            .requestMatchers("/api/users/").permitAll()
 
                             // Public Shop Endpoints
                             .requestMatchers(HttpMethod.GET, "/api/shops/**").permitAll()

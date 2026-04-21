@@ -51,8 +51,6 @@ public class EsewaService {
     public Map<String, String> preparePaymentData(Long transactionId, BigDecimal amount) {
         String totalAmountStr = amount.setScale(2, RoundingMode.HALF_UP).toString();
 
-        // ✅ FIX: Create unique transaction UUID by appending timestamp
-        // This prevents "Duplicate transaction UUID" errors on retries
         String uniqueTransactionUuid = transactionId.toString() + "-" + System.currentTimeMillis();
 
         // eSewa V2 Signature format
@@ -68,7 +66,6 @@ public class EsewaService {
 
         Map<String, String> data = new HashMap<>();
 
-        // ✅ FIXED: Correct payment URL for eSewa V2 form submission
         data.put("payment_url", baseUrl + "main/v2/form");
 
         // Form Data
@@ -94,8 +91,6 @@ public class EsewaService {
     }
 
     public boolean verifyPayment(String refId, Long transactionId, BigDecimal amount) {
-        // ✅ FIX: Extract the unique UUID from refId (format: "txId-timestamp")
-        // The refId passed here is the uniqueTransactionUuid from preparePaymentData
         String transactionUuid = refId;
         
         log.info("=== eSewa Verification Start ===");
@@ -103,9 +98,7 @@ public class EsewaService {
         log.info("Transaction UUID: {}", transactionUuid);
         log.info("Amount: {}", amount);
         
-        // ⚠️ TEMPORARY FIX FOR ESEWA SANDBOX
-        // eSewa sandbox doesn't have a working verification endpoint
-        // For production, you need to get the correct endpoint from eSewa
+
         if ("EPAYTEST".equals(merchantId)) {
             log.warn("⚠️ eSewa SANDBOX MODE: Auto-approving payment for test merchant");
             log.warn("⚠️ Transaction UUID: {}", transactionUuid);
@@ -114,9 +107,7 @@ public class EsewaService {
             // For sandbox/test, we'll assume payment was successful if user reached callback
             return true;
         }
-        
-        // ✅ PRODUCTION: Try to verify with eSewa
-        // Note: The correct endpoint format needs to be confirmed with eSewa documentation
+
         String url = String.format(
                 "%smain/v2/form/transaction-status/?product_code=%s&total_amount=%s&transaction_uuid=%s",
                 baseUrl,

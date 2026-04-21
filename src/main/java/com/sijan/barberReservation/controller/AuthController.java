@@ -69,42 +69,6 @@ public class AuthController {
                 .body(response);
     }
 
-
-//    @PostMapping("/facebook")
-//    public ResponseEntity<Map<String, String>> loginWithFacebook(
-//            @RequestParam String idToken,
-//            @RequestParam String platform) throws Exception {
-//
-//        // Verify Facebook token and get user info
-//        var userInfo = facebookTokenVerifierService.verifyToken(idToken);
-//
-//        String email = userInfo.getEmail();
-//        String name = userInfo.getName();
-//        String picture = userInfo.getPicture();
-//
-//        // Check if user exists
-//        User user = userService.findByEmail(email);
-//        if (user == null) {
-//            // Create a new customer
-//            Customer customer = new Customer();
-//            customer.setEmail(email);
-//            customer.setName(name);
-//            customer.setRole(Roles.CUSTOMER);
-//            user = userService.registerCustomer(customer);
-//        }
-//
-//        // Generate JWT
-//        String token = tokenProvider.generateToken(user.getEmail(), user.getRole().name());
-//
-//        Map<String, String> response = new HashMap<>();
-//        response.put("token", token);
-//        response.put("email", email);
-//        response.put("name", name);
-//        response.put("picture", picture);
-//
-//        return ResponseEntity.ok(response);
-//    }
-
     @PostMapping("/customer")
     public ResponseEntity<Map<String, String>> registerCustomer(@RequestBody RegisterCustomerRequest req) {
         boolean isValid = otpService.verifyOtp(req.getEmail(), req.getOtp());

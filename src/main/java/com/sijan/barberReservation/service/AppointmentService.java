@@ -485,9 +485,7 @@ public class AppointmentService{
                 .orElseThrow(() -> new AppointmentNotFoundException(id));
     }
 
-    // ==================================================================================
-    // CANCELLATION FLOW (Called by AppointmentController)
-    // ==================================================================================
+
     @Transactional
     public void cancel(Long appointmentId, User cancelledByUser) {
         Appointment appointment = findById(appointmentId);
@@ -506,7 +504,6 @@ public class AppointmentService{
                 boolean isBarberCancelled = cancelledByUser.getRole() == Roles.BARBER || cancelledByUser.getRole() == Roles.SHOP_ADMIN;
                 double refundPercentage = isBarberCancelled ? 1.0 : calculateRefundPercentage(appointment.getScheduledTime());
 
-                // ✅ Delegate to PaymentService
                 paymentService.processRefundForAppointment(tx, refundPercentage);
             } else if (tx.getStatus() == TransactionStatus.PENDING) {
                 paymentService.failTransaction(tx.getId());
@@ -669,7 +666,6 @@ public class AppointmentService{
             LocalDateTime slotEnd = slotStart.plusMinutes(totalDurationMinutes);
             LocalDateTime finalSlotStart = slotStart;
 
-            // ✅ 3. CHECK IF SLOT IS TEMPORARILY RESERVED BY SOMEONE PAYING
             boolean isReserved = reservedSlotTimes.contains(finalSlotStart);
 
             boolean conflict = bookedAppointments.stream()
@@ -680,7 +676,6 @@ public class AppointmentService{
                         return finalSlotStart.isBefore(existingEnd) && slotEnd.isAfter(existingStart);
                     });
 
-            // ✅ 4. ONLY ADD IF NOT RESERVED AND NOT CONFLICTING
             if (!isReserved && !conflict) {
                 availableSlots.add(slotStart);
             }
@@ -732,7 +727,6 @@ public class AppointmentService{
         }
     }
 
-    // ✅ Maps correctly to your AvailableSlotsResponseDTO
     public AvailableSlotsResponseDTO getAvailability(Barber barber, List<ServiceOffering> services, LocalDate date) {
         List<LocalDateTime> availableSlotTimes = computeAvailableSlots(barber, date, services, null);
         List<Appointment> bookedAppointments = getBookedAppointments(barber, date, null);
@@ -762,7 +756,6 @@ public class AppointmentService{
         appointment.setCheckInTime(newDateTime.minusMinutes(10));
         appointment.setCompletedTime(newDateTime.plusMinutes(appointment.getTotalDurationMinutes()));
 
-        // ✅ Safety net: DB Unique Constraint catch
         try {
             Appointment saved = appointmentRepository.save(appointment);
             String customerEmail = saved.getCustomer().getEmail();
