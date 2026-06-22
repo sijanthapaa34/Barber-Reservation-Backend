@@ -114,7 +114,7 @@ class AdminServiceTest {
         when(paymentTransactionRepository.sumRevenueByPaidAtBetween(any(), any())).thenReturn(50000.0);
         when(paymentTransactionRepository.sumPlatformFeeByPaidAtBetween(any(), any())).thenReturn(2500.0);
         when(paymentTransactionRepository.sumShopEarningsByPaidAtBetween(any(), any())).thenReturn(47500.0);
-        when(userService.countByLastLoginAfter(any())).thenReturn(15L);
+        when(userService.countByLastLoginAfter(any())).thenReturn(15);
         when(barbershopService.findTop4ByActiveTrueOrderByRatingDesc()).thenReturn(List.of());
         when(paymentTransactionRepository.findRecentCompleted(any())).thenReturn(List.of());
         when(barbershopMapper.toDTOs(any())).thenReturn(List.of());
@@ -221,5 +221,232 @@ class AdminServiceTest {
         assertThrows(InvalidPasswordException.class, () -> {
             adminService.changePassword(admin, currentPassword, newPassword);
         });
+    }
+
+    @Test
+    void getDashboardData_WithNullRevenue_ReturnsZero() {
+        when(userService.count()).thenReturn(100L);
+        when(barbershopService.countByActiveTrue()).thenReturn(20L);
+        when(appointmentService.count()).thenReturn(500L);
+        when(paymentTransactionRepository.sumRevenueByPaidAtBetween(any(), any())).thenReturn(null);
+        when(paymentTransactionRepository.sumPlatformFeeByPaidAtBetween(any(), any())).thenReturn(null);
+        when(paymentTransactionRepository.sumShopEarningsByPaidAtBetween(any(), any())).thenReturn(null);
+        when(userService.countByLastLoginAfter(any())).thenReturn(15);
+        when(barbershopService.findTop4ByActiveTrueOrderByRatingDesc()).thenReturn(List.of());
+        when(paymentTransactionRepository.findRecentCompleted(any())).thenReturn(List.of());
+        when(barbershopMapper.toDTOs(any())).thenReturn(List.of());
+
+        AdminDashboardResponse result = adminService.getDashboardData();
+
+        assertNotNull(result);
+        assertEquals(0.0, result.getMonthlyRevenue());
+        assertEquals(0.0, result.getPlatformEarnings());
+    }
+
+    @Test
+    void getDashboardData_WithZeroLastMonthRevenue_Returns100PercentGrowth() {
+        when(userService.count()).thenReturn(100L);
+        when(barbershopService.countByActiveTrue()).thenReturn(20L);
+        when(appointmentService.count()).thenReturn(500L);
+        when(paymentTransactionRepository.sumRevenueByPaidAtBetween(any(), any()))
+                .thenReturn(10000.0)  // current month (called first)
+                .thenReturn(0.0); // last month (called second)
+        when(paymentTransactionRepository.sumPlatformFeeByPaidAtBetween(any(), any())).thenReturn(500.0);
+        when(paymentTransactionRepository.sumShopEarningsByPaidAtBetween(any(), any())).thenReturn(9500.0);
+        when(userService.countByLastLoginAfter(any())).thenReturn(15);
+        when(barbershopService.findTop4ByActiveTrueOrderByRatingDesc()).thenReturn(List.of());
+        when(paymentTransactionRepository.findRecentCompleted(any())).thenReturn(List.of());
+        when(barbershopMapper.toDTOs(any())).thenReturn(List.of());
+
+        AdminDashboardResponse result = adminService.getDashboardData();
+
+        assertNotNull(result);
+        assertEquals(100.0, result.getRevenueGrowthPercent());
+    }
+
+    @Test
+    void getDashboardData_WithRecentActivities_IncludesTransactions() {
+        PaymentTransaction tx = new PaymentTransaction();
+        tx.setId(1L);
+        tx.setAmount(new java.math.BigDecimal("200.00"));
+        tx.setPaidAt(LocalDateTime.now());
+        
+        Barbershop shop = new Barbershop();
+        shop.setName("Test Shop");
+        tx.setBarbershop(shop);
+        
+        Customer customer = new Customer();
+        customer.setName("Test Customer");
+        tx.setCustomer(customer);
+
+        when(userService.count()).thenReturn(100L);
+        when(barbershopService.countByActiveTrue()).thenReturn(20L);
+        when(appointmentService.count()).thenReturn(500L);
+        when(paymentTransactionRepository.sumRevenueByPaidAtBetween(any(), any())).thenReturn(50000.0);
+        when(paymentTransactionRepository.sumPlatformFeeByPaidAtBetween(any(), any())).thenReturn(2500.0);
+        when(paymentTransactionRepository.sumShopEarningsByPaidAtBetween(any(), any())).thenReturn(47500.0);
+        when(userService.countByLastLoginAfter(any())).thenReturn(15);
+        when(barbershopService.findTop4ByActiveTrueOrderByRatingDesc()).thenReturn(List.of());
+        when(paymentTransactionRepository.findRecentCompleted(any())).thenReturn(Arrays.asList(tx));
+        when(barbershopMapper.toDTOs(any())).thenReturn(List.of());
+
+        AdminDashboardResponse result = adminService.getDashboardData();
+
+        assertNotNull(result);
+        assertNotNull(result.getRecentActivities());
+        assertEquals(1, result.getRecentActivities().size());
+        assertEquals("BOOKING", result.getRecentActivities().get(0).getType());
+    }
+
+    @Test
+    void getShopAdminDashboardData_WithNullCounts_ReturnsZero() {
+        Barbershop shop = new Barbershop();
+        shop.setId(1L);
+
+        Admin admin = new Admin();
+        admin.setId(1L);
+        admin.setBarbershop(shop);
+
+        when(barberService.countByBarbershop(shop)).thenReturn(5);
+        when(reviewService.countByBarbershop(shop)).thenReturn(10L);
+        when(paymentTransactionRepository.countByBarbershopAndPaidAtBetween(any(), any(), any())).thenReturn(null);
+        when(paymentTransactionRepository.sumRevenueByBarbershopAndPaidAtBetween(any(), any(), any())).thenReturn(null);
+        when(appointmentService.countByShopAndStatus(any(), any())).thenReturn(null);
+        when(barberService.countByBarbershopAndAvailableTrue(shop)).thenReturn(null);
+        when(barberService.findTopBarbersByShops(any(), any())).thenReturn(List.of());
+        when(serviceService.findPopularServices(any(), any())).thenReturn(List.of());
+        when(appointmentService.findUpcomingByShop(any(), any(), any())).thenReturn(List.of());
+        when(appointmentDetailsMapper.toDTOs(any())).thenReturn(List.of());
+
+        ShopAdminDashboardResponse result = adminService.getShopAdminDashboardData(admin);
+
+        assertNotNull(result);
+        assertEquals(0, result.getTodayAppointments());
+        assertEquals(0.0, result.getTodayRevenue());
+        assertEquals(0, result.getPendingAppointments());
+        assertEquals(0, result.getAvailableBarbers());
+    }
+
+    @Test
+    void getShopAdminDashboardData_WithZeroLastMonthRevenue_Returns100PercentGrowth() {
+        Barbershop shop = new Barbershop();
+        shop.setId(1L);
+
+        Admin admin = new Admin();
+        admin.setId(1L);
+        admin.setBarbershop(shop);
+
+        when(barberService.countByBarbershop(shop)).thenReturn(5);
+        when(reviewService.countByBarbershop(shop)).thenReturn(10L);
+        when(paymentTransactionRepository.countByBarbershopAndPaidAtBetween(any(), any(), any())).thenReturn(20);
+        when(paymentTransactionRepository.sumRevenueByBarbershopAndPaidAtBetween(any(), any(), any()))
+                .thenReturn(100.0)    // today's revenue (first call)
+                .thenReturn(10000.0)  // current month (second call)
+                .thenReturn(0.0);     // last month (third call)
+        when(appointmentService.countByShopAndStatus(any(), any())).thenReturn(5);
+        when(barberService.countByBarbershopAndAvailableTrue(shop)).thenReturn(4);
+        when(barberService.findTopBarbersByShops(any(), any())).thenReturn(List.of());
+        when(serviceService.findPopularServices(any(), any())).thenReturn(List.of());
+        when(appointmentService.findUpcomingByShop(any(), any(), any())).thenReturn(List.of());
+        when(appointmentDetailsMapper.toDTOs(any())).thenReturn(List.of());
+
+        ShopAdminDashboardResponse result = adminService.getShopAdminDashboardData(admin);
+
+        assertNotNull(result);
+        assertEquals(100.0, result.getRevenueGrowth());
+    }
+
+    @Test
+    void getShopAdminDashboardData_WithPositiveGrowth_CalculatesCorrectly() {
+        Barbershop shop = new Barbershop();
+        shop.setId(1L);
+
+        Admin admin = new Admin();
+        admin.setId(1L);
+        admin.setBarbershop(shop);
+
+        when(barberService.countByBarbershop(shop)).thenReturn(5);
+        when(reviewService.countByBarbershop(shop)).thenReturn(10L);
+        when(paymentTransactionRepository.countByBarbershopAndPaidAtBetween(any(), any(), any())).thenReturn(20);
+        when(paymentTransactionRepository.sumRevenueByBarbershopAndPaidAtBetween(any(), any(), any()))
+                .thenReturn(500.0)    // today's revenue (first call)
+                .thenReturn(15000.0)  // current month (second call)
+                .thenReturn(10000.0); // last month (third call)
+        when(appointmentService.countByShopAndStatus(any(), any())).thenReturn(5);
+        when(barberService.countByBarbershopAndAvailableTrue(shop)).thenReturn(4);
+        when(barberService.findTopBarbersByShops(any(), any())).thenReturn(List.of());
+        when(serviceService.findPopularServices(any(), any())).thenReturn(List.of());
+        when(appointmentService.findUpcomingByShop(any(), any(), any())).thenReturn(List.of());
+        when(appointmentDetailsMapper.toDTOs(any())).thenReturn(List.of());
+
+        ShopAdminDashboardResponse result = adminService.getShopAdminDashboardData(admin);
+
+        assertNotNull(result);
+        assertEquals(50.0, result.getRevenueGrowth()); // (15000-10000)/10000 * 100 = 50%
+    }
+
+    @Test
+    void getShopAdminDashboardData_WithTopBarbers_IncludesInResponse() {
+        Barbershop shop = new Barbershop();
+        shop.setId(1L);
+
+        Admin admin = new Admin();
+        admin.setId(1L);
+        admin.setBarbershop(shop);
+
+        Barber barber1 = new Barber();
+        barber1.setId(1L);
+        barber1.setName("Top Barber");
+
+        when(barberService.countByBarbershop(shop)).thenReturn(5);
+        when(reviewService.countByBarbershop(shop)).thenReturn(10L);
+        when(paymentTransactionRepository.countByBarbershopAndPaidAtBetween(any(), any(), any())).thenReturn(20);
+        when(paymentTransactionRepository.sumRevenueByBarbershopAndPaidAtBetween(any(), any(), any())).thenReturn(10000.0);
+        when(appointmentService.countByShopAndStatus(any(), any())).thenReturn(5);
+        when(barberService.countByBarbershopAndAvailableTrue(shop)).thenReturn(4);
+        when(barberService.findTopBarbersByShops(any(), any())).thenReturn(Arrays.asList(barber1));
+        when(serviceService.findPopularServices(any(), any())).thenReturn(List.of());
+        when(appointmentService.findUpcomingByShop(any(), any(), any())).thenReturn(List.of());
+        when(appointmentDetailsMapper.toDTOs(any())).thenReturn(List.of());
+
+        ShopAdminDashboardResponse result = adminService.getShopAdminDashboardData(admin);
+
+        assertNotNull(result);
+        assertNotNull(result.getTopBarbers());
+        assertEquals(1, result.getTopBarbers().size());
+        assertTrue(result.getTopBarbers().containsKey(1L));
+    }
+
+    @Test
+    void getShopAdminDashboardData_WithPopularServices_IncludesInResponse() {
+        Barbershop shop = new Barbershop();
+        shop.setId(1L);
+
+        Admin admin = new Admin();
+        admin.setId(1L);
+        admin.setBarbershop(shop);
+
+        ServiceOffering service = new ServiceOffering();
+        service.setId(1L);
+        service.setName("Haircut");
+        service.setPrice(200.0);
+
+        when(barberService.countByBarbershop(shop)).thenReturn(5);
+        when(reviewService.countByBarbershop(shop)).thenReturn(10L);
+        when(paymentTransactionRepository.countByBarbershopAndPaidAtBetween(any(), any(), any())).thenReturn(20);
+        when(paymentTransactionRepository.sumRevenueByBarbershopAndPaidAtBetween(any(), any(), any())).thenReturn(10000.0);
+        when(appointmentService.countByShopAndStatus(any(), any())).thenReturn(5);
+        when(barberService.countByBarbershopAndAvailableTrue(shop)).thenReturn(4);
+        when(barberService.findTopBarbersByShops(any(), any())).thenReturn(List.of());
+        when(serviceService.findPopularServices(any(), any())).thenReturn(Arrays.asList(service));
+        when(appointmentService.findUpcomingByShop(any(), any(), any())).thenReturn(List.of());
+        when(appointmentDetailsMapper.toDTOs(any())).thenReturn(List.of());
+
+        ShopAdminDashboardResponse result = adminService.getShopAdminDashboardData(admin);
+
+        assertNotNull(result);
+        assertNotNull(result.getPopularServices());
+        assertEquals(1, result.getPopularServices().size());
+        assertTrue(result.getPopularServices().containsKey(1L));
     }
 }

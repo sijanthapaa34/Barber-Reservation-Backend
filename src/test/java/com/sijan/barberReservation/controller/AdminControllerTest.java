@@ -25,11 +25,12 @@ import java.util.List;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(AdminController.class)
-@AutoConfigureMockMvc(addFilters = false)
 class AdminControllerTest {
 
     @Autowired
@@ -59,8 +60,22 @@ class AdminControllerTest {
     @MockBean
     private BarbershopMapper barbershopMapper;
 
+    private Admin testAdmin;
+    private UserPrincipal testUserPrincipal;
+
+    @org.junit.jupiter.api.BeforeEach
+    void setUp() {
+        testAdmin = new Admin();
+        testAdmin.setId(1L);
+        testAdmin.setEmail("admin@test.com");
+        testAdmin.setPassword("password");
+        testAdmin.setRole(Roles.SHOP_ADMIN);
+        testAdmin.setActive(true);
+
+        testUserPrincipal = new UserPrincipal(testAdmin);
+    }
+
     @Test
-    @WithMockUser
     void getAllAppointment_Success() throws Exception {
         // Arrange
         Admin admin = new Admin();
@@ -74,6 +89,7 @@ class AdminControllerTest {
 
         // Act & Assert
         mockMvc.perform(get("/api/admin/appointment")
+                        .with(user(testUserPrincipal))
                         .param("page", "0")
                         .param("size", "10"))
                 .andExpect(status().isOk());
@@ -82,20 +98,19 @@ class AdminControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "MAIN_ADMIN")
     void getDashboardDetails_Success() throws Exception {
         // Arrange
         when(adminService.getDashboardData()).thenReturn(null);
 
         // Act & Assert
-        mockMvc.perform(get("/api/admin/main/dashboard"))
+        mockMvc.perform(get("/api/admin/main/dashboard")
+                        .with(user(testUserPrincipal)))
                 .andExpect(status().isOk());
 
         verify(adminService, times(1)).getDashboardData();
     }
 
     @Test
-    @WithMockUser(roles = "SHOP_ADMIN")
     void getShopAdminDashboardDetails_Success() throws Exception {
         // Arrange
         Admin admin = new Admin();
@@ -105,14 +120,14 @@ class AdminControllerTest {
         when(adminService.getShopAdminDashboardData(admin)).thenReturn(null);
 
         // Act & Assert
-        mockMvc.perform(get("/api/admin/1/dashboard"))
+        mockMvc.perform(get("/api/admin/1/dashboard")
+                        .with(user(testUserPrincipal)))
                 .andExpect(status().isOk());
 
         verify(adminService, times(1)).getShopAdminDashboardData(admin);
     }
 
     @Test
-    @WithMockUser(roles = "SHOP_ADMIN")
     void getShopByAdmin_Success() throws Exception {
         // Arrange
         Barbershop shop = new Barbershop();
@@ -126,14 +141,14 @@ class AdminControllerTest {
         when(barbershopMapper.toDTO(shop)).thenReturn(null);
 
         // Act & Assert
-        mockMvc.perform(get("/api/admin/1/shop"))
+        mockMvc.perform(get("/api/admin/1/shop")
+                        .with(user(testUserPrincipal)))
                 .andExpect(status().isOk());
 
         verify(barbershopMapper, times(1)).toDTO(shop);
     }
 
     @Test
-    @WithMockUser(roles = "SHOP_ADMIN")
     void getShopByAdmin_NoShop_NotFound() throws Exception {
         // Arrange
         Admin admin = new Admin();
@@ -143,12 +158,12 @@ class AdminControllerTest {
         when(adminService.findById(1L)).thenReturn(admin);
 
         // Act & Assert
-        mockMvc.perform(get("/api/admin/1/shop"))
+        mockMvc.perform(get("/api/admin/1/shop")
+                        .with(user(testUserPrincipal)))
                 .andExpect(status().isNotFound());
     }
 
     @Test
-    @WithMockUser
     void updateProfile_Success() throws Exception {
         // Arrange
         Admin admin = new Admin();
@@ -166,6 +181,8 @@ class AdminControllerTest {
 
         // Act & Assert
         mockMvc.perform(put("/api/admin/1/update")
+                        .with(user(testUserPrincipal))
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk());
@@ -174,7 +191,6 @@ class AdminControllerTest {
     }
 
     @Test
-    @WithMockUser
     void changePassword_Success() throws Exception {
         // Arrange
         Admin admin = new Admin();
@@ -189,6 +205,8 @@ class AdminControllerTest {
 
         // Act & Assert
         mockMvc.perform(put("/api/admin/1/change-password")
+                        .with(user(testUserPrincipal))
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk());

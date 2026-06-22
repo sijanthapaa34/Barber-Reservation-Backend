@@ -16,9 +16,13 @@ public class CustomerMapper {
         dto.setName(customer.getName());
         dto.setEmail(customer.getEmail());
         dto.setPhone(customer.getPhone());
+        dto.setRole(customer.getRole() != null ? customer.getRole().name() : null);
         dto.setPoints(customer.getPoints());
         dto.setTotalBookings(customer.getTotalBookings());
+        dto.setStatus(customer.getStatus());
         dto.setCreatedAt(customer.getCreatedAt());
+        dto.setLastBookingAt(customer.getLastVisited());
+        dto.setProfilePicture(customer.getProfilePicture());
         return dto;
     }
 

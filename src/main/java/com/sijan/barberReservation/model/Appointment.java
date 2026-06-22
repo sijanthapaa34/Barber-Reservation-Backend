@@ -110,14 +110,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
-@Table(name = "appointments",
-        uniqueConstraints = {
-                // Prevent double booking at DB level
-                @UniqueConstraint(
-                        name = "uk_barber_scheduled_time",
-                        columnNames = {"barber_id", "scheduled_time"}
-                )
-        })
+@Table(name = "appointments")
 @Getter
 @Setter
 @NoArgsConstructor

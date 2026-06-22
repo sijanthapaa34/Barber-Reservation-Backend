@@ -31,11 +31,11 @@ import java.util.List;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(BarbershopController.class)
-@AutoConfigureMockMvc(addFilters = false)
 class BarbershopControllerTest {
 
     @Autowired
@@ -62,6 +62,7 @@ class BarbershopControllerTest {
     private Barbershop testBarbershop;
     private BarbershopDTO testBarbershopDTO;
     private Admin testAdmin;
+    private UserPrincipal testUserPrincipal;
 
     @BeforeEach
     void setUp() {
@@ -86,8 +87,12 @@ class BarbershopControllerTest {
         testAdmin = new Admin();
         testAdmin.setId(1L);
         testAdmin.setEmail("admin@test.com");
+        testAdmin.setPassword("password");
         testAdmin.setRole(Roles.SHOP_ADMIN);
+        testAdmin.setActive(true);
         testAdmin.setBarbershop(testBarbershop);
+        
+        testUserPrincipal = new UserPrincipal(testAdmin);
     }
 
     @Test
@@ -119,7 +124,6 @@ class BarbershopControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "SHOP_ADMIN")
     void update_Success() throws Exception {
         UpdateBarbershopRequest request = new UpdateBarbershopRequest();
         request.setName("Updated Barbershop");
@@ -134,6 +138,7 @@ class BarbershopControllerTest {
         when(barbershopMapper.toDTO(testBarbershop)).thenReturn(testBarbershopDTO);
 
         mockMvc.perform(put("/api/barbershop/1")
+                        .with(user(testUserPrincipal))
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))

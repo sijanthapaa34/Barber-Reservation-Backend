@@ -31,11 +31,11 @@ import java.util.Map;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(AppointmentController.class)
-@AutoConfigureMockMvc(addFilters = false)
 class AppointmentControllerTest {
 
     @Autowired
@@ -73,6 +73,7 @@ class AppointmentControllerTest {
     private Customer testCustomer;
     private Barber testBarber;
     private ServiceOffering testService;
+    private UserPrincipal testUserPrincipal;
 
     @BeforeEach
     void setUp() {
@@ -80,7 +81,11 @@ class AppointmentControllerTest {
         testCustomer.setId(1L);
         testCustomer.setEmail("customer@test.com");
         testCustomer.setName("Test Customer");
+        testCustomer.setPassword("password");
         testCustomer.setRole(Roles.CUSTOMER);
+        testCustomer.setActive(true);
+
+        testUserPrincipal = new UserPrincipal(testCustomer);
 
         testBarber = new Barber();
         testBarber.setId(1L);
@@ -158,7 +163,6 @@ class AppointmentControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "customer@test.com", roles = "CUSTOMER")
     void upcomingByCustomer_Success() throws Exception {
         List<Appointment> appointments = Arrays.asList(testAppointment);
         Page<Appointment> page = new PageImpl<>(appointments, PageRequest.of(0, 10), 1);
@@ -171,6 +175,7 @@ class AppointmentControllerTest {
         when(pageMapper.toAppointmentPageResponse(page)).thenReturn(pageResponse);
 
         mockMvc.perform(get("/api/appointment/upcoming")
+                        .with(user(testUserPrincipal))
                         .param("page", "0")
                         .param("size", "10"))
                 .andExpect(status().isOk())
@@ -182,7 +187,6 @@ class AppointmentControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "customer@test.com", roles = "CUSTOMER")
     void pastByCustomer_Success() throws Exception {
         List<Appointment> appointments = Arrays.asList(testAppointment);
         Page<Appointment> page = new PageImpl<>(appointments, PageRequest.of(0, 10), 1);
@@ -195,6 +199,7 @@ class AppointmentControllerTest {
         when(pageMapper.toAppointmentPageResponse(page)).thenReturn(pageResponse);
 
         mockMvc.perform(get("/api/appointment/past")
+                        .with(user(testUserPrincipal))
                         .param("page", "0")
                         .param("size", "10"))
                 .andExpect(status().isOk())
@@ -251,13 +256,13 @@ class AppointmentControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "customer@test.com", roles = "CUSTOMER")
     void cancel_Success() throws Exception {
         when(userService.findById(anyLong())).thenReturn(testCustomer);
         doNothing().when(appointmentService).cancel(anyLong(), any(User.class));
 
         mockMvc.perform(put("/api/appointment/1/cancel")
-                        .with(csrf()))
+                        .with(csrf())
+                        .with(user(testUserPrincipal)))
                 .andExpect(status().isNoContent());
 
         verify(userService).findById(anyLong());
@@ -265,7 +270,6 @@ class AppointmentControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "customer@test.com", roles = "CUSTOMER")
     void getRefundPreview_Success() throws Exception {
         Map<String, Object> refundPreview = new HashMap<>();
         refundPreview.put("refundAmount", 80.0);
@@ -274,7 +278,8 @@ class AppointmentControllerTest {
 
         when(appointmentService.getRefundPreview(anyLong(), anyLong())).thenReturn(refundPreview);
 
-        mockMvc.perform(get("/api/appointment/1/refund-preview"))
+        mockMvc.perform(get("/api/appointment/1/refund-preview")
+                        .with(user(testUserPrincipal)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.refundAmount").value(80.0))
                 .andExpect(jsonPath("$.refundPercentage").value(80.0))

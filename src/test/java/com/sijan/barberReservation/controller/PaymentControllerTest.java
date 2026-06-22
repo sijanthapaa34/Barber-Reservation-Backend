@@ -30,11 +30,12 @@ import java.util.HashMap;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(PaymentController.class)
-@AutoConfigureMockMvc(addFilters = false)
 class PaymentControllerTest {
 
     @Autowired
@@ -62,12 +63,19 @@ class PaymentControllerTest {
     private PaymentTransaction testTransaction;
     private Appointment testAppointment;
     private Barbershop testBarbershop;
+    private UserPrincipal testUserPrincipal;
 
     @BeforeEach
     void setUp() {
         testCustomer = new Customer();
         testCustomer.setId(1L);
         testCustomer.setName("Test Customer");
+        testCustomer.setEmail("test@test.com");
+        testCustomer.setPassword("password");
+        testCustomer.setRole(Roles.CUSTOMER);
+        testCustomer.setActive(true);
+
+        testUserPrincipal = new UserPrincipal(testCustomer);
 
         testBarbershop = new Barbershop();
         testBarbershop.setId(1L);
@@ -90,7 +98,6 @@ class PaymentControllerTest {
     }
 
     @Test
-    @WithMockUser
     void initiatePayment_Success() throws Exception {
         PaymentRequestDTO request = new PaymentRequestDTO();
         request.setBarberId(1L);
@@ -108,6 +115,7 @@ class PaymentControllerTest {
 
         mockMvc.perform(post("/api/payments/initiate")
                         .with(csrf())
+                        .with(user(testUserPrincipal))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -166,14 +174,15 @@ class PaymentControllerTest {
     }
 
     @Test
-    @WithMockUser
     void getPaymentHistory_Success() throws Exception {
         List<PaymentTransaction> transactions = Arrays.asList(testTransaction);
 
         when(transactionRepository.findByCustomerIdOrderByCreatedAtDesc(anyLong()))
                 .thenReturn(transactions);
 
-        mockMvc.perform(get("/api/payments/history"))
+        mockMvc.perform(get("/api/payments/history")
+                        .with(user(testUserPrincipal)))
+                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.transactions").isArray())
                 .andExpect(jsonPath("$.totalSpent").exists())
@@ -184,7 +193,6 @@ class PaymentControllerTest {
     }
 
     @Test
-    @WithMockUser
     void getPaymentHistory_WithRefundedTransaction() throws Exception {
         testTransaction.setRefundStatus(RefundStatus.COMPLETED);
         testTransaction.setRefundAmount(new BigDecimal("25.00"));
@@ -193,7 +201,8 @@ class PaymentControllerTest {
         when(transactionRepository.findByCustomerIdOrderByCreatedAtDesc(anyLong()))
                 .thenReturn(transactions);
 
-        mockMvc.perform(get("/api/payments/history"))
+        mockMvc.perform(get("/api/payments/history")
+                        .with(user(testUserPrincipal)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.transactions[0].refundStatus").value("COMPLETED"))
                 .andExpect(jsonPath("$.transactions[0].refundAmount").value(25.00));
@@ -202,15 +211,167 @@ class PaymentControllerTest {
     }
 
     @Test
-    @WithMockUser
     void getPaymentHistory_EmptyList() throws Exception {
         when(transactionRepository.findByCustomerIdOrderByCreatedAtDesc(anyLong()))
                 .thenReturn(Arrays.asList());
 
-        mockMvc.perform(get("/api/payments/history"))
+        mockMvc.perform(get("/api/payments/history")
+                        .with(user(testUserPrincipal)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.transactions").isEmpty())
                 .andExpect(jsonPath("$.transactionCount").value(0));
+
+        verify(transactionRepository).findByCustomerIdOrderByCreatedAtDesc(anyLong());
+    }
+
+    @Test
+    void getPaymentHistory_WithNullBarbershop() throws Exception {
+        testTransaction.setBarbershop(null);
+        List<PaymentTransaction> transactions = Arrays.asList(testTransaction);
+
+        when(transactionRepository.findByCustomerIdOrderByCreatedAtDesc(anyLong()))
+                .thenReturn(transactions);
+
+        mockMvc.perform(get("/api/payments/history")
+                        .with(user(testUserPrincipal)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.transactions[0].shopName").doesNotExist());
+
+        verify(transactionRepository).findByCustomerIdOrderByCreatedAtDesc(anyLong());
+    }
+
+    @Test
+    void getPaymentHistory_WithNullAppointment() throws Exception {
+        testTransaction.setAppointment(null);
+        List<PaymentTransaction> transactions = Arrays.asList(testTransaction);
+
+        when(transactionRepository.findByCustomerIdOrderByCreatedAtDesc(anyLong()))
+                .thenReturn(transactions);
+
+        mockMvc.perform(get("/api/payments/history")
+                        .with(user(testUserPrincipal)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.transactions[0].services").doesNotExist());
+
+        verify(transactionRepository).findByCustomerIdOrderByCreatedAtDesc(anyLong());
+    }
+
+    @Test
+    void getPaymentHistory_WithNullServices() throws Exception {
+        testAppointment.setServices(null);
+        testTransaction.setAppointment(testAppointment);
+        List<PaymentTransaction> transactions = Arrays.asList(testTransaction);
+
+        when(transactionRepository.findByCustomerIdOrderByCreatedAtDesc(anyLong()))
+                .thenReturn(transactions);
+
+        mockMvc.perform(get("/api/payments/history")
+                        .with(user(testUserPrincipal)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.transactions[0].services").doesNotExist());
+
+        verify(transactionRepository).findByCustomerIdOrderByCreatedAtDesc(anyLong());
+    }
+
+    @Test
+    void getPaymentHistory_WithPendingTransaction_ShouldFilter() throws Exception {
+        PaymentTransaction pendingTx = new PaymentTransaction();
+        pendingTx.setId(2L);
+        pendingTx.setAmount(new BigDecimal("100.00"));
+        pendingTx.setStatus(TransactionStatus.PENDING);
+        pendingTx.setPaymentMethod(PaymentMethod.KHALTI);
+        pendingTx.setCustomer(testCustomer);
+
+        List<PaymentTransaction> transactions = Arrays.asList(testTransaction, pendingTx);
+
+        when(transactionRepository.findByCustomerIdOrderByCreatedAtDesc(anyLong()))
+                .thenReturn(transactions);
+
+        mockMvc.perform(get("/api/payments/history")
+                        .with(user(testUserPrincipal)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.transactions").isArray())
+                .andExpect(jsonPath("$.transactions.length()").value(1))
+                .andExpect(jsonPath("$.transactions[0].id").value(1));
+
+        verify(transactionRepository).findByCustomerIdOrderByCreatedAtDesc(anyLong());
+    }
+
+    @Test
+    void getPaymentHistory_WithFailedTransaction_ShouldFilter() throws Exception {
+        PaymentTransaction failedTx = new PaymentTransaction();
+        failedTx.setId(3L);
+        failedTx.setAmount(new BigDecimal("75.00"));
+        failedTx.setStatus(TransactionStatus.FAILED);
+        failedTx.setPaymentMethod(PaymentMethod.KHALTI);
+        failedTx.setCustomer(testCustomer);
+
+        List<PaymentTransaction> transactions = Arrays.asList(testTransaction, failedTx);
+
+        when(transactionRepository.findByCustomerIdOrderByCreatedAtDesc(anyLong()))
+                .thenReturn(transactions);
+
+        mockMvc.perform(get("/api/payments/history")
+                        .with(user(testUserPrincipal)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.transactions.length()").value(1))
+                .andExpect(jsonPath("$.totalSpent").value(50.00));
+
+        verify(transactionRepository).findByCustomerIdOrderByCreatedAtDesc(anyLong());
+    }
+
+    @Test
+    void getPaymentHistory_WithRefundPending_ShouldNotCountInTotal() throws Exception {
+        testTransaction.setRefundStatus(RefundStatus.PENDING);
+        testTransaction.setRefundAmount(new BigDecimal("25.00"));
+        List<PaymentTransaction> transactions = Arrays.asList(testTransaction);
+
+        when(transactionRepository.findByCustomerIdOrderByCreatedAtDesc(anyLong()))
+                .thenReturn(transactions);
+
+        mockMvc.perform(get("/api/payments/history")
+                        .with(user(testUserPrincipal)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalRefunded").value(0));
+
+        verify(transactionRepository).findByCustomerIdOrderByCreatedAtDesc(anyLong());
+    }
+
+    @Test
+    void getPaymentHistory_WithNullRefundAmount() throws Exception {
+        testTransaction.setRefundStatus(RefundStatus.COMPLETED);
+        testTransaction.setRefundAmount(null);
+        List<PaymentTransaction> transactions = Arrays.asList(testTransaction);
+
+        when(transactionRepository.findByCustomerIdOrderByCreatedAtDesc(anyLong()))
+                .thenReturn(transactions);
+
+        mockMvc.perform(get("/api/payments/history")
+                        .with(user(testUserPrincipal)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalRefunded").value(0));
+
+        verify(transactionRepository).findByCustomerIdOrderByCreatedAtDesc(anyLong());
+    }
+
+    @Test
+    void getPaymentHistory_WithMultipleServices() throws Exception {
+        ServiceOffering service1 = new ServiceOffering();
+        service1.setName("Haircut");
+        ServiceOffering service2 = new ServiceOffering();
+        service2.setName("Shave");
+        
+        testAppointment.setServices(Arrays.asList(service1, service2));
+        testTransaction.setAppointment(testAppointment);
+        List<PaymentTransaction> transactions = Arrays.asList(testTransaction);
+
+        when(transactionRepository.findByCustomerIdOrderByCreatedAtDesc(anyLong()))
+                .thenReturn(transactions);
+
+        mockMvc.perform(get("/api/payments/history")
+                        .with(user(testUserPrincipal)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.transactions[0].services").value("Haircut, Shave"));
 
         verify(transactionRepository).findByCustomerIdOrderByCreatedAtDesc(anyLong());
     }

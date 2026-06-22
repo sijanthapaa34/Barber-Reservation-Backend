@@ -28,7 +28,7 @@ public class KhaltiService {
     private final RestTemplate restTemplate;
 
     public KhaltiService() {
-        // ✅ This tells Java's HTTP client to KEEP the POST method on 302 redirects
+        // This tells Java's HTTP client to KEEP the POST method on 302 redirects
         // (By default, Java changes POST to GET, which causes Khalti's 404 error)
         System.setProperty("http.strictPostRedirect", "true");
         this.restTemplate = new RestTemplate();

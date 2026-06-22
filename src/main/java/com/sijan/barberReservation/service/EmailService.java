@@ -5,6 +5,7 @@ import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
@@ -18,6 +19,12 @@ public class EmailService {
     @Qualifier("gmailMailSender")
     private final JavaMailSender mailSender;
 
+    @Value("${mail.gmail.username}")
+    private String fromEmail;
+
+    @Value("${mail.from.name}")
+    private String fromName;
+
     // --- Core Send Method ---
 
     @Async
@@ -29,9 +36,12 @@ public class EmailService {
             helper.setTo(to);
             helper.setSubject(subject);
             helper.setText(body, true);
+            helper.setFrom(fromEmail, fromName); // Set custom sender name from properties
 
             mailSender.send(message);
         } catch (MessagingException e) {
+            System.err.println("Failed to send email to " + to + ": " + e.getMessage());
+        } catch (Exception e) {
             System.err.println("Failed to send email to " + to + ": " + e.getMessage());
         }
     }

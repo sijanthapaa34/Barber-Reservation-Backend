@@ -66,6 +66,7 @@ public class BarbershopController {
                 latitude, longitude, radiusKm, pageable);
         return ResponseEntity.ok(pageMapper.toBarbershopPageResponse(shops));
     }
+
     @GetMapping("/all")
     public ResponseEntity<PageResponse<BarbershopDTO>> getAll(
             @RequestParam(defaultValue = "0") int page,

@@ -524,7 +524,17 @@ public class AppointmentService{
 
         // 2. Update Appointment Status
         appointment.setStatus(AppointmentStatus.CANCELLED);
+        
+        // IMPORTANT: Modify scheduled_time to free up the slot
+        // The unique constraint (barber_id, scheduled_time) prevents rebooking if we don't change this
+        // We add the appointment ID as milliseconds to make it unique while preserving the original time info
+        LocalDateTime originalTime = appointment.getScheduledTime();
+        appointment.setScheduledTime(originalTime.plusNanos(appointment.getId() * 1_000_000)); // Add ID as milliseconds
+        
         appointmentRepository.save(appointment);
+        
+        log.info("Cancelled appointment {} - freed slot at {} for barber {}", 
+            appointment.getId(), originalTime, appointment.getBarber().getId());
 
         // 3. Send Emails
         try {

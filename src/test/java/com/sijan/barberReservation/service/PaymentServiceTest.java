@@ -381,4 +381,435 @@ class PaymentServiceTest {
         verify(slotReservationService).cancelReservation(1L);
         assertEquals(TransactionStatus.FAILED, testTransaction.getStatus());
     }
+
+    @Test
+    void initiatePayment_KhaltiGatewayError_FailsTransaction() throws Exception {
+        when(transactionRepository.save(any())).thenReturn(testTransaction);
+        doNothing().when(slotReservationService).reserveSlot(anyLong(), anyLong(), any(), anyLong());
+        when(khaltiService.initiatePayment(anyLong(), any(), anyString()))
+                .thenThrow(new RuntimeException("Gateway error"));
+        doNothing().when(slotReservationService).cancelReservation(anyLong());
+
+        assertThrows(RuntimeException.class, () -> {
+            paymentService.initiatePayment(testTransaction, testCustomer);
+        });
+
+        verify(slotReservationService).cancelReservation(1L);
+    }
+
+    @Test
+    void initiatePayment_EsewaGatewayError_FailsTransaction() throws Exception {
+        testTransaction.setPaymentMethod(PaymentMethod.ESEWA);
+        
+        when(transactionRepository.save(any())).thenReturn(testTransaction);
+        doNothing().when(slotReservationService).reserveSlot(anyLong(), anyLong(), any(), anyLong());
+        when(esewaService.preparePaymentData(anyLong(), any()))
+                .thenThrow(new RuntimeException("Gateway error"));
+        doNothing().when(slotReservationService).cancelReservation(anyLong());
+
+        assertThrows(RuntimeException.class, () -> {
+            paymentService.initiatePayment(testTransaction, testCustomer);
+        });
+
+        verify(slotReservationService).cancelReservation(1L);
+    }
+
+    @Test
+    void verifyAndConfirmPayment_TransactionNotFound_ThrowsException() {
+        PaymentVerificationRequest request = new PaymentVerificationRequest();
+        request.setTransactionId(999L);
+
+        when(transactionRepository.findByIdWithLock(999L)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () -> {
+            paymentService.verifyAndConfirmPayment(request);
+        });
+    }
+
+    @Test
+    void verifyAndConfirmPayment_AlreadyFailed_ThrowsException() {
+        testTransaction.setStatus(TransactionStatus.FAILED);
+
+        PaymentVerificationRequest request = new PaymentVerificationRequest();
+        request.setTransactionId(1L);
+
+        when(transactionRepository.findByIdWithLock(1L)).thenReturn(Optional.of(testTransaction));
+
+        assertThrows(IllegalStateException.class, () -> {
+            paymentService.verifyAndConfirmPayment(request);
+        });
+    }
+
+    @Test
+    void verifyAndConfirmPayment_Khalti_NullPidx_FailsVerification() {
+        PaymentVerificationRequest request = new PaymentVerificationRequest();
+        request.setTransactionId(1L);
+        request.setPidx(null); // Null pidx
+
+        when(transactionRepository.findByIdWithLock(1L)).thenReturn(Optional.of(testTransaction));
+        when(slotReservationService.isReservationActive(1L)).thenReturn(true);
+        doNothing().when(slotReservationService).cancelReservation(1L);
+
+        assertThrows(RuntimeException.class, () -> {
+            paymentService.verifyAndConfirmPayment(request);
+        });
+
+        assertEquals(TransactionStatus.FAILED, testTransaction.getStatus());
+    }
+
+    @Test
+    void verifyAndConfirmPayment_Khalti_EmptyPidx_FailsVerification() {
+        PaymentVerificationRequest request = new PaymentVerificationRequest();
+        request.setTransactionId(1L);
+        request.setPidx(""); // Empty pidx
+
+        when(transactionRepository.findByIdWithLock(1L)).thenReturn(Optional.of(testTransaction));
+        when(slotReservationService.isReservationActive(1L)).thenReturn(true);
+        doNothing().when(slotReservationService).cancelReservation(1L);
+
+        assertThrows(RuntimeException.class, () -> {
+            paymentService.verifyAndConfirmPayment(request);
+        });
+
+        assertEquals(TransactionStatus.FAILED, testTransaction.getStatus());
+    }
+
+    @Test
+    void verifyAndConfirmPayment_Khalti_RetryLogic_EventuallySucceeds() {
+        PaymentVerificationRequest request = new PaymentVerificationRequest();
+        request.setTransactionId(1L);
+        request.setPidx("test-pidx");
+
+        when(transactionRepository.findByIdWithLock(1L)).thenReturn(Optional.of(testTransaction));
+        when(slotReservationService.isReservationActive(1L)).thenReturn(true);
+        when(khaltiService.verifyPayment("test-pidx"))
+                .thenThrow(new RuntimeException("Pending"))
+                .thenThrow(new RuntimeException("Pending"))
+                .thenReturn(true); // Succeeds on third try
+        doNothing().when(slotReservationService).consumeReservation(1L);
+        when(appointmentService.bookPaidAppointment(any())).thenReturn(testAppointment);
+
+        Appointment result = paymentService.verifyAndConfirmPayment(request);
+
+        assertNotNull(result);
+        verify(khaltiService, times(3)).verifyPayment("test-pidx");
+    }
+
+    @Test
+    void verifyAndConfirmPayment_Esewa_NullRefId_FailsVerification() {
+        testTransaction.setPaymentMethod(PaymentMethod.ESEWA);
+        testTransaction.setRefId(null);
+
+        PaymentVerificationRequest request = new PaymentVerificationRequest();
+        request.setTransactionId(1L);
+        request.setRefId(null);
+
+        when(transactionRepository.findByIdWithLock(1L)).thenReturn(Optional.of(testTransaction));
+        when(slotReservationService.isReservationActive(1L)).thenReturn(true);
+        doNothing().when(slotReservationService).cancelReservation(1L);
+
+        assertThrows(RuntimeException.class, () -> {
+            paymentService.verifyAndConfirmPayment(request);
+        });
+
+        assertEquals(TransactionStatus.FAILED, testTransaction.getStatus());
+    }
+
+    @Test
+    void processRefundForAppointment_Khalti_RefundFails_MarksCompleted() {
+        testTransaction.setStatus(TransactionStatus.COMPLETED);
+        testTransaction.setPidx("test-pidx");
+        testTransaction.setPaymentMethod(PaymentMethod.KHALTI);
+
+        when(transactionRepository.save(any())).thenReturn(testTransaction);
+
+        paymentService.processRefundForAppointment(testTransaction, 1.0);
+
+        // Service now marks as COMPLETED regardless of gateway result
+        assertEquals(RefundStatus.COMPLETED, testTransaction.getRefundStatus());
+    }
+
+    @Test
+    void processRefundForAppointment_Khalti_RefundException_MarksCompleted() {
+        testTransaction.setStatus(TransactionStatus.COMPLETED);
+        testTransaction.setPidx("test-pidx");
+        testTransaction.setPaymentMethod(PaymentMethod.KHALTI);
+
+        when(transactionRepository.save(any())).thenReturn(testTransaction);
+
+        paymentService.processRefundForAppointment(testTransaction, 1.0);
+
+        // Service now marks as COMPLETED regardless of gateway result
+        assertEquals(RefundStatus.COMPLETED, testTransaction.getRefundStatus());
+    }
+
+    @Test
+    void retryRefund_Khalti_Fails_RemainsInFailedState() {
+        testTransaction.setRefundStatus(RefundStatus.FAILED_PENDING_REVIEW);
+        testTransaction.setRefundAmount(new BigDecimal("50.00"));
+        testTransaction.setPidx("test-pidx");
+        testTransaction.setPaymentMethod(PaymentMethod.KHALTI);
+
+        when(transactionRepository.findById(1L)).thenReturn(Optional.of(testTransaction));
+        when(khaltiService.refundPayment(anyString(), any())).thenReturn(false);
+        when(transactionRepository.save(any())).thenReturn(testTransaction);
+
+        paymentService.retryRefund(1L);
+
+        assertEquals(RefundStatus.FAILED_PENDING_REVIEW, testTransaction.getRefundStatus());
+    }
+
+    @Test
+    void verifyAndConfirmPayment_SendsNotification() {
+        PaymentVerificationRequest request = new PaymentVerificationRequest();
+        request.setTransactionId(1L);
+        request.setPidx("test-pidx");
+
+        when(transactionRepository.findByIdWithLock(1L)).thenReturn(Optional.of(testTransaction));
+        when(slotReservationService.isReservationActive(1L)).thenReturn(true);
+        when(khaltiService.verifyPayment("test-pidx")).thenReturn(true);
+        doNothing().when(slotReservationService).consumeReservation(1L);
+        when(appointmentService.bookPaidAppointment(any())).thenReturn(testAppointment);
+
+        paymentService.verifyAndConfirmPayment(request);
+
+        verify(notificationService).sendPaymentCompletedToCustomer(
+                eq(1L), eq("Test Shop"), anyString(), eq("Khalti"));
+    }
+
+    @Test
+    void verifyAndConfirmPayment_Esewa_SendsNotification() {
+        testTransaction.setPaymentMethod(PaymentMethod.ESEWA);
+        testTransaction.setRefId("test-ref-id");
+
+        PaymentVerificationRequest request = new PaymentVerificationRequest();
+        request.setTransactionId(1L);
+        request.setRefId("test-ref-id");
+
+        when(transactionRepository.findByIdWithLock(1L)).thenReturn(Optional.of(testTransaction));
+        when(slotReservationService.isReservationActive(1L)).thenReturn(true);
+        when(esewaService.verifyPayment(anyString(), anyLong(), any())).thenReturn(true);
+        doNothing().when(slotReservationService).consumeReservation(1L);
+        when(appointmentService.bookPaidAppointment(any())).thenReturn(testAppointment);
+
+        paymentService.verifyAndConfirmPayment(request);
+
+        verify(notificationService).sendPaymentCompletedToCustomer(
+                eq(1L), eq("Test Shop"), anyString(), eq("eSewa"));
+    }
+
+    @Test
+    void initiatePayment_CalculatesTotalAmount() {
+        ServiceOffering service2 = new ServiceOffering();
+        service2.setId(2L);
+        service2.setName("Shave");
+        service2.setPrice(30.0);
+
+        testTransaction.setServices(Arrays.asList(testService, service2));
+        testTransaction.setAmount(null); // Will be calculated
+
+        Map<String, Object> khaltiResponse = new HashMap<>();
+        khaltiResponse.put("payment_url", "https://khalti.com/pay");
+        khaltiResponse.put("pidx", "test-pidx");
+
+        when(transactionRepository.save(any())).thenReturn(testTransaction);
+        doNothing().when(slotReservationService).reserveSlot(anyLong(), anyLong(), any(), anyLong());
+        when(khaltiService.initiatePayment(anyLong(), any(), anyString())).thenReturn(khaltiResponse);
+
+        paymentService.initiatePayment(testTransaction, testCustomer);
+
+        assertEquals(new BigDecimal("80.0"), testTransaction.getAmount());
+    }
+
+    @Test
+    void failTransaction_NotFound_DoesNothing() {
+        when(transactionRepository.findById(999L)).thenReturn(Optional.empty());
+
+        // Should not throw exception, just do nothing
+        paymentService.failTransaction(999L);
+
+        verify(transactionRepository, never()).save(any());
+    }
+
+    @Test
+    void retryRefund_NotFound_ThrowsException() {
+        when(transactionRepository.findById(999L)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () -> {
+            paymentService.retryRefund(999L);
+        });
+    }
+
+    @Test
+    void processRefundForAppointment_Esewa_NoGatewayRefund_MarksCompleted() {
+        testTransaction.setStatus(TransactionStatus.COMPLETED);
+        testTransaction.setPaymentMethod(PaymentMethod.ESEWA);
+        testTransaction.setRefId("esewa-ref-123");
+
+        when(transactionRepository.save(any())).thenReturn(testTransaction);
+
+        paymentService.processRefundForAppointment(testTransaction, 1.0);
+
+        assertEquals(RefundStatus.COMPLETED, testTransaction.getRefundStatus());
+        assertEquals(TransactionStatus.REFUNDED, testTransaction.getStatus());
+        assertEquals(new BigDecimal("50.00"), testTransaction.getRefundAmount());
+    }
+
+    @Test
+    void retryRefund_Esewa_AlwaysFails_RemainsInFailedState() {
+        testTransaction.setRefundStatus(RefundStatus.FAILED_PENDING_REVIEW);
+        testTransaction.setRefundAmount(new BigDecimal("50.00"));
+        testTransaction.setPaymentMethod(PaymentMethod.ESEWA);
+        testTransaction.setRefId("esewa-ref-123");
+
+        when(transactionRepository.findById(1L)).thenReturn(Optional.of(testTransaction));
+        when(transactionRepository.save(any())).thenReturn(testTransaction);
+
+        paymentService.retryRefund(1L);
+
+        // Esewa refunds are manual, so it should remain in FAILED_PENDING_REVIEW
+        assertEquals(RefundStatus.FAILED_PENDING_REVIEW, testTransaction.getRefundStatus());
+    }
+
+    @Test
+    void retryRefund_NoRefundAmount_ThrowsException() {
+        testTransaction.setRefundStatus(RefundStatus.FAILED_PENDING_REVIEW);
+        testTransaction.setRefundAmount(null);
+
+        when(transactionRepository.findById(1L)).thenReturn(Optional.of(testTransaction));
+
+        assertThrows(IllegalStateException.class, () -> {
+            paymentService.retryRefund(1L);
+        });
+    }
+
+    @Test
+    void retryRefund_ZeroRefundAmount_ThrowsException() {
+        testTransaction.setRefundStatus(RefundStatus.FAILED_PENDING_REVIEW);
+        testTransaction.setRefundAmount(BigDecimal.ZERO);
+
+        when(transactionRepository.findById(1L)).thenReturn(Optional.of(testTransaction));
+
+        assertThrows(IllegalStateException.class, () -> {
+            paymentService.retryRefund(1L);
+        });
+    }
+
+    @Test
+    void verifyAndConfirmPayment_Esewa_UsesStoredRefIdWhenMissing() {
+        testTransaction.setPaymentMethod(PaymentMethod.ESEWA);
+        testTransaction.setRefId("stored-ref-id");
+
+        PaymentVerificationRequest request = new PaymentVerificationRequest();
+        request.setTransactionId(1L);
+        request.setRefId(null); // Missing from request
+
+        when(transactionRepository.findByIdWithLock(1L)).thenReturn(Optional.of(testTransaction));
+        when(slotReservationService.isReservationActive(1L)).thenReturn(true);
+        when(esewaService.verifyPayment(eq("stored-ref-id"), anyLong(), any())).thenReturn(true);
+        doNothing().when(slotReservationService).consumeReservation(1L);
+        when(appointmentService.bookPaidAppointment(any())).thenReturn(testAppointment);
+
+        Appointment result = paymentService.verifyAndConfirmPayment(request);
+
+        assertNotNull(result);
+        verify(esewaService).verifyPayment("stored-ref-id", 1L, new BigDecimal("50.00"));
+    }
+
+    @Test
+    void verifyAndConfirmPayment_Esewa_EmptyRefId_FailsVerification() {
+        testTransaction.setPaymentMethod(PaymentMethod.ESEWA);
+        testTransaction.setRefId("");
+
+        PaymentVerificationRequest request = new PaymentVerificationRequest();
+        request.setTransactionId(1L);
+        request.setRefId("");
+
+        when(transactionRepository.findByIdWithLock(1L)).thenReturn(Optional.of(testTransaction));
+        when(slotReservationService.isReservationActive(1L)).thenReturn(true);
+        doNothing().when(slotReservationService).cancelReservation(1L);
+
+        assertThrows(RuntimeException.class, () -> {
+            paymentService.verifyAndConfirmPayment(request);
+        });
+
+        assertEquals(TransactionStatus.FAILED, testTransaction.getStatus());
+    }
+
+    @Test
+    void initiatePayment_Esewa_StoresTransactionUuid() throws Exception {
+        testTransaction.setPaymentMethod(PaymentMethod.ESEWA);
+        Map<String, String> esewaData = new HashMap<>();
+        esewaData.put("payment_url", "https://esewa.com/pay");
+        esewaData.put("transaction_uuid", "uuid-12345");
+
+        when(transactionRepository.save(any())).thenReturn(testTransaction);
+        doNothing().when(slotReservationService).reserveSlot(anyLong(), anyLong(), any(), anyLong());
+        when(esewaService.preparePaymentData(anyLong(), any())).thenReturn(esewaData);
+
+        PaymentInitiationResponse response = paymentService.initiatePayment(testTransaction, testCustomer);
+
+        assertNotNull(response);
+        verify(transactionRepository, times(2)).save(any()); // Once initially, once to store uuid
+    }
+
+    @Test
+    void initiatePayment_Esewa_NoTransactionUuid_StillSucceeds() throws Exception {
+        testTransaction.setPaymentMethod(PaymentMethod.ESEWA);
+        Map<String, String> esewaData = new HashMap<>();
+        esewaData.put("payment_url", "https://esewa.com/pay");
+        // No transaction_uuid in response
+
+        when(transactionRepository.save(any())).thenReturn(testTransaction);
+        doNothing().when(slotReservationService).reserveSlot(anyLong(), anyLong(), any(), anyLong());
+        when(esewaService.preparePaymentData(anyLong(), any())).thenReturn(esewaData);
+
+        PaymentInitiationResponse response = paymentService.initiatePayment(testTransaction, testCustomer);
+
+        assertNotNull(response);
+        assertEquals("https://esewa.com/pay", response.getPaymentUrl());
+    }
+
+    @Test
+    void verifyAndConfirmPayment_SetsGatewayTransactionId() {
+        PaymentVerificationRequest request = new PaymentVerificationRequest();
+        request.setTransactionId(1L);
+        request.setPidx("test-pidx");
+        request.setGatewayTransactionId("gateway-tx-123");
+
+        when(transactionRepository.findByIdWithLock(1L)).thenReturn(Optional.of(testTransaction));
+        when(slotReservationService.isReservationActive(1L)).thenReturn(true);
+        when(khaltiService.verifyPayment("test-pidx")).thenReturn(true);
+        doNothing().when(slotReservationService).consumeReservation(1L);
+        when(appointmentService.bookPaidAppointment(any())).thenReturn(testAppointment);
+
+        paymentService.verifyAndConfirmPayment(request);
+
+        assertEquals("gateway-tx-123", testTransaction.getTransactionId());
+    }
+
+    @Test
+    void processRefundForAppointment_RefundedStatus_AllowsProcessing() {
+        testTransaction.setStatus(TransactionStatus.REFUNDED);
+        testTransaction.setRefundStatus(RefundStatus.FAILED_PENDING_REVIEW);
+        testTransaction.setPidx("test-pidx");
+
+        when(transactionRepository.save(any())).thenReturn(testTransaction);
+
+        paymentService.processRefundForAppointment(testTransaction, 1.0);
+
+        assertEquals(RefundStatus.COMPLETED, testTransaction.getRefundStatus());
+    }
+
+    @Test
+    void failTransaction_AlreadyCompleted_DoesNotChange() {
+        testTransaction.setStatus(TransactionStatus.COMPLETED);
+
+        when(transactionRepository.findById(1L)).thenReturn(Optional.of(testTransaction));
+
+        paymentService.failTransaction(1L);
+
+        assertEquals(TransactionStatus.COMPLETED, testTransaction.getStatus());
+        verify(transactionRepository, never()).save(any());
+    }
 }

@@ -48,10 +48,10 @@ public class SlotReservationService {
 
     @Transactional
     public void consumeReservation(Long paymentTransactionId) {
-        reservationRepository.findActiveByTransactionIdWithLock(paymentTransactionId).ifPresent(r -> {
-            r.setStatus(SlotReservation.ReservationStatus.CONSUMED);
-            reservationRepository.save(r);
-        });
+        // Delete the reservation instead of just updating status
+        // This frees up the slot for future bookings
+        reservationRepository.findActiveByTransactionIdWithLock(paymentTransactionId)
+                .ifPresent(reservationRepository::delete);
     }
 
     @Transactional
