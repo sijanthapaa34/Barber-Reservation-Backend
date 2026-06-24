@@ -14,8 +14,8 @@ public class MessageDTO {
     private Long chatRoomId;
     private Long senderId;
     private String senderName;
-    private String senderType; // CUSTOMER or ADMIN
+    private String senderType;
     private String messageText;
-    private String status; // SENT, DELIVERED, READ
+    private String status;
     private LocalDateTime createdAt;
 }

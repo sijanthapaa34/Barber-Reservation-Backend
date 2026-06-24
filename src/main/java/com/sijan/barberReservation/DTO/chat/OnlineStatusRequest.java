@@ -7,8 +7,8 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class TypingStatusRequest {
+public class OnlineStatusRequest {
     private Long chatRoomId;
     private String userType;
-    private Boolean isTyping;
+    private Boolean isOnline;
 }

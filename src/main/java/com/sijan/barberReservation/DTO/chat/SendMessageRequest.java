@@ -11,6 +11,6 @@ public class SendMessageRequest {
     private Long chatRoomId;
     private Long senderId;
     private String senderName;
-    private String senderType; // CUSTOMER or ADMIN
+    private String senderType;
     private String messageText;
 }

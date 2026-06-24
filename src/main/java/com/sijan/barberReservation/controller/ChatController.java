@@ -1,12 +1,14 @@
 package com.sijan.barberReservation.controller;
 
 import com.sijan.barberReservation.DTO.chat.*;
+import com.sijan.barberReservation.config.WebSocketEventListener;
 import com.sijan.barberReservation.service.ChatService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -18,22 +20,18 @@ import java.util.Map;
 @Slf4j
 @CrossOrigin(origins = "*")
 public class ChatController {
-    
+
     private final ChatService chatService;
-    
-    /**
-     * Get or create a chat room
-     */
+    private final WebSocketEventListener webSocketEventListener;
+
     @PostMapping("/rooms")
     public ResponseEntity<ConversationDTO> getOrCreateChatRoom(@RequestBody CreateChatRequest request) {
-        log.info("REST: Get or create chat room");
+        log.info("REST: Get or create chat room for customer {} and admin {}",
+                request.getCustomerId(), request.getShopAdminId());
         ConversationDTO conversation = chatService.getOrCreateChatRoom(request);
         return ResponseEntity.ok(conversation);
     }
-    
-    /**
-     * Get all chat rooms for a user
-     */
+
     @GetMapping("/rooms")
     public ResponseEntity<List<ConversationDTO>> getChatRooms(
             @RequestParam Long userId,
@@ -42,65 +40,14 @@ public class ChatController {
         List<ConversationDTO> conversations = chatService.getChatRooms(userId, userType);
         return ResponseEntity.ok(conversations);
     }
-    
-    /**
-     * Send a message (REST endpoint)
-     */
-    @PostMapping("/messages")
-    public ResponseEntity<MessageDTO> sendMessage(@RequestBody SendMessageRequest request) {
-        log.info("REST: Send message to chat room {}", request.getChatRoomId());
-        MessageDTO message = chatService.sendMessage(request);
-        return ResponseEntity.ok(message);
-    }
-    
-    /**
-     * Get all messages in a chat room
-     */
+
     @GetMapping("/messages/{chatRoomId}")
     public ResponseEntity<List<MessageDTO>> getMessages(@PathVariable Long chatRoomId) {
         log.info("REST: Get messages for chat room {}", chatRoomId);
         List<MessageDTO> messages = chatService.getMessages(chatRoomId);
         return ResponseEntity.ok(messages);
     }
-    
-    /**
-     * Mark messages as read
-     */
-    @PostMapping("/messages/{chatRoomId}/read")
-    public ResponseEntity<Void> markMessagesAsRead(
-            @PathVariable Long chatRoomId,
-            @RequestParam String userType) {
-        log.info("REST: Mark messages as read in chat room {} for user type {}", chatRoomId, userType);
-        chatService.markMessagesAsRead(chatRoomId, userType);
-        return ResponseEntity.ok().build();
-    }
-    
-    /**
-     * Update typing status
-     */
-    @PostMapping("/typing")
-    public ResponseEntity<Void> updateTypingStatus(@RequestBody TypingStatusRequest request) {
-        log.info("REST: Update typing status");
-        chatService.updateTypingStatus(request);
-        return ResponseEntity.ok().build();
-    }
-    
-    /**
-     * Update online status
-     */
-    @PostMapping("/online")
-    public ResponseEntity<Void> updateOnlineStatus(
-            @RequestParam Long chatRoomId,
-            @RequestParam String userType,
-            @RequestParam Boolean isOnline) {
-        log.info("REST: Update online status");
-        chatService.updateOnlineStatus(chatRoomId, userType, isOnline);
-        return ResponseEntity.ok().build();
-    }
-    
-    /**
-     * Get total unread count
-     */
+
     @GetMapping("/unread-count")
     public ResponseEntity<Map<String, Integer>> getUnreadCount(
             @RequestParam Long userId,
@@ -109,24 +56,51 @@ public class ChatController {
         Integer count = chatService.getUnreadCount(userId, userType);
         return ResponseEntity.ok(Map.of("unreadCount", count));
     }
-    
-    // WebSocket message handlers
-    
-    /**
-     * Send message via WebSocket
-     */
+
+    @MessageMapping("/chat.join")
+    public void joinChatRoom(@Payload OnlineStatusRequest request,
+                             SimpMessageHeaderAccessor headerAccessor) {
+        String sessionId = headerAccessor.getSessionId();
+        log.info("WebSocket: User {} joining chat room {}", request.getUserType(), request.getChatRoomId());
+
+        // Register session for disconnect handling
+        webSocketEventListener.registerSession(sessionId, request.getChatRoomId(), request.getUserType());
+
+        // Set user as online
+        chatService.updateOnlineStatus(request.getChatRoomId(), request.getUserType(), true);
+    }
+
     @MessageMapping("/chat.sendMessage")
     public void sendMessageViaWebSocket(@Payload SendMessageRequest request) {
-        log.info("WebSocket: Send message to chat room {}", request.getChatRoomId());
+        log.info("WebSocket: Send message to chat room {} from {}",
+                request.getChatRoomId(), request.getSenderType());
         chatService.sendMessage(request);
     }
-    
-    /**
-     * Update typing status via WebSocket
-     */
+
     @MessageMapping("/chat.typing")
     public void updateTypingStatusViaWebSocket(@Payload TypingStatusRequest request) {
-        log.info("WebSocket: Update typing status");
+        log.info("WebSocket: Update typing status for {} in room {}",
+                request.getUserType(), request.getChatRoomId());
         chatService.updateTypingStatus(request);
+    }
+
+    @MessageMapping("/chat.read")
+    public void markMessagesAsReadViaWebSocket(@Payload ReadStatusRequest request) {
+        log.info("WebSocket: Mark messages as read for {} in room {}",
+                request.getUserType(), request.getChatRoomId());
+        chatService.markMessagesAsRead(request.getChatRoomId(), request.getUserType());
+    }
+
+    @MessageMapping("/chat.leave")
+    public void leaveChatRoom(@Payload OnlineStatusRequest request,
+                              SimpMessageHeaderAccessor headerAccessor) {
+        String sessionId = headerAccessor.getSessionId();
+        log.info("WebSocket: User {} leaving chat room {}", request.getUserType(), request.getChatRoomId());
+
+        // Unregister session
+        webSocketEventListener.unregisterSession(sessionId);
+
+        // Set user as offline
+        chatService.updateOnlineStatus(request.getChatRoomId(), request.getUserType(), false);
     }
 }
